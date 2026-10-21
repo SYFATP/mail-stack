@@ -1,0 +1,13 @@
+**/.git
+**/.env
+**/__pycache__
+**/*.py[cod]
+.venv/
+backups/
+maildata/
+app-data/
+logs/
+dkim/
+reports/
+node_modules/
+.public-release/

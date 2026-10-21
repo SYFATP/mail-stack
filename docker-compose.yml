@@ -1,0 +1,94 @@
+services:
+  opendkim:
+    build: ./opendkim
+    container_name: mail-opendkim
+    restart: unless-stopped
+    depends_on:
+      mail-api:
+        condition: service_healthy
+    env_file: .env
+    networks:
+      mail_internal:
+        ipv4_address: 172.30.0.12
+    expose: ["8891"]
+    volumes:
+      - ./dkim:/etc/opendkim
+      - ./app-data:/app-data
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 8891"]
+      interval: 5s
+      timeout: 2s
+      retries: 12
+    mem_limit: 64m
+
+  mail-postfix:
+    build:
+      context: .
+      dockerfile: postfix/Dockerfile
+    container_name: mail-postfix
+    restart: unless-stopped
+    depends_on:
+      opendkim:
+        condition: service_healthy
+    hostname: ${MAIL_HOST:-mail.example.com}
+    env_file: .env
+    networks:
+      mail_internal:
+        ipv4_address: 172.30.0.11
+    ports:
+      - "25:25"
+    volumes:
+      - ./maildata:/var/mail/vhosts
+      - postfix_queue:/var/spool/postfix
+      - ./logs/postfix:/var/log/mail
+      - ./app-data:/app-data
+    mem_limit: 192m
+    logging:
+      options: {max-size: "10m", max-file: "3"}
+
+  mail-api:
+    build: ./api
+    container_name: mail-api
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,json; from pathlib import Path; assert json.load(urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health'))['ok']; assert Path('/app-data/routing.current').is_file()"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    env_file: .env
+    networks:
+      mail_internal:
+        ipv4_address: 172.30.0.10
+    ports:
+      - "127.0.0.1:18081:8000"
+    volumes:
+      # mail-api needs write access to remove Maildir files after retention
+      # cleanup; it only writes expired message files under this mount.
+      - ./maildata:/maildata
+      - ./app-data:/app-data
+      - ./backups:/backups
+      - ./logs/api:/logs
+      - ./dkim:/dkim:ro
+    mem_limit: 256m
+    logging:
+      options: {max-size: "10m", max-file: "3"}
+
+  mail-frontend:
+    build: ./frontend
+    container_name: mail-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18082:80"
+    mem_limit: 32m
+    logging:
+      options: {max-size: "10m", max-file: "3"}
+
+networks:
+  mail_internal:
+    name: mail-stack-internal
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+volumes:
+  postfix_queue:

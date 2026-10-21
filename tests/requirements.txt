@@ -1,0 +1,2 @@
+-r ../api/requirements.txt
+httpx==0.28.1

@@ -1,0 +1,3 @@
+test@example.com example.com/test/Maildir/
+postmaster@example.com example.com/postmaster/Maildir/
+admin@example.com example.com/admin/Maildir/
