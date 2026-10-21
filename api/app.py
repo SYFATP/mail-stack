@@ -19,6 +19,7 @@ from api.providers.brevo import BrevoAPI
 from api.providers.http import JsonTransport, ProviderError
 from api.repositories.credentials import CredentialError
 from api.services.auth_throttle import AuthenticationRateLimit
+from api.services.server_monitor import ServerMonitor, MonitorThresholds, DEFAULT_THRESHOLDS
 from api.services.global_credentials import load_cloudflare_secret, save_cloudflare_secret
 from api.services.webhook_transport import send_webhook_request, validate_webhook_url, WebhookDeliveryError
 from api.providers.dns.digitalplat import (
@@ -1530,6 +1531,32 @@ def health():
             "disk_free_bytes": free, "large_attachment_ingest": free >= 2 * 1024**3,
             "domain_jobs": domain_worker.status(),
             "routing": applied_state(RUNTIME_DIR)}
+
+server_monitor = ServerMonitor()
+
+@app.get("/api/v1/system/monitor")
+def system_monitor(response: Response, x_api_key: str | None = Header(default=None)):
+    if not admin_ok(x_api_key):
+        raise HTTPException(401, "invalid credentials")
+    response.headers["Cache-Control"] = "no-store"
+    result = server_monitor.snapshot()
+    try:
+        raw = setting_get("server_monitor_thresholds")
+        thresholds = MonitorThresholds.model_validate_json(raw) if raw is not None else MonitorThresholds.model_validate(DEFAULT_THRESHOLDS)
+        result["thresholds"] = thresholds.model_dump()
+        result["settings_error"] = ""
+    except (ValueError, sqlite3.Error):
+        result["thresholds"] = MonitorThresholds.model_validate(DEFAULT_THRESHOLDS).model_dump()
+        result["settings_error"] = "阈值读取失败，当前使用默认值；保存后可修复"
+    return result
+
+@app.put("/api/v1/system/monitor/thresholds")
+def save_monitor_thresholds(item: MonitorThresholds, response: Response, x_api_key: str | None = Header(default=None)):
+    if not admin_ok(x_api_key):
+        raise HTTPException(401, "invalid credentials")
+    response.headers["Cache-Control"] = "no-store"
+    setting_set("server_monitor_thresholds", item.model_dump_json())
+    return {"ok": True, "thresholds": item.model_dump()}
 
 @app.get("/api/v1/domains")
 def domains(x_api_key: str | None = Header(default=None)):

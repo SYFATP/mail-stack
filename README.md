@@ -11,6 +11,7 @@
 - 项目管理、普通 / 管理员 API Key、项目授权及签名 Webhook。
 - Cloudflare / DigitalPlat DNS adapter，可配置域名来源。
 - SQLite 存储、加密 Provider 凭据与 Docker Compose 部署。
+- 简洁 / 经典 UI 与深浅色模式；左侧 CPU、内存、磁盘状态灯，支持实时刷新、详情查看和告警阈值设置。
 
 ## 快速开始
 
