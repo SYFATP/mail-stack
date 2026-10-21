@@ -246,12 +246,15 @@
       html[data-ui-style="modern"] .appearance-controls select{font-size:11px}
       html[data-ui-style="modern"] .login-card{padding:24px}
     }
-    .monitor-lights{display:inline-flex;align-items:center;gap:6px;padding:4px 7px;border:1px solid var(--line);border-radius:99px;background:var(--panel);box-shadow:inset 0 1px 3px #0002}
-    .monitor-light{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:26px;min-height:28px;padding:4px;background:transparent;border-radius:20px;color:var(--muted);font-size:11px}
+    .monitor-lights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:100%;margin-top:12px}
+    .monitor-light{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-width:0;min-height:54px;padding:5px 2px;background:transparent;border-radius:6px;color:var(--text);font-size:11px}
+    .monitor-light-label{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+    .monitor-light-value{font-size:12px;font-weight:600;line-height:1.4;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .monitor-light.monitor-unknown .monitor-light-value{color:var(--muted)}
     .monitor-dot{display:inline-block;flex:none;width:10px;height:10px;border-radius:50%;background:var(--monitor-color,#83909f);box-shadow:inset 0 1px 1px #fff5,0 0 0 1px #0002}
     .monitor-normal{--monitor-color:var(--ok)}.monitor-warning{--monitor-color:#e9a52d}.monitor-critical{--monitor-color:var(--danger)}.monitor-unknown{--monitor-color:#83909f}
     .monitor-light:hover{background:var(--panel2)}.monitor-light:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
-    .monitor-sidebar{display:flex;align-items:center;justify-content:space-between;gap:8px}.monitor-sidebar>span{font-size:11px;color:var(--muted)}
+    .monitor-sidebar{padding-bottom:16px;margin-bottom:12px;border-bottom:1px solid var(--line)}.monitor-sidebar>span{display:block;font-size:11px;font-weight:600;color:var(--muted)}
     .monitor-dialog{width:min(720px,calc(100vw - 32px));max-width:none;max-height:calc(100dvh - 40px);margin:auto;padding:0;border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--text);box-shadow:var(--shadow);overflow:hidden}
     .monitor-dialog[open]{display:flex;flex-direction:column}.monitor-dialog::backdrop{background:#0009}
     .monitor-head,.monitor-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 22px;flex:none}
@@ -295,8 +298,9 @@
       const lights=()=>`<div class="monitor-lights" role="group" aria-label="服务器资源状态：CPU、内存、磁盘">${KEYS.map(key=>{
         const value=snapshot?.[key]?.percent,state=level(value,thresholds()[key],stale());
         const description=error?'读取失败':stale()&&snapshot?'数据已过期':LEVELS[state];
-        const label=`${LABELS[key]}：${formatPercent(value)} · ${description}；打开服务器监控`;
-        return `<button type="button" class="monitor-light monitor-${state}" data-monitor-key="${key}" aria-label="${esc(label)}" title="${esc(label)}" aria-haspopup="dialog"><span class="monitor-dot" aria-hidden="true"></span></button>`;
+        const displayValue=state==='unknown'?'—':formatPercent(value);
+        const label=`${LABELS[key]}：${displayValue} · ${description}；打开服务器监控`;
+        return `<button type="button" class="monitor-light monitor-${state}" data-monitor-key="${key}" aria-label="${esc(label)}" title="${esc(label)}" aria-haspopup="dialog"><span class="monitor-light-label"><span class="monitor-dot" aria-hidden="true"></span><span>${LABELS[key]}</span></span><strong class="monitor-light-value">${displayValue}</strong></button>`;
       }).join('')}</div>`;
       function bindLights(root){if(root)root.onclick=event=>{const button=event.target.closest('[data-monitor-key]');if(button)open(button.dataset.monitorKey)}}
       function draw(){
