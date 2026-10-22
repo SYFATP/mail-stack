@@ -1589,7 +1589,7 @@ class MailDomainInput(BaseModel):
     max_subdomain_depth: int = Field(default=6, ge=0, le=7)
     registration_enabled: bool = True
     registration_random_subdomain_depth: bool = True
-    dns_provider: Literal["cloudflare", "digitalplat", "manual"] = "cloudflare"
+    dns_provider: Literal["cloudflare", "digitalplat", "dynv6", "manual"] = "cloudflare"
 
 
 class MailDomainPatch(BaseModel):
@@ -1607,7 +1607,7 @@ class MailDomainPatch(BaseModel):
     max_subdomain_depth: int | None = Field(default=None, ge=0, le=7)
     registration_enabled: bool | None = None
     registration_random_subdomain_depth: bool | None = None
-    dns_provider: Literal["cloudflare", "digitalplat", "manual"] | None = None
+    dns_provider: Literal["cloudflare", "digitalplat", "dynv6", "manual"] | None = None
 
 class CloudflareConfig(BaseModel):
     api_token: str = ""
@@ -2595,8 +2595,8 @@ def list_domain_dns(domain: str, x_api_key: str | None = Header(default=None)):
         raise HTTPException(404, "domain not found")
     row = rows[domain]
     provider = str(row.get("dns_provider") or "cloudflare").lower()
-    if row.get("dns_credential_ref") and provider in {"cloudflare", "digitalplat"}:
-        label = "DigitalPlat" if provider == "digitalplat" else "Cloudflare"
+    if row.get("dns_credential_ref") and provider in {"cloudflare", "digitalplat", "dynv6"}:
+        label = {"digitalplat": "DigitalPlat", "cloudflare": "Cloudflare", "dynv6": "dynv6"}[provider]
         try:
             inventory = domain_manager.dns_adapter(row).inventory(domain)
         except ValueError as exc:
@@ -2631,7 +2631,7 @@ def list_domain_dns(domain: str, x_api_key: str | None = Header(default=None)):
                 fqdn = domain
             elif name == domain or name.endswith("." + domain):
                 fqdn = name
-            elif provider == "cloudflare":
+            elif provider in {"cloudflare", "dynv6"}:
                 continue  # Bound credentials may cover a parent zone.
             else:
                 fqdn = f"{name}.{domain}"

@@ -1,7 +1,9 @@
 """Small JSON transport: bounded responses, no redirects or implicit retries."""
 from __future__ import annotations
 import ipaddress
+import http.client
 import math
+import threading
 import time
 from email.utils import parsedate_to_datetime
 import json
@@ -60,9 +62,9 @@ class ProviderError(RuntimeError):
         self.rate_limit = rate_limit or {}
         # Only the local write fence supplies an existing absolute cooldown.
         self.provider_backoff = provider_backoff
-        # Only this explicit provider state may authorize Hosted DNS setup.
+        # Only allowlisted codes authorize Hosted DNS setup or NS precheck confirmation.
         # Never retain arbitrary upstream errors/messages or response bodies.
-        self.upstream_code = upstream_code if upstream_code == "hosted_dns_zone_not_found" else ""
+        self.upstream_code = upstream_code if upstream_code in {"hosted_dns_zone_not_found", "external_nameserver_precheck_failed"} else ""
         super().__init__(code)  # Never include upstream body, URL, token or traceback text.
 
 
@@ -86,10 +88,76 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+class _KeepAliveHTTPS(urllib.request.HTTPSHandler):
+    """Bounded idle connections; never replay a request after a socket failure."""
+
+    hosts = frozenset({"dynv6.com", "domain-api.digitalplat.org",
+                       "api.cloudflare.com", "api.brevo.com"})
+
+    def __init__(self):
+        super().__init__()
+        self._idle = []
+        self._lock = threading.Lock()
+
+    def https_open(self, req):
+        # Preserve urllib's proxy handling and the transport for custom origins.
+        if req.host not in self.hosts or req._tunnel_host:
+            return super().https_open(req)
+        connection = None
+        now = time.monotonic()
+        with self._lock:
+            retained = []
+            for host, stamp, candidate in self._idle:
+                if now - stamp > 4:
+                    candidate.close()
+                elif host == req.host and connection is None:
+                    connection = candidate
+                else:
+                    retained.append((host, stamp, candidate))
+            self._idle = retained
+        if connection is None:
+            connection = http.client.HTTPSConnection(
+                req.host, timeout=req.timeout, context=self._context)
+        connection.timeout = req.timeout
+        if connection.sock is not None:
+            connection.sock.settimeout(req.timeout)
+        headers = {**req.headers, **req.unredirected_hdrs}
+        headers.setdefault("Connection", "keep-alive")
+        try:
+            connection.request(req.get_method(), req.selector, req.data, headers,
+                               encode_chunked=req.has_header("Transfer-encoding"))
+            response = connection.getresponse()
+        except Exception:
+            connection.close()
+            raise
+        response.url, response.msg = req.get_full_url(), response.reason
+        original_close, released = response.close, False
+
+        def close():
+            nonlocal released
+            if released:
+                return
+            released = True
+            # A truncated/oversized/error response must never contaminate the
+            # next request. Only completely consumed responses return to pool.
+            reusable = response.isclosed() and not response.will_close and connection.sock is not None
+            original_close()
+            if not reusable:
+                connection.close()
+                return
+            with self._lock:
+                self._idle.append((req.host, time.monotonic(), connection))
+                while len(self._idle) > 8:
+                    self._idle.pop(0)[2].close()
+
+        response.close = close
+        return response
+
+
 class JsonTransport:
     def __init__(self, timeout=20):
         self.timeout = timeout
-        self.opener = urllib.request.build_opener(_NoRedirect())
+        self.opener = urllib.request.build_opener(_NoRedirect(), _KeepAliveHTTPS())
 
     def request(self, method, base, path, *, headers=None, body=None, query=None):
         base = validate_base_url(base)
@@ -119,15 +187,16 @@ class JsonTransport:
                 rate_limit = rate_limit_metadata(exc.read(32768))
                 retry_after = retry_after or rate_limit["retry_after"]
             upstream_code = ""
-            if code == 404:
+            if code in {404, 409}:
                 try:
                     error = json.loads(exc.read(32768)).get("error", {})
-                    if isinstance(error, dict) and error.get("code") == "hosted_dns_zone_not_found":
-                        upstream_code = "hosted_dns_zone_not_found"
+                    allowed = {404: "hosted_dns_zone_not_found", 409: "external_nameserver_precheck_failed"}
+                    if isinstance(error, dict) and error.get("code") == allowed[code]:
+                        upstream_code = allowed[code]
                 except Exception:
                     pass
             exc.close()
-            raise ProviderError(f"provider_http_{code}", uncertain=code not in {400, 401, 403, 404, 405, 422},
+            raise ProviderError(f"provider_http_{code}", uncertain=code not in {400, 401, 403, 404, 405, 422} and upstream_code != "external_nameserver_precheck_failed",
                                 upstream_code=upstream_code, retry_after=retry_after,
                                 rate_limit=rate_limit) from None
         except ProviderError:

@@ -72,6 +72,14 @@ function credentialValues(provider='cloudflare'){
  const cf=JSON.parse(posts('/dns-credentials').at(-1).opt.body);
  assert.equal(cf.provider,'cloudflare');assert.equal(cf.domain,null);assert.deepEqual(cf.secret,{api_token:'fixture-credential-secret'});
  assert.equal(cfSecret.value,'');assert.equal(markup,'');
+ node('#add-dns-credential').onclick();credentialValues('dynv6');
+ assert.match(markup,/<option value="dynv6">dynv6 account<\/option>/);
+ assert.equal(node('#credential-domain').required,false);assert.equal(node('#credential-base').disabled,true);
+ assert.match(node('#credential-domain-note').textContent,/My Domains.*Single zone/);
+ const dynSecret=node('#credential-secret');await node('#credential-create-form').onsubmit(event);
+ const dyn=JSON.parse(posts('/dns-credentials').at(-1).opt.body);
+ assert.equal(dyn.provider,'dynv6');assert.equal(dyn.domain,null);assert.deepEqual(dyn.secret,{api_token:'fixture-credential-secret'});
+ assert.equal(dynSecret.value,'');assert.equal(markup,'');
  node('#add-dns-credential').onclick();credentialValues('digitalplat');
  assert.equal(node('#credential-domain').required,true);assert.equal(node('#credential-base').required,true);assert.equal(node('#credential-base').disabled,false);
  const before=posts('/dns-credentials').length;await node('#credential-create-form').onsubmit(event);

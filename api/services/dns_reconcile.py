@@ -15,6 +15,7 @@ from api.providers.http import ProviderError
 from api.repositories.domain_jobs import JobConflict
 from api.services.dns_inventory import identifier, scoped_inventory, fingerprint, inventory_hash, matches, semantic
 from api.services.dns_plan import build_plan
+from api.providers.dns.dynv6 import DYNV6_TTL
 from api.services.routing import normalize_domain
 
 
@@ -44,6 +45,12 @@ class DNSReconciler:
             plan["plan_hash"] = hashlib.sha256(
                 json.dumps(plan, sort_keys=True, separators=(",", ":")).encode()
             ).hexdigest()
+        if row["dns_provider"] == "dynv6":
+            plan = {**plan, "records": [{**r, "ttl": DYNV6_TTL} for r in plan["records"]],
+                    "warnings": [*plan["warnings"], "dynv6_ttl_fixed_60"]}
+            plan["plan_hash"] = hashlib.sha256(
+                json.dumps(plan, sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest()
         return plan
 
     def capture(self, domain):
@@ -70,6 +77,13 @@ class DNSReconciler:
         plan["notices"] = list(plan.get("notices") or [])
         targets = list(plan['records'])
         blockers = []
+        if (row["dns_provider"] == "dynv6" and row["receive_subdomains"]
+                and row["max_subdomain_depth"] > 1):
+            blockers.append({
+                "role": "wildcard_mx", "name": row["domain"],
+                "code": "dynv6_multilevel_wildcard_not_supported",
+                "message": "dynv6 实测仅匹配一层随机子域；请将最大子域层数设为 1，或选择支持多层 wildcard 的 DNS provider。",
+            })
         cname_boundaries = [r for r in records if r['type'] == 'CNAME']
         if 'dkim_public_key_pending' in plan['warnings']:
             blockers.append({'role': 'dkim', 'name': row['domain'], 'code': 'dkim_public_key_pending'})
@@ -106,6 +120,7 @@ class DNSReconciler:
             return plan, targets, blockers
         # DNS empty non-terminals are enclosers too. Never merely add root '*'
         # when existing A/TXT nodes would suppress its matching at/below them.
+        ttl = DYNV6_TTL if row['dns_provider'] == 'dynv6' else 300
         for node, depth in sorted(nodes):
             # Third-party CNAMEs are external namespace boundaries. Do not
             # synthesize MX records at the boundary or below it.
@@ -124,9 +139,9 @@ class DNSReconciler:
                         'message': f"保留外部 CNAME {boundary['name']}，跳过 wildcard MX {name}",
                     })
                 continue
-            targets.append({'role': 'wildcard_mx', 'type': 'MX', 'name': node, 'content': row['mx'], 'priority': 10, 'ttl': 300})
+            targets.append({'role': 'wildcard_mx', 'type': 'MX', 'name': node, 'content': row['mx'], 'priority': 10, 'ttl': ttl})
             if depth < row['max_subdomain_depth']:
-                targets.append({'role': 'wildcard_mx', 'type': 'MX', 'name': '*.' + node, 'content': row['mx'], 'priority': 10, 'ttl': 300})
+                targets.append({'role': 'wildcard_mx', 'type': 'MX', 'name': '*.' + node, 'content': row['mx'], 'priority': 10, 'ttl': ttl})
         # Keep distinct TXT records at the same owner.  SPF and a provider
         # verification token can legitimately share the zone apex; collapsing
         # by only (type, name) silently drops whichever target was added first.
@@ -174,7 +189,7 @@ class DNSReconciler:
                 if not operation:
                     raise JobConflict('DNS operation not found for this domain')
                 operation = dict(operation)
-                if (row['dns_provider'] != 'digitalplat' or
+                if (row['dns_provider'] not in {'digitalplat', 'dynv6'} or
                     operation['credential_ref'] != row['dns_credential_ref']):
                     raise JobConflict('DNS operation binding changed; manual review required')
                 if operation['status'] == 'observed':
@@ -539,6 +554,18 @@ class DNSReconciler:
                           (time.time(), job['id']))
         finally:
             c.close()
+        if row['dns_provider'] == 'dynv6' and job['request'].get('activate_on_success'):
+            try:
+                child = self.m.dns_completion.enqueue(row['domain'], 'dns-complete:' + job['id'])
+            except Exception:
+                self.m.jobs.finish(job['id'], 'partial', step='dns_applied_completion_error',
+                    result={'domain': row['domain'], 'completed': completed, 'next_action': 'retry_completion'},
+                    error='dns_completion_not_queued')
+                return
+            self.m.jobs.finish(job['id'], 'succeeded', step='dns_applied_completion_queued',
+                result={'domain': row['domain'], 'completed': completed, 'completion_job': child,
+                        'next_action': 'wait_for_dns'})
+            return
         # Keep the same job running until resolver/SMTP evidence is saved.
         # The UI therefore holds its row lock and refreshes only at completion.
         try:

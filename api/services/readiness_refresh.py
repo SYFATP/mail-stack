@@ -91,7 +91,7 @@ class ReadinessRefresh:
                 eligible, eligibility_params = self.manager.jobs.queued_eligibility(
                     "pending", now, self.manager.jobs.cooldowns(c, now))
                 active = {row["scope"] for row in c.execute(f"""SELECT scope FROM domain_jobs pending
-                    WHERE kind IN ('dns_validate','dns_apply','dns_repair','dns_hosting','claim_setup')
+                    WHERE kind IN ('dns_validate','dns_apply','dns_repair','dns_hosting','claim_setup','dynv6_register','dns_complete')
                     AND (status='running' OR (status='queued' AND
                          (kind='dns_validate' OR ({eligible}))))""", eligibility_params)}
                 attempts = {row["scope"]: row["updated_at"] for row in c.execute(

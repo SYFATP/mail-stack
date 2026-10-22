@@ -11,8 +11,8 @@ import time
 import uuid
 
 _executing_job = ContextVar("domain_executing_job", default=None)
-PARALLEL_KINDS = ("dns_apply", "dns_validate")
-WRITE_KINDS = ("dns_apply", "dns_hosting", "dns_repair", "claim_setup", "claim_provision")
+PARALLEL_KINDS = ("dns_apply", "dns_validate", "dns_complete")
+WRITE_KINDS = ("dns_apply", "dns_hosting", "dns_repair", "claim_setup", "claim_provision", "dynv6_register", "dns_complete")
 
 
 def job_concurrency():
@@ -32,7 +32,7 @@ def assert_domain_mutable(db, domain):
     c = db()
     try:
         active = c.execute("""SELECT id,scope FROM domain_jobs WHERE status='running'
-            AND kind IN ('dns_apply','dns_validate','dns_hosting','dns_repair','claim_setup')""").fetchall()
+            AND kind IN ('dns_apply','dns_validate','dns_hosting','dns_repair','claim_setup','dynv6_register','dns_complete')""").fetchall()
     finally:
         c.close()
     for row in active:
@@ -80,7 +80,7 @@ class DomainJobs:
             json_extract(result_json,'$.provider_backoff.provider'),
             max(json_extract(result_json,'$.provider_backoff.until')) FROM domain_jobs
             WHERE json_extract(result_json,'$.provider_backoff.until')>?
-            AND json_extract(result_json,'$.provider_backoff.provider') IN ('digitalplat','cloudflare')
+            AND json_extract(result_json,'$.provider_backoff.provider') IN ('digitalplat','cloudflare','dynv6')
             GROUP BY json_extract(result_json,'$.provider_backoff.provider')""", (now,))}
 
     @staticmethod
@@ -92,9 +92,11 @@ class DomainJobs:
         if cooldowns:
             params.update({f"cooldown_{i}": name for i, name in enumerate(sorted(cooldowns))})
             providers = ",".join(":" + name for name in params if name != "now")
-            clause += (f" AND ({alias}.kind NOT IN {WRITE_KINDS} OR NOT EXISTS"
+            clause += (f" AND ({alias}.kind IN ('dynv6_register','dns_complete') OR {alias}.kind NOT IN {WRITE_KINDS} OR NOT EXISTS"
                        f" (SELECT 1 FROM mail_domains limited_domain WHERE limited_domain.domain={alias}.scope"
                        f" AND limited_domain.dns_provider IN ({providers})))")
+            if "dynv6" in cooldowns:
+                clause += f" AND {alias}.kind<>'dynv6_register'"
         return clause, params
 
     def public_rows(self, c, rows):
@@ -103,7 +105,9 @@ class DomainJobs:
                              and not json.loads(row["result_json"]).get("incident_hold") for row in rows)
         cooldowns = self.cooldowns(c, now) if needs_cooldown else {}
         providers = {r[0]: r[1] for r in c.execute("SELECT domain,dns_provider FROM mail_domains")} if cooldowns else {}
-        return [self.public(row, now=now, cooldown_until=cooldowns.get(providers.get(row["scope"]), 0)) for row in rows]
+        # Completion polls are reads; its own dispatch phase enforces provider cooldowns.
+        return [self.public(row, now=now, cooldown_until=cooldowns.get(
+            None if row["kind"] == "dns_complete" else "dynv6" if row["kind"] == "dynv6_register" else providers.get(row["scope"]), 0)) for row in rows]
 
     @staticmethod
     def public(row, *, now=None, cooldown_until=0):
@@ -146,9 +150,9 @@ class DomainJobs:
                 if row["request_hash"] != digest:
                     raise JobConflict("idempotency key reused with a different request")
             else:
-                if kind in {'dns_apply', 'dns_hosting', 'dns_repair'}:
+                if kind in {'dns_apply', 'dns_hosting', 'dns_repair', 'dns_complete'}:
                     active = c.execute("""SELECT kind FROM domain_jobs WHERE scope=?
-                        AND kind IN ('dns_apply','dns_hosting','dns_repair') AND status IN ('queued','running')""", (scope,)).fetchall()
+                        AND kind IN ('dns_apply','dns_hosting','dns_repair','dns_complete') AND status IN ('queued','running')""", (scope,)).fetchall()
                     if any(kind == 'dns_repair' or r['kind'] == 'dns_repair' for r in active):
                         raise JobConflict('DNS repair is active; wait for completion before another DNS write')
                 if kind == "claim":
@@ -225,7 +229,7 @@ class DomainJobs:
                 if row["status"] != "partial" or any(i.get("status") == "unknown" for i in json.loads(row["result_json"]).get("items", [])):
                     blocked.add(row["scope"])
             active_rows = c.execute("""SELECT * FROM domain_jobs
-                WHERE kind IN ('dns_apply','dns_validate','dns_hosting','dns_repair','claim_setup','claim')
+                WHERE kind IN ('dns_apply','dns_validate','dns_hosting','dns_repair','claim_setup','claim','dynv6_register','dns_complete')
                 AND status IN ('queued','running') ORDER BY created_at,id""").fetchall()
             projected = self.public_rows(c, [*rows, *active_rows])
             active = projected[len(rows):]
@@ -238,7 +242,7 @@ class DomainJobs:
         finally:
             c.close()
 
-    def provider_backoff(self, scope, error):
+    def provider_backoff(self, scope, error, *, provider=None):
         """Persist rate limiting with the terminal job; never replay that job."""
         if getattr(error, "code", "") != "provider_http_429":
             return {}
@@ -247,7 +251,9 @@ class DomainJobs:
             row = c.execute("SELECT dns_provider FROM mail_domains WHERE domain=?", (scope,)).fetchone()
         finally:
             c.close()
-        if not row or row[0] not in {"digitalplat", "cloudflare"}:
+        if provider is not None:
+            row = (provider,)
+        if not row or row[0] not in {"digitalplat", "cloudflare", "dynv6"}:
             return {}
         now = time.time()
         inherited = getattr(error, "provider_backoff", None)
@@ -287,14 +293,14 @@ class DomainJobs:
             # Drain only for runnable exclusive work, never for held writers.
             if running and c.execute(f"""SELECT 1 FROM domain_jobs AS pending
                 WHERE pending.status='queued' AND {eligible}
-                AND pending.kind NOT IN ('dns_apply','dns_validate') LIMIT 1""", params).fetchone():
+                AND pending.kind NOT IN ('dns_apply','dns_validate','dns_complete') LIMIT 1""", params).fetchone():
                 c.commit()
                 return None
             # Deferred writers must not expire a usable domain's read evidence.
             # Runnable earlier writers and every running namespace keep priority.
             row = c.execute(f"""SELECT pending.* FROM domain_jobs AS pending WHERE pending.status='queued'
                 AND {eligible}
-                AND (:running=0 OR pending.kind IN ('dns_apply','dns_validate'))
+                AND (:running=0 OR pending.kind IN ('dns_apply','dns_validate','dns_complete'))
                 AND NOT EXISTS (SELECT 1 FROM domain_jobs AS active WHERE active.status='running'
                     AND (active.scope=pending.scope
                          OR substr(active.scope,-length(pending.scope)-1)='.'||pending.scope
@@ -305,7 +311,7 @@ class DomainJobs:
                            OR substr(writer.scope,-length(pending.scope)-1)='.'||pending.scope
                            OR substr(pending.scope,-length(writer.scope)-1)='.'||writer.scope)
                     AND (writer.status='running' OR (writer.status='queued' AND {writer_eligible}))
-                    AND (writer.kind IN ('dns_apply','dns_hosting') OR
+                    AND (writer.kind IN ('dns_apply','dns_hosting','dns_complete') OR
                          (writer.kind='dns_repair' AND COALESCE(
                           json_extract(writer.result_json,'$.repair.phase'),'')
                           NOT IN ('recreated','publication_wait')))
@@ -347,9 +353,11 @@ class DomainJobs:
 
     def recover_interrupted(self):
         # Called once on startup in the supported single-process deployment.
-        # Even read-only jobs are conservatively left for explicit new requests.
+        # Completion resumes from its dispatch journal; ambiguous POSTs only receive readback.
         c = self.db()
         try:
+            c.execute("""UPDATE domain_jobs SET status='queued',step='dns_completion_recovering',updated_at=?
+                WHERE status='running' AND kind='dns_complete'""", (time.time(),))
             c.execute("UPDATE domain_jobs SET status='unknown',error_code='worker_interrupted',updated_at=? WHERE status='running'", (time.time(),))
             c.commit()
         finally:

@@ -11,7 +11,10 @@ function node(id){
 }
 const document={body:{classList:{toggle(){}}},activeElement:null,
  querySelector:id=>id==='#domain-dialog-bg'&&!node('#modal-root').innerHTML?null:node(id),
- querySelectorAll:()=>[],createElement:()=>({style:{},remove(){}})};
+ querySelectorAll:selector=>selector==='[data-control-dns-activate]'?
+  [...node('#control-dns-body').innerHTML.matchAll(/data-control-dns-activate="([^"]+)"/g)].map(match=>{
+   const button=node(selector+':'+match[1]);button.dataset.controlDnsActivate=match[1];return button;
+  }):[],createElement:()=>({style:{},remove(){}})};
 const context=vm.createContext({document,console,URL,URLSearchParams,
  localStorage:{getItem:()=>null,removeItem(){}},
  crypto:{randomUUID:()=> 'fixture-'+requests.length},
@@ -23,7 +26,8 @@ const context=vm.createContext({document,console,URL,URLSearchParams,
    data={id:'preview-'+requests.length,domain:decodeURIComponent(u.pathname.split('/mail-domains/')[1].split('/')[0]),executable:true,actions:[],conflicts:[]};
   }else if(opt.method==='POST'){
    const kind=u.pathname.endsWith('/dns-apply')?'dns_apply':u.pathname.endsWith('/dns-validate')?'dns_validate':'claim';
-   data={id:'tracked-'+(++jobId),kind,scope:'source-fixture',status:postStatus};
+   const scope=u.pathname.includes('/mail-domains/')?decodeURIComponent(u.pathname.split('/mail-domains/')[1].split('/')[0]):'source-fixture';
+   data={id:'tracked-'+(++jobId),kind,scope,status:postStatus};
    jobs.set(data.id,{...data});
   }else if(u.pathname.includes('/domain-jobs/')){
    if(deferredRead)await deferredRead;
@@ -38,7 +42,7 @@ const context=vm.createContext({document,console,URL,URLSearchParams,
   else if(u.pathname.endsWith('/dns-credentials'))data={items:[]};
   return {ok:true,status:opt.method==='POST'?202:200,json:async()=>data};
  }});
-vm.runInContext(script+'\nglobalThis.t={state,controlJob,controlPage,controlJobWatchers,runControlBatch,logout,controlDomainReady,controlUnifiedListData,controlJobNotice};',context);
+vm.runInContext(script+'\nglobalThis.t={state,controlJob,controlPage,controlJobWatchers,runControlBatch,logout,controlDomainReady,controlUnifiedListData,controlJobNotice,showControlDnsDialog,closeModal};',context);
 const t=context.t;t.state.token='fixture-session';t.state.tab='control';
 const writes=()=>requests.filter(r=>r.opt.method==='POST').length;
 const refreshes=()=>requests.filter(r=>r.url==='/api/v1/mail-domains').length;
@@ -90,7 +94,90 @@ async function tick(){
  t.state.controlSelection.clear();t.state.controlSelection.add(manual.domain);await t.runControlBatch('validate');
  const manualRequest=requests.filter(r=>r.url.endsWith('/dns-validate')).at(-1);
  assert.equal(JSON.parse(manualRequest.opt.body).activate_on_success,undefined,'Validation retains manual-domain enabled state');
+ const plainManualJob=[...jobs.values()].at(-1);plainManualJob.status='succeeded';plainManualJob.result={checks:{}};
+ await tick();
+ // Explicit activation is discoverable and works without DNS writes or a claim.
+ assert.match(node('#page').innerHTML,/id="control-bulk-activate"[^>]*>验证并启用/);
+ assert.match(node('#control-dns-body').innerHTML,/data-control-dns-activate="manual.test"/);
+ const startExplicit=requests.length;
+ const activation=()=>document.querySelectorAll('[data-control-dns-activate]').find(button=>button.dataset.controlDnsActivate===manual.domain);
+ const single=activation().onclick();await activation().onclick();await single;
+ const explicitRequest=requests.filter(r=>r.opt.method==='POST'&&r.url.endsWith('/manual.test/dns-validate')).at(-1);
+ assert.equal(JSON.parse(explicitRequest.opt.body).activate_on_success,true,'Explicit activation also covers manually imported domains');
+ assert.equal(requests.slice(startExplicit).filter(r=>r.opt.method==='POST').length,1,'Double click while submitting must not enqueue twice');
+ assert.match(node('#control-dns-body').innerHTML,/data-control-dns-activate="manual.test" disabled/);
+ const blocked=[...jobs.values()].at(-1);
+ blocked.status='succeeded';blocked.result={checks:{mx:{status:'failed'}},activation:{status:'blocked',enabled:false,pending_checks:['mx']}};
+ await tick();
+ assert.equal(manual.enabled,false,'Failed fresh verification must keep the domain disabled');
+ assert.equal(t.state.controlBusyCounts.has(manual.domain),false);
+ // Mixed-provider activation skips enabled, busy, inactive and capability-free domains.
+ const dp={...domain('explicit-dp.test'),dns_provider:'digitalplat'};
+ const cf={...domain('explicit-cf.test'),dns_provider:'cloudflare'};
+ const dyn={...domain('explicit-dyn.test'),dns_provider:'dynv6'};
+ const enabled={...domain('already-enabled.test'),enabled:true,receive_ready:true,send_ready:true};
+ const revoked={...domain('revoked.test'),source_status:'revoked'};
+ const noCapabilities={...domain('no-capabilities.test'),receive_enabled:false,send_enabled:false};
+ const busy=domain('busy.test');
+ domains.push(dp,cf,dyn,enabled,revoked,noCapabilities,busy);
+ t.state.controlDns.status='all';await t.controlPage();
+ assert.doesNotMatch(node('#control-dns-body').innerHTML,/data-control-dns-activate="already-enabled.test"/);
+ assert.match(node('#control-dns-body').innerHTML,/data-control-dns-activate="revoked.test" disabled/);
+ assert.match(node('#control-dns-body').innerHTML,/data-control-dns-activate="no-capabilities.test" disabled/);
+ t.state.controlBusyCounts.set(busy.domain,1);
+ t.state.controlSelection.clear();
+ for(const d of [manual,dp,cf,dyn,enabled,revoked,noCapabilities,busy])t.state.controlSelection.add(d.domain);
+ await t.controlPage();
+ assert.equal(node('#control-bulk-activate').disabled,false);
+ const markupBeforeExplicitBatch=node('#page').innerHTML,postStart=requests.length;
+ for(const invalid of [revoked,noCapabilities,busy]){
+  await document.querySelectorAll('[data-control-dns-activate]').find(b=>b.dataset.controlDnsActivate===invalid.domain).onclick();
+ }
+ assert.equal(requests.length,postStart,'Handler guards also fence invalid or busy rows');
+ const jobStart=jobs.size;
+ await node('#control-bulk-activate').onclick();
+ const explicitPosts=requests.slice(postStart).filter(r=>r.opt.method==='POST');
+ assert.equal(explicitPosts.length,4);
+ for(const request of explicitPosts){
+  assert.ok(request.url.endsWith('/dns-validate'));
+  assert.equal(JSON.parse(request.opt.body).activate_on_success,true);
+ }
+ const batchJobs=[...jobs.values()].slice(jobStart),passChecks={mx:{status:'passed'},spf:{status:'passed'},dkim:{status:'passed'},dmarc:{status:'passed'},smtp_submission:{status:'passed'}};
+ for(const job of batchJobs){
+  job.status='succeeded';
+  const d=domains.find(d=>d.domain===job.scope);
+  if(d===dyn)job.result={checks:{mx:{status:'failed'}},activation:{status:'blocked',enabled:false,pending_checks:['mx']}};
+  else{
+   d.enabled=true;
+   if(d!==cf)Object.assign(d,{receive_ready:true,send_ready:true});
+   job.result={checks:passChecks,activation:{status:d===cf?'routing_pending':'ready',enabled:true}};
+  }
+ }
+ await tick();
+ assert.equal(dyn.enabled,false);
+ assert.equal(t.state.controlBusyCounts.has(dyn.domain),false);
+ assert.equal(t.state.controlBusyCounts.has(cf.domain),true,'Activation holds the row while routing is still pending');
+ assert.equal(t.controlJobWatchers.size,1);
+ Object.assign(cf,{receive_ready:true,send_ready:true});
+ await tick();
+ assert.equal(t.controlJobWatchers.size,0);
+ assert.equal(t.state.controlBusyCounts.has(cf.domain),false);
+ for(const d of [manual,dp,cf])assert.equal(t.controlDomainReady(d),true);
+ assert.equal(node('#page').innerHTML,markupBeforeExplicitBatch,'Explicit activation refreshes list data without rebuilding the page');
+ assert.match(context.notices.at(-1).text,/验证并启用完成.*检查未通过 1.*已就绪 3/);
+ assert.equal(requests.slice(startExplicit).some(r=>/\/dns-(preview|apply)$|\/toggle\?/.test(r.url)),false,'Explicit activation only verifies existing DNS');
+ // The binding dialog exposes the same operation and respects invalid states.
+ t.showControlDnsDialog(noCapabilities.domain);
+ assert.match(node('#modal-root').innerHTML,/id="control-activate"/);
+ assert.equal(node('#control-activate').disabled,true);
+ const beforeInvalidDialog=requests.length;await node('#control-activate').onclick();
+ assert.equal(requests.length,beforeInvalidDialog);
+ t.closeModal();t.showControlDnsDialog(dyn.domain);
+ assert.equal(node('#control-activate').disabled,false);
+ await node('#control-activate').onclick();
+ assert.equal(JSON.parse(requests.filter(r=>r.opt.method==='POST').at(-1).opt.body).activate_on_success,true);
+ assert.equal(node('#modal-root').innerHTML,'');
  t.logout(false);
  assert.equal(t.controlJobWatchers.size,0);
- console.log('PASS: claimed DNS operations request durable activation, wait for routing, move ready rows between tabs without page rebuild, and retain failed/manual domains');
+ console.log('PASS: row/bulk/dialog explicit activation across providers; invalid/busy guards and double-click protection; validation-only requests; blocked checks stay disabled; routing locks and local refresh; existing claimed auto-activation and ordinary manual validation preserved');
 })().catch(error=>{console.error(error);process.exitCode=1});

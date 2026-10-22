@@ -142,6 +142,31 @@ class DigitalPlatDNS:
             raise
         return self._status_fields(payload)
 
+    def delegation_status(self):
+        """The domain detail contains live delegation; archived Hosted DNS may retain old NS."""
+        payload = self.http.request('GET', self.base, '/domains/' + quote(self.domain, safe=''), headers=self.headers)
+        data = payload.get('data') if isinstance(payload, dict) else None
+        if (not isinstance(data, dict) or data.get('domain') != self.domain
+                or data.get('status') not in {'ok', 'active', 'registered'}):
+            raise ProviderError('digitalplat_domain_not_ready')
+        nameservers = data.get('nameservers')
+        if (not isinstance(nameservers, list) or not 1 <= len(nameservers) <= 8
+                or any(not isinstance(n, str) or len(n) > 253 or not re.fullmatch(
+                    r'[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?\.?', n) for n in nameservers)):
+            raise ProviderError('invalid_digitalplat_domain_response')
+        return sorted({n.lower().rstrip('.') for n in nameservers})
+
+    def switch_external(self, nameservers, idempotency_key, *, force=False):
+        payload = self.http.request('POST', self.base,
+            '/domains/' + quote(self.domain, safe='') + '/dns/switch-external',
+            headers={**self.headers, 'Idempotency-Key': idempotency_key},
+            body={'nameservers': list(nameservers), 'force': force})
+        data = payload.get('data') if isinstance(payload, dict) else None
+        operation = data.get('operation_id') if isinstance(data, dict) else None
+        if not isinstance(operation, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,128}', operation):
+            raise ProviderError('digitalplat_ns_switch_unconfirmed', uncertain=True)
+        return operation
+
     def hosting_preflight(self):
         """Verify ownership and avoid replacing a custom external delegation."""
         payload = self.http.request(

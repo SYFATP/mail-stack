@@ -49,6 +49,7 @@ class ClaimInput(Input):
     external_ids: list[str] = Field(default_factory=list, max_length=200)
     status: Literal["registered", "synced", "sync_failed", "all"] | None = None
     sync_provider: Literal["none", "cloudflare", "all", "digitalplat_dns"] | None = None
+    configure_on_success: bool = Field(default=False, strict=True)
 
 
 class ImportInput(Input):
@@ -68,7 +69,7 @@ class ClaimReleaseInput(Input):
 
 
 class CredentialInput(Input):
-    provider: Literal["cloudflare", "digitalplat"]
+    provider: Literal["cloudflare", "digitalplat", "dynv6"]
     domain: str | None = None
     label: str = Field(default="DNS account", min_length=1, max_length=80)
     secret: dict[str, str]
@@ -91,6 +92,26 @@ class BrevoDomainInput(Input):
     domain: str = Field(min_length=1, max_length=253)
 
 
+class Dynv6SessionInput(Input):
+    cookie: str = Field(min_length=1, max_length=32768)
+
+
+class Dynv6AccountInput(Input):
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(default="", max_length=1024)
+    label: str = Field(default="", max_length=80)
+
+
+class Dynv6RegistrationInput(Input):
+    credential_ref: str = Field(min_length=1, max_length=80)
+    bind: bool = True
+    max_subdomain_depth: Literal[1] = 1
+
+
+class Dynv6BatchInput(Dynv6RegistrationInput):
+    domains: list[str] = Field(min_length=1, max_length=200)
+
+
 def build_router(manager, admin_ok):
     def require_admin(x_api_key: str | None = Header(default=None), x_admin_password: str | None = Header(default=None)):
         if not admin_ok(x_api_key, x_admin_password):
@@ -105,6 +126,22 @@ def build_router(manager, admin_ok):
         except ValueError as exc:
             raise HTTPException(400, str(exc)) from None
         except ProviderError as exc:
+            if exc.code.startswith(("dynv6_session", "dynv6_form", "dynv6_login",
+                                    "dynv6_account", "dynv6_keys")):
+                raise HTTPException(409, {"code": exc.code, "message": {
+                    "dynv6_session_required": "请先在 dynv6 账号管理中补充登录信息，或保存登录会话。",
+                    "dynv6_session_expired": "dynv6 会话已过期，请在账号管理中补充登录信息或更新会话。",
+                    "dynv6_session_account_mismatch": "Cookie 与 HTTP Token 的账号未匹配；请核对账号，账号至少需要一个双方可见的 zone。",
+                    "dynv6_login_rejected": "dynv6 登录未通过，请检查邮箱、密码及账号是否已确认。",
+                    "dynv6_login_verification_required": "dynv6 要求额外验证，请先在其网页完成验证，再更新登录信息或会话。",
+                    "dynv6_login_contract_changed": "dynv6 登录表单已变化，请使用会话接入并检查服务端适配。",
+                    "dynv6_login_cooldown": "此账号最近登录失败，自动登录暂缓五分钟；修正登录信息后可以重新保存。",
+                    "dynv6_account_token_required": "账号中没有可复用的全域 HTTP Token，请先在 dynv6 创建范围为 all 的 Token。",
+                    "dynv6_account_token_unusable": "读取到的 HTTP Token 未通过 API 检查，请核对 dynv6 的 Token 状态。",
+                    "dynv6_keys_contract_changed": "dynv6 的 Token 列表结构已变化，请检查服务端适配。",
+                }.get(exc.code, "dynv6 会话检查未完成，请稍后重试。")}) from None
+            if exc.code == "dynv6_zone_not_accessible":
+                raise HTTPException(409, {"code": exc.code, "message": "请先执行“登记并绑定 dynv6”，或在 dynv6 的 My Domains 创建 Single zone。"}) from None
             if exc.code == DIGITALPLAT_DNS_NOT_ENABLED:
                 raise HTTPException(409, {"code": exc.code, "message": digitalplat_dns_hosting_message(domain),
                                           "next_action": "dns_hosting"}) from None
@@ -152,13 +189,62 @@ def build_router(manager, admin_ok):
     def credentials():
         c = manager.db()
         try:
-            return {"items": CredentialStore.public(c), "global_cloudflare": manager.global_cloudflare_status()}
+            return {"items": manager.dynv6_registration.credentials(), "global_cloudflare": manager.global_cloudflare_status()}
         finally:
             c.close()
 
     @router.post("/dns-credentials", status_code=201)
     def create_credential(item: CredentialInput):
         return call(manager.add_dns_credential, **item.model_dump())
+
+    @router.get("/dynv6/accounts")
+    def dynv6_accounts():
+        return {"items": call(manager.dynv6_accounts.public)}
+
+    @router.post("/dynv6/accounts", status_code=201)
+    def create_dynv6_account(item: Dynv6AccountInput):
+        return call(manager.dynv6_accounts.save, **item.model_dump())
+
+    @router.put("/dynv6/accounts/{credential_id}")
+    def update_dynv6_account(credential_id: str, item: Dynv6AccountInput):
+        return call(manager.dynv6_accounts.save, ref=credential_id, **item.model_dump())
+
+    @router.post("/dynv6/accounts/{credential_id}/refresh")
+    def refresh_dynv6_account(credential_id: str):
+        return call(manager.dynv6_accounts.refresh, credential_id)
+
+    @router.put("/dns-credentials/{credential_id}/dynv6-session")
+    def dynv6_session(credential_id: str, item: Dynv6SessionInput):
+        return call(manager.dynv6_registration.save_session, credential_id, item.cookie)
+
+    @router.post("/dns-credentials/{credential_id}/dynv6-session/check")
+    def dynv6_session_check(credential_id: str):
+        return call(manager.dynv6_registration.check_session, credential_id)
+
+    @router.post("/mail-domains/{domain}/dynv6-registration", status_code=202)
+    def dynv6_register(domain: str, item: Dynv6RegistrationInput,
+                       idempotency_key: str = Header(alias="Idempotency-Key")):
+        return call(manager.dynv6_registration.enqueue, domain, idempotency_key, **item.model_dump())
+
+    @router.post("/dynv6/registrations", status_code=202)
+    def dynv6_register_batch(item: Dynv6BatchInput,
+                            idempotency_key: str = Header(alias="Idempotency-Key")):
+        import hashlib
+        import re
+        if not re.fullmatch(r"[A-Za-z0-9._:-]{8,128}", idempotency_key):
+            raise HTTPException(400, "invalid Idempotency-Key")
+        from api.services.routing import normalize_domain
+        domains = call(lambda: list(dict.fromkeys(normalize_domain(d) for d in item.domains)))
+        options = item.model_dump(exclude={"domains"})
+        jobs, errors = [], []
+        for domain in domains:
+            key = "dynv6-batch-" + hashlib.sha256((idempotency_key + ":" + domain).encode()).hexdigest()
+            try:
+                jobs.append(call(manager.dynv6_registration.enqueue, domain, key, **options))
+            except HTTPException as exc:
+                errors.append({"domain": domain, "code": "registration_not_queued",
+                               "message": exc.detail})
+        return {"items": jobs, "errors": errors}
 
     @router.post("/dns-credentials/{credential_id}/rewrap")
     def rewrap(credential_id: str):

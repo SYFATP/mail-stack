@@ -9,7 +9,8 @@
 - 邮件检索、正文、附件、原始 EML，以及转发邮件的原始发件人与收件人解析。
 - 异步发件队列，支持 SMTP relay 和可选 Brevo API fallback。
 - 项目管理、普通 / 管理员 API Key、项目授权及签名 Webhook。
-- Cloudflare / DigitalPlat DNS adapter，可配置域名来源。
+- Cloudflare / DigitalPlat / dynv6 DNS adapter，支持域名领取、配置、验证与启用。
+- dynv6 多账号管理、域名登记和按需 NS 迁移，后台等待传播并自动验证启用。
 - SQLite 存储、加密 Provider 凭据与 Docker Compose 部署。
 - 简洁 / 经典 UI 与深浅色模式；左侧 CPU、内存、磁盘状态灯，支持实时刷新、详情查看和告警阈值设置。
 
