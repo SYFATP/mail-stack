@@ -73,8 +73,8 @@ function fixture(){
  assert.match(node('#control-dns-summary').textContent,/匹配 57 个.*第 1 \/ 3 页/);
  assert.equal(t.state.controlDns.status,'pending');
  assert.equal(node('[data-control-dns-status]:pending').ariaSelected,'true');
- assert.equal(node('#control-dns-count-pending').textContent,57);
- assert.equal(node('#control-dns-count-ready').textContent,0);
+ assert.equal(node('#control-dns-count-pending').textContent,'57');
+ assert.equal(node('#control-dns-count-ready').textContent,'0');
  const pageMarkup=node('#page').innerHTML,readCount=requests.length;
  node('#control-dns-next').onclick();assert.equal(t.state.controlDns.page,2);assert.match(node('#control-dns-body').innerHTML,/domain-21.test/);
  node('#control-dns-jump').value='999';node('#control-dns-jump-btn').onclick();assert.equal(t.state.controlDns.page,3);assert.equal(node('#control-dns-next').disabled,true);
@@ -90,7 +90,8 @@ function fixture(){
  const firstBox=document.querySelectorAll('[data-control-select]').find(b=>b.dataset.controlSelect==='domain-01.test');
  firstBox.checked=true;firstBox.onchange();
  assert.equal(node('#control-dns-selection-summary').textContent,'已选 1 个');
- assert.match(node('#control-bulk-validate').textContent,/（1）/);
+ assert.equal(node('#control-bulk-validate').textContent,'验证 DNS');
+ assert.equal(node('#control-bulk-configure').textContent,'配置 DigitalPlat');
  let releaseValidation;const delayedValidation=new Promise(resolve=>releaseValidation=resolve);
  f.delay(url=>url.endsWith('/domain-01.test/dns-validate'),delayedValidation);
  const pendingBatch=t.runControlBatch('validate');
@@ -178,9 +179,9 @@ function fixture(){
  for(const d of gd.slice(3,7))assert.equal(g.controlDomainReady(d),false,'Disabled domains/capabilities and unready subdomains stay pending');
  await g.controlPage();
  assert.equal(g.controlUnifiedListData().total,54);
- assert.equal(gn('#control-dns-count-pending').textContent,54);
- assert.equal(gn('#control-dns-count-ready').textContent,3);
- assert.equal(gn('#control-dns-count-all').textContent,57);
+ assert.equal(gn('#control-dns-count-pending').textContent,'54');
+ assert.equal(gn('#control-dns-count-ready').textContent,'3');
+ assert.equal(gn('#control-dns-count-all').textContent,'57');
  assert.doesNotMatch(gn('#control-dns-body').innerHTML,/data-control-select="domain-01.test"/);
  const groupedMarkup=gn('#page').innerHTML,groupedReads=grouped.requests.length;
  const tab=value=>gn('[data-control-dns-status]:'+value);
@@ -196,12 +197,12 @@ function fixture(){
  assert.equal(g.controlUnifiedListData().items[0].domain,'domain-04.test','All domains lists unready entries first');
  gn('#control-dns-search').oninput({target:{value:'domain-01'}});
  assert.equal(g.controlUnifiedListData().total,1);
- assert.equal(gn('#control-dns-count-pending').textContent,0);assert.equal(gn('#control-dns-count-ready').textContent,1);
+ assert.equal(gn('#control-dns-count-pending').textContent,'0');assert.equal(gn('#control-dns-count-ready').textContent,'1');
  tab('pending').onclick();assert.match(gn('#control-dns-body').innerHTML,/当前没有未就绪的域名/);
  gn('#clear-control-dns-search').onclick();assert.equal(g.state.controlDns.status,'pending','Clearing search preserves the selected status');
  gn('#control-dns-provider').onchange({target:{value:'manual'}});
  assert.equal(g.controlUnifiedListData().total,18);
- assert.equal(gn('#control-dns-count-ready').textContent,1);assert.equal(gn('#control-dns-count-all').textContent,19);
+ assert.equal(gn('#control-dns-count-ready').textContent,'1');assert.equal(gn('#control-dns-count-all').textContent,'19');
  let prevented=false;tab('pending').onkeydown({key:'ArrowRight',preventDefault(){prevented=true}});
  assert.equal(prevented,true);assert.equal(g.state.controlDns.status,'ready');assert.equal(grouped.document.activeElement,tab('ready'));
  tab('ready').onkeydown({key:'End',preventDefault(){}});assert.equal(g.state.controlDns.status,'all');
@@ -212,14 +213,14 @@ function fixture(){
  gd[3].subdomain_receive_ready=true;
  await g.refreshControlLists();
  assert.equal(g.state.controlDns.status,'pending');assert.equal(g.controlUnifiedListData().total,53);
- assert.equal(gn('#control-dns-count-ready').textContent,4);
+ assert.equal(gn('#control-dns-count-ready').textContent,'4');
  assert.equal(g.state.controlSelection.size,0,'Newly ready entries leave the pending selection after refresh');
  assert.doesNotMatch(gn('#control-dns-body').innerHTML,/data-control-select="domain-04.test"/);
  tab('ready').onclick();assert.match(gn('#control-dns-body').innerHTML,/domain-04.test/);
  g.state.controlDns.page=9;await g.controlPage();assert.equal(g.state.controlDns.status,'ready');assert.equal(g.state.controlDns.page,1);
  grouped.domains.splice(0,grouped.domains.length,...gd.filter(d=>g.controlDomainReady(d)));
  tab('pending').onclick();assert.match(gn('#control-dns-body').innerHTML,/当前没有未就绪的域名/);
- assert.equal(gn('#control-dns-count-ready').textContent,4);
+ assert.equal(gn('#control-dns-count-ready').textContent,'4');
  // A held writer keeps conflicting writes fenced while read controls work.
  const paused=fixture(),pt=paused.t,pn=paused.node,name=paused.domains[0].domain;
  await pt.controlPage();
@@ -249,6 +250,20 @@ function fixture(){
  pt.stopControlJobWatchers();pt.watchActiveDomainJobs({active_domain_jobs:[hold]});
  pt.state.controlBusyCounts.set(name,2);assert.equal(pt.controlDomainReadBusy(name),true);
  pt.stopControlJobWatchers();
+ // dynv6 migration is offered for disabled domains; account credentials stay scoped.
+ const dyn=fixture();dyn.credentials.push({id:'dyn-account',provider:'dynv6',domain:null,label:'dynv6 HTTP fixture'});
+ await dyn.t.controlPage();dyn.t.showControlDnsDialog('domain-01.test','binding');
+ assert.doesNotMatch(dyn.markup(),/dynv6 HTTP fixture/,'An enabled domain must be disabled before provider migration');
+ dyn.domains[0].enabled=false;dyn.t.showControlDnsDialog('domain-01.test','binding');
+ assert.match(dyn.markup(),/dynv6 HTTP fixture/);assert.match(dyn.markup(),/My Domains.*Single zone/);
+ dyn.node('#control-credential').value='dyn-account';await dyn.node('#control-bind').onclick();
+ assert.equal(dyn.domains[0].dns_provider,'dynv6');assert.equal(dyn.domains[0].dns_credential_ref,'dyn-account');
+ assert.equal(dyn.t.controlDnsBindingLabel(dyn.domains[0]),'dynv6 HTTP fixture');
+ dyn.t.closeModal();dyn.node('#control-dns-provider').onchange({target:{value:'dynv6'}});
+ assert.equal(dyn.t.controlDnsListData().total,1);assert.match(dyn.node('#control-dns-body').innerHTML,/dynv6/);
+ assert.match(dyn.node('#control-dns-body').innerHTML,/dynv6 目标 NS/);
+ assert.match(dyn.node('#control-dns-body').innerHTML,/按需切换父区委派并等待传播/);
+ assert.doesNotMatch(dyn.node('#control-dns-body').innerHTML,/无需同步/);
  const auth=requests.find(r=>r.url.endsWith('/dns-apply'));assert.equal(auth.opt.headers['X-API-Key'],'fixture-session');
  console.log('PASS: readiness tabs/counts/capability grouping/selection isolation/keyboard/data refresh; DNS table search/provider/paging/jump/empty/reload/escaping; scoped binding, manual DNS, preview confirmation, immutable domains, stable apply retries and stale response fencing');
 })().catch(e=>{console.error(e);process.exitCode=1});

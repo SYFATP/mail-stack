@@ -1,0 +1,88 @@
+const assert=require('node:assert/strict');
+const {fixture,gate,flush,until}=require('./test_dns_batch_performance_ui.cjs');
+(async()=>{
+ const f=fixture(200),slow=gate();await f.start();
+ assert.match(f.node('#page').innerHTML,/id="control-bulk-complete"/);
+ assert.match(f.node('#control-dns-body').innerHTML,/data-control-complete=/);
+ assert.match(f.node('#control-dns-body').innerHTML,/<div class="control-bulk-menu control-row-menu"[^>]*popover="auto"/);
+ assert.doesNotMatch(f.node('#control-dns-body').innerHTML,/<details class="control-row-more">/);
+ f.previewActions(name=>name==='domain-3.test'?[{action:'exists'}]:[{action:'create'}]);
+ f.previewGate(name=>name==='domain-0.test'?slow.promise:Promise.resolve());
+ f.conflict('domain-7.test');
+ const markup=f.node('#page').innerHTML;
+ const flow=f.t.runControlCompletion();await until(()=>f.posted('dns-apply').length>0);
+ assert.ok(f.posted('dns-preview').length<200,'First apply starts before slow or remaining previews finish');
+ await until(()=>f.posted('dns-preview').length===200);
+ await until(()=>f.t.controlJobWatchers.size===198);
+ assert.equal(f.t.controlJobWatchers.size,198,'The slow and conflicted rows do not block other domains');
+ assert.equal(f.posted('dns-apply').some(r=>r.url.includes('domain-7.test/')),false);
+ assert.equal(f.posted('dns-apply').some(r=>r.url.includes('domain-3.test/')),false);
+ assert.equal(f.posted('dns-validate').length,1,'An all-exists plan skips apply and validates directly');
+ slow.release();await flow;
+ assert.equal(f.peaks().previewPeak,3);
+ assert.ok(f.peaks().submitPeak<=3);
+ assert.equal(f.t.controlJobWatchers.size,199);
+ for(const value of f.t.state.controlBusyCounts.values())assert.equal(value,1);
+ for(const request of [...f.posted('dns-apply'),...f.posted('dns-validate')])assert.equal(JSON.parse(request.opt.body).activate_on_success,true);
+ for(const job of f.jobs.values()){
+  const d=f.domains.find(d=>d.domain===job.scope);
+  Object.assign(d,{enabled:true,receive_ready:true,send_ready:true});
+  job.status='succeeded';job.result={checks:{mx:{status:'passed'}},activation:{status:'ready',enabled:true}};
+ }
+ await f.tick();
+ assert.equal(f.t.state.controlBusyCounts.size,0);
+ assert.equal(f.t.state.controlBatches.size,0);
+ assert.equal(f.notices.filter(n=>n.text.includes('完成')).length,1);
+ assert.match(f.notices.at(-1).text,/已就绪 199，待处理 1/);
+ assert.equal(f.node('#page').innerHTML,markup);
+
+ const ready=fixture(5);await ready.start();
+ Object.assign(ready.domains[0],{enabled:true,receive_ready:true,send_ready:true});
+ ready.domains[1].source_status='revoked';
+ ready.domains[2].receive_enabled=false;ready.domains[2].send_enabled=false;
+ ready.t.lockControlDomain(ready.domains[3].domain);
+ ready.domains[4].dns_checks=Object.fromEntries(['mx','spf','dkim','dmarc'].map(k=>[k,{status:'passed'}]));
+ ready.t.state.controlDns.status='all';
+ await ready.t.runControlCompletion();
+ assert.equal(ready.posted('dns-preview').length,0,'Passing DNS skips the costly inventory/preview stage');
+ assert.equal(ready.posted('dns-validate').length,1);
+ assert.equal(ready.posted('dns-apply').length,0);
+ ready.t.stopControlJobWatchers();
+
+ const failed=fixture(6);await failed.start();failed.previewActions(()=>[{action:'create'}]);failed.fail();
+ await failed.t.runControlCompletion();
+ assert.equal(failed.t.controlJobWatchers.size,5,'One submission failure must not stop unrelated domains');
+ assert.equal(failed.t.state.controlBusyCounts.size,5);
+ failed.t.stopControlJobWatchers();
+
+ const cancelled=fixture(10),held=gate();await cancelled.start();cancelled.previewGate(held);
+ const abandoned=cancelled.t.runControlCompletion();await flush();
+ cancelled.t.logout(false);held.release();await abandoned;
+ assert.equal(cancelled.posted('dns-apply').length,0);
+ assert.equal(cancelled.posted('dns-validate').length,0);
+ assert.equal(cancelled.t.state.controlBusyCounts.size,0);
+
+ const claim=fixture(0);await claim.start();
+ claim.t.showSourceClaimDialog({id:'source-fixture',name:'SFREG',source_type:'sfreg_mx'});
+ assert.match(claim.node('#modal-root').innerHTML,/id="source-claim-auto" checked/);
+ claim.node('#source-claim-count').value='2';
+ claim.node('#source-claim-auto').checked=true;
+ claim.node('#source-claim-status').value='registered';claim.node('#source-claim-provider').value='none';
+ await claim.node('#source-claim-form').onsubmit({preventDefault(){}});
+ const body=JSON.parse(claim.posted('claim')[0].opt.body);
+ assert.equal(body.configure_on_success,true,'Opted-in automation is persisted in the server claim request');
+ const child={id:'child-apply',kind:'dns_apply',scope:'flow.test',status:'queued'};
+ claim.t.watchClaimHostingJobs({kind:'dns_hosting',result:{domain:'flow.test',dns_apply_job:child}});
+ assert.ok(claim.t.controlJobWatchers.has(child.id));
+ assert.equal(claim.t.state.controlBusyCounts.get('flow.test'),1,'The durable chain adopts the child row lock');
+ claim.t.stopControlJobWatchers();
+ const blocked=fixture(0);await blocked.start();
+ blocked.t.state.controlSources=[{id:'source-fixture',name:'SFREG',source_type:'sfreg_mx',enabled:true}];
+ blocked.t.state.controlBlockedSources=new Set(['source-fixture']);
+ await blocked.node('#control-start-claim').onclick();
+ blocked.node('#source-claim-count').value='2';blocked.node('#source-claim-auto').checked=true;
+ await blocked.node('#source-claim-form').onsubmit({preventDefault(){}});
+ assert.equal(blocked.posted('claim').length,0,'Quick claim must use refreshed blocked-source state');
+ assert.match(blocked.node('#source-claim-msg').textContent,/核对已有领取任务/);
+ console.log('PASS: 200-domain streaming preview/apply; slow and conflicted domains isolated; skip redundant apply/preview; bounded concurrency, locks, cancellation and one completion notice; persistent auto-claim intent and child tracking');
+})().catch(error=>{console.error(error);process.exitCode=1});

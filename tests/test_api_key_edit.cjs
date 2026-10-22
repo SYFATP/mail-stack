@@ -41,6 +41,7 @@ function fixture() {
   vm.runInContext('toast=(text,bad)=>{globalThis.toastResults.push([text,bad])}',owned);
   owned.toastResults=toasts;
   owned.test.state.token='fixture-session';
+  owned.test.state.tab='keys';
   return {node,requests,toasts,t:owned.test,failNext:()=>{fail=true},pause:()=>{delay=new Promise(resolve=>release=resolve)},resume:()=>{release();delay=null}};
 }
 (async()=>{

@@ -136,9 +136,24 @@
     .control-page .control-dns-tab{padding:6px 10px}
     .control-page #control-dns-results{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
     .control-page #control-dns-results>.table-wrap{flex:1;min-height:0;max-height:none;overflow:auto;overscroll-behavior:contain}
-    .control-page .control-bulk-toolbar{flex:none;flex-wrap:nowrap;overflow-x:auto;padding:8px 14px}
-    .control-page .control-bulk-toolbar>*{flex-shrink:0}
-    .control-page .control-bulk-toolbar .muted{width:auto}
+    .control-page .control-bulk-toolbar{flex:none;flex-wrap:wrap;gap:10px 18px;overflow:visible;padding:10px 14px}
+    .control-bulk-selection,.control-bulk-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+    .control-bulk-actions{margin-left:auto;gap:7px}
+    .control-page .control-bulk-toolbar .muted{width:auto;margin:0}
+    .control-bulk-hint{flex:1;min-width:160px;color:var(--muted);font-size:12px;line-height:1.5}
+    .control-bulk-actions .btn{white-space:nowrap}
+    .control-bulk-selection .btn-ghost{padding:5px 2px;font-size:12px}
+    .control-bulk-menu{position:fixed;inset:auto;margin:0;padding:7px;width:min(350px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--panel,#101d31);color:var(--text);box-shadow:0 12px 36px #0005}
+    .control-bulk-menu::backdrop{background:transparent}
+    .control-bulk-menu-heading{padding:7px 10px;color:var(--muted);font-size:11px}
+    .control-bulk-menu-item{display:flex;flex-direction:column;gap:5px;width:100%;padding:11px 10px;border:0;border-radius:7px;background:transparent;color:var(--text);text-align:left;cursor:pointer;font:inherit;font-size:13px}
+    .control-bulk-menu-item:hover,.control-bulk-menu-item:focus-visible{background:var(--panel2,#1a2b43);outline:2px solid var(--brand);outline-offset:-2px}
+    .control-bulk-menu-item small{font-size:11px;line-height:1.5;color:var(--muted);font-weight:400}
+    .control-bulk-menu-item:disabled{opacity:.45;cursor:not-allowed;outline:0;background:transparent}
+    .control-bulk-menu-item[hidden]{display:none}
+    .control-bulk-menu-divider{margin:5px 10px;border-top:1px solid var(--line)}
+    @media(max-width:760px){.control-bulk-hint{order:3;flex-basis:100%;min-width:0}.control-bulk-selection{gap:8px}.control-bulk-actions{gap:5px}.control-page .control-bulk-toolbar{gap:8px}}
+    @media(max-width:440px){.control-bulk-actions{margin-left:0;flex-basis:100%}.control-bulk-actions .btn{flex:1}.control-bulk-selection{width:100%}.control-bulk-selection .btn-ghost{margin-left:auto}}
     .control-page .control-dns-panel .pagination{flex:none;padding:10px 14px;gap:8px}
     @media(max-width:980px){.shell:has(.domain-page),.shell:has(.control-page){grid-template-rows:auto minmax(0,1fr)}}
     @media(max-width:600px){
@@ -160,6 +175,7 @@
       .control-page .control-dns-panel .pagination-actions>*{flex-shrink:0}
     }
     @media(max-width:600px){.domain-page .toolbar{width:100%;justify-content:flex-start}.domain-page .search{flex-basis:100%;min-width:0;max-width:none}.domain-page .page-head .head-actions{margin-top:15px}.domain-page .pagination-actions{gap:5px}.domain-modal .modal-body{padding:16px}.domain-dialog-actions{padding:12px 16px}}
+    .dynv6-accounts-modal{width:min(1100px,100%)}.dynv6-accounts-table{min-width:780px}.dynv6-accounts-table td{vertical-align:top}.dynv6-accounts-table td:first-child{max-width:300px;white-space:normal;overflow-wrap:anywhere}.dynv6-accounts-table small{display:block;margin-top:5px}.dynv6-accounts-table td:last-child{white-space:nowrap}
     .control-jobs-modal{width:min(1100px,100%)}.control-jobs-modal .modal-body{display:flex;flex-direction:column;overflow:hidden}.control-jobs-modal .modal-body>.control-help,.control-jobs-toolbar,.control-jobs-modal .pagination{flex:none}.control-jobs-toolbar{margin-bottom:16px}.control-jobs-toolbar .search input{width:100%;color:var(--text);outline:0}.control-task-table-wrap{min-height:0;overflow:auto}.control-task-table-wrap .table{min-width:900px}.control-task-id{display:block;max-width:170px;overflow:hidden;text-overflow:ellipsis}.control-task-scope{max-width:240px;white-space:normal!important;overflow-wrap:anywhere}
     .control-claims-panel>.table-wrap{max-height:520px}.control-claims-table{min-width:980px}.control-claims-table td{vertical-align:top;white-space:normal;overflow-wrap:anywhere}.control-claims-table small{display:block;margin-top:4px}.control-claims-panel .panel-head{flex-wrap:wrap}.control-dns-panel .panel-head{flex-wrap:wrap}.control-dns-panel .toolbar{min-width:0;flex:1;justify-content:flex-end}.control-dns-panel .search{max-width:340px}.control-dns-panel .search input{width:100%;color:var(--text);outline:0}.control-dns-table{min-width:900px;table-layout:fixed}.control-dns-table th,.control-dns-table td{padding:14px 12px;white-space:normal;overflow-wrap:anywhere}.control-dns-table th:nth-child(1){width:25%}.control-dns-table th:nth-child(2){width:11%}.control-dns-table th:nth-child(3){width:17%}.control-dns-table th:nth-child(4){width:16%}.control-dns-table th:nth-child(5){width:13%}.control-dns-table th:nth-child(6){width:12%}.control-dns-table th:nth-child(7){width:20%}.control-dns-table td{vertical-align:top}.control-dns-table .head-actions{min-width:0;gap:6px}.control-dns-table small{display:block;margin-top:4px}.control-dns-table .dns-status-pending{background:#23354d;color:#b9cde7}.control-dns-table .control-row-busy{opacity:.68}.control-dns-records .table{min-width:620px}.control-dns-records td{white-space:normal;overflow-wrap:anywhere}
     .control-dns-panel .panel-head{flex-wrap:wrap}.control-dns-panel .toolbar{min-width:0;flex:1;justify-content:flex-end}.control-dns-panel .search{max-width:340px}.control-dns-panel .search input{width:100%;color:var(--text);outline:0}.control-dns-table{min-width:1220px;table-layout:fixed}.control-dns-table th,.control-dns-table td{padding:14px 12px;white-space:normal;overflow-wrap:anywhere}.control-dns-table th:nth-child(1){width:3%}.control-dns-table th:nth-child(2){width:19%}.control-dns-table th:nth-child(3){width:12%}.control-dns-table th:nth-child(4){width:16%}.control-dns-table th:nth-child(5){width:14%}.control-dns-table th:nth-child(6){width:14%}.control-dns-table th:nth-child(7){width:10%}.control-dns-table th:nth-child(8){width:22%}.control-dns-table td{vertical-align:top}.control-dns-table .head-actions{min-width:0;gap:6px}.control-dns-table small{display:block;margin-top:4px}.control-dns-table .dns-status-pending{background:#23354d;color:#b9cde7}.control-dns-table .selection-cell{text-align:center;vertical-align:middle}.control-dns-table .selection-cell input,.control-dns-selection input{width:16px;height:16px;margin:0;accent-color:var(--brand)}.control-dns-selection{display:inline-flex;align-items:center;gap:7px;color:var(--muted);font-size:12px;white-space:nowrap;text-transform:none;letter-spacing:normal}.control-bulk-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line);background:#0b1728}.control-bulk-toolbar .muted{margin-right:auto}.control-dns-records .table{min-width:620px}.control-dns-records td{white-space:normal;overflow-wrap:anywhere}
@@ -394,6 +410,14 @@
     @media(max-width:800px){.send-layout{grid-template-columns:minmax(0,1fr)}.send-guide{order:2}.send-guide .send-disclosure{margin-top:10px}}
     @media(max-width:600px){.send-address-grid,.send-advanced-grid{grid-template-columns:minmax(0,1fr)}.send-advanced .field-wide{grid-column:auto}.send-page #send-text{min-height:160px}.send-compose,.send-guide{padding:15px}.send-page>.page-head .head-actions{margin-top:10px}.send-submit-bar>.btn{width:100%}.send-history>summary{padding:12px 14px}}
 
+
+    .control-dns-table th:nth-child(2){width:260px}
+    .control-dns-table .control-row-actions{align-items:flex-start;min-width:236px}
+    .control-row-menu{width:min(240px,calc(100vw - 24px))}
+    .control-step-actions{display:flex;gap:6px;flex-wrap:wrap;padding:7px}
+    .control-auto-claim{display:flex;align-items:flex-start;gap:9px;margin:14px 0;font-size:13px;cursor:pointer}
+    .control-auto-claim input{width:16px;height:16px;margin-top:2px;accent-color:var(--brand)}
+    .control-auto-claim small{display:block;margin-top:5px}
   </style>
 </head>
 <body>
@@ -562,8 +586,31 @@
     const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const fmtDate=ts=>ts?new Date(ts*1000).toLocaleString():'—';
     const AUTO_REFRESH_STORAGE_KEY='mail_auto_refresh';
+    const NAVIGATION_STORAGE_KEY='mail_navigation';
+    const PAGE_TITLES={inbox:'收件箱',send:'发送邮件',domains:'域名管理',control:'来源与 DNS',webhooks:'推送 Webhook',keys:'API Keys',projects:'项目管理',security:'安全与文档'};
+    function readNavigation(){
+      let saved;try{saved=JSON.parse(localStorage.getItem(NAVIGATION_STORAGE_KEY)||'{}')}catch{}
+      const dns=saved?.controlDns||{},positive=value=>Math.max(1,Math.min(1000000,Math.trunc(Number(value))||1));
+      return {tab:Object.hasOwn(PAGE_TITLES,saved?.tab)?saved.tab:'inbox',controlDns:{
+        query:typeof dns.query==='string'?dns.query.slice(0,500):'',
+        provider:['cloudflare','digitalplat','dynv6','manual'].includes(dns.provider)?dns.provider:'',
+        status:['pending','ready','all'].includes(dns.status)?dns.status:'pending',
+        page:positive(dns.page),pageSize:[10,20,50,100].includes(dns.pageSize)?dns.pageSize:20}};
+    }
+    const savedNavigation=readNavigation(),pageCache=new Map();
+    let mountedTab='',inboxRequest=null;
+    function saveNavigation(){try{localStorage.setItem(NAVIGATION_STORAGE_KEY,JSON.stringify({tab:state.tab,controlDns:state.controlDns}))}catch{}}
+    function invalidateCachedPages(...tabs){for(const tab of tabs){const entry=pageCache.get(tab);if(entry&&tab!==mountedTab)entry.dirty=true}}
+    function resetPageCache(){pageCache.clear();mountedTab='';inboxRequest=null;state.refreshInFlight=false}
+    function capturePageScroll(page){
+      return [page,...page.querySelectorAll('.table-wrap')].map(node=>({node,top:node.scrollTop,left:node.scrollLeft}));
+    }
+    function restorePageScroll(entry){
+      for(const {node,top,left} of entry.scroll||[]){node.scrollTop=top;node.scrollLeft=left}
+      if(entry.windowScroll)globalThis.scrollTo?.(...entry.windowScroll);
+    }
     function readAutoRefreshPreference(){try{return localStorage.getItem(AUTO_REFRESH_STORAGE_KEY)==='true'}catch{return false}}
-    const state={token:localStorage.getItem('mail_session')||'',tab:'inbox',messages:[],keys:[],webhooks:[],domains:[],query:'',searchTimer:null,pageSize:20,page:1,total:0,mailDomains:[],domainQuery:'',domainPage:1,domainPageSize:20,domainSelection:new Set(),domainBusy:new Map(),domainBatch:null,domainBulkResult:null,editingDomain:'',cloudflare:null,projects:[],controlDomain:'',controlDomains:[],controlSources:[],controlClaims:[],controlCredentials:[],controlGlobalCloudflare:{configured:false},controlSelection:new Set(),controlBusyCounts:new Map(),controlBatches:new Set(),controlDns:{query:'',provider:'',status:'pending',page:1,pageSize:20},sourceClaimCounts:{},sourcePools:{},controlTasks:{query:'',status:'',page:1,pageSize:20},autoRefresh:readAutoRefreshPreference(),autoRefreshTimer:null,refreshInFlight:false};
+    const state={token:localStorage.getItem('mail_session')||'',tab:savedNavigation.tab,messages:[],keys:[],webhooks:[],domains:[],query:'',searchTimer:null,pageSize:20,page:1,total:0,mailDomains:[],domainQuery:'',domainPage:1,domainPageSize:20,domainSelection:new Set(),domainBusy:new Map(),domainBatch:null,domainBulkResult:null,editingDomain:'',cloudflare:null,projects:[],controlDomain:'',controlDomains:[],controlSources:[],controlClaims:[],controlCredentials:[],controlGlobalCloudflare:{configured:false},controlSelection:new Set(),controlBusyCounts:new Map(),controlBatches:new Set(),controlDns:savedNavigation.controlDns,sourceClaimCounts:{},sourcePools:{},controlTasks:{query:'',status:'',page:1,pageSize:20},autoRefresh:readAutoRefreshPreference(),autoRefreshTimer:null,refreshInFlight:false};
     const AUTO_REFRESH_MS=15000;
     const primaryDomain=()=>state.domains[0]?.domain||'example.com';
     function parseSender(value){
@@ -604,7 +651,7 @@
     async function api(path,opt={}){
       const headers={'Content-Type':'application/json',...(opt.headers||{})};if(state.token)headers['X-API-Key']=state.token;
       const r=await fetch('/api/v1'+path,{...opt,headers});let d=null;try{d=await r.json()}catch{}
-      if(r.status===401){logout(false);throw Error('登录已过期，请重新登录')}if(!r.ok){const detail=d?.detail,error=Error(typeof detail==='string'?detail:detail?.message||'请求失败');error.code=detail?.code||'';throw error}return d;
+      if(r.status===401){logout(false);throw Error('登录已过期，请重新登录')}if(!r.ok){const detail=d?.detail,error=Error(typeof detail==='string'?detail:detail?.message||'请求失败');error.code=detail?.code||'';throw error}if(opt.method&&opt.method.toUpperCase()!=='GET'){if(/^\/(mail-domains|domain-|dns-credentials|dns\/)/.test(path))invalidateCachedPages('domains','control');if(path.startsWith('/projects'))invalidateCachedPages('projects','domains','keys','webhooks');if(path.startsWith('/api-keys'))invalidateCachedPages('keys');if(path.startsWith('/webhooks'))invalidateCachedPages('webhooks')}return d;
     }
     async function downloadFile(path,filename){const headers={};if(state.token)headers['X-API-Key']=state.token;const r=await fetch('/api/v1'+path,{headers});if(r.status===401){logout(false);throw Error('登录已过期，请重新登录')}if(!r.ok)throw Error('下载失败');const url=URL.createObjectURL(await r.blob());try{const link=document.createElement('a');link.href=url;link.download=filename;document.body.append(link);link.click();link.remove()}finally{setTimeout(()=>URL.revokeObjectURL(url),1000)}}
     let activeToast=null,toastTimer=null;
@@ -616,14 +663,66 @@
     function stopAutoRefresh(){if(state.autoRefreshTimer){clearInterval(state.autoRefreshTimer);state.autoRefreshTimer=null}}
     function startAutoRefresh(){stopAutoRefresh();if(state.tab!=='inbox'||!state.autoRefresh)return;state.autoRefreshTimer=setInterval(()=>inboxPage(false,true),AUTO_REFRESH_MS)}
     function setAutoRefresh(enabled){state.autoRefresh=Boolean(enabled);try{localStorage.setItem(AUTO_REFRESH_STORAGE_KEY,String(state.autoRefresh))}catch{}if(state.autoRefresh){startAutoRefresh();toast('已开启自动刷新（15 秒）')}else{stopAutoRefresh();toast('已关闭自动刷新')}}
-    async function logout(show=true){if(show&&state.token){try{const r=await fetch('/api/v1/auth/logout',{method:'POST',headers:{'X-API-Key':state.token}});if(!r.ok&&r.status!==401)throw Error('退出失败，请重试')}catch{toast('退出失败，请检查连接后重试',true);return}}closeModal();stopAutoRefresh();stopControlJobWatchers();localStorage.removeItem('mail_session');state.token='';state.domainSelection.clear();state.domainBusy.clear();state.domainBatch=null;state.domainBulkResult=null;state.controlSelection.clear();controlPreview=null;controlRevision++;controlPendingKeys.clear();if(show)toast('已退出登录');render()}
+    async function logout(show=true){if(show&&state.token){try{const r=await fetch('/api/v1/auth/logout',{method:'POST',headers:{'X-API-Key':state.token}});if(!r.ok&&r.status!==401)throw Error('退出失败，请重试')}catch{toast('退出失败，请检查连接后重试',true);return}}closeModal();stopAutoRefresh();stopControlJobWatchers();localStorage.removeItem('mail_session');state.token='';state.domainSelection.clear();state.domainBusy.clear();state.domainBatch=null;state.domainBulkResult=null;state.controlSelection.clear();controlPreview=null;controlRevision++;controlPendingKeys.clear();resetPageCache();for(const key of ['messages','keys','webhooks','domains','mailDomains','projects','controlDomains','controlSources','controlClaims','controlCredentials'])state[key]=[];if(show)toast('已退出登录');render()}
     const LOGIN_TIMEOUT_MS=15000;
     function loginView(){$('#app').innerHTML=`<div class="login-wrap"><div class="login-card"><div class="login-appearance">${globalThis.mailAppearance?.markup()||''}</div><div class="brand"><div class="brand-mark">✉</div><span>Mail Stack</span></div><h1>欢迎回来</h1><p>登录管理控制台，查看收件、管理推送和发件配置。</p><form id="login-form"><div class="field"><label>管理员密码</label><input id="login-password" type="password" autocomplete="current-password" placeholder="输入管理员密码" required></div><div id="login-error" class="error" role="status" aria-live="polite"></div><button id="login-submit" class="btn btn-primary" style="width:100%">登录控制台</button></form></div></div>`;const form=$('#login-form'),password=$('#login-password'),button=$('#login-submit'),box=$('#login-error');let submitting=false;form.onsubmit=async e=>{e.preventDefault();if(submitting)return;submitting=true;password.disabled=true;button.disabled=true;button.textContent='登录中…';box.className='success';box.textContent='正在登录…';const controller=typeof AbortController==='function'?new AbortController():null;const timeout=setTimeout(()=>controller?.abort(),LOGIN_TIMEOUT_MS);try{const options={method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:password.value})};if(controller)options.signal=controller.signal;const r=await fetch('/api/v1/auth/login',options);if(!r.ok)throw Error('密码错误');const d=await r.json();if(!d?.token)throw Error('登录响应无效，请重试');state.token=d.token;localStorage.setItem('mail_session',state.token);render()}catch(err){box.className='error';box.textContent=err?.name==='AbortError'?'登录超时，请检查服务状态后重试':(err?.message==='Failed to fetch'?'无法连接登录服务，请稍后重试':(err?.message||'登录失败，请重试'))}finally{clearTimeout(timeout);submitting=false;password.disabled=false;button.disabled=false;button.textContent='登录控制台'}}}
-    function shell(){$('#app').innerHTML=`<div class="shell"><aside class="sidebar"><div class="brand"><div class="brand-mark">✉</div><span>Mail Stack</span></div><nav class="nav"><button data-tab="inbox"><span class="icon" aria-hidden="true"><span class="classic-icon">▤</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="16" height="14" rx="2"/><path d="M2 11h4l2 3h4l2-3h4M6 7h8"/></svg></span>收件箱</button><button data-tab="send"><span class="icon" aria-hidden="true"><span class="classic-icon">➤</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 15 7-15 7 3-7-3-7ZM6 10h12"/></svg></span>发送邮件</button><button data-tab="domains"><span class="icon" aria-hidden="true"><span class="classic-icon">◎</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="8"/><ellipse cx="10" cy="10" rx="3.5" ry="8"/><path d="M2 10h16"/></svg></span>域名管理</button><button data-tab="control"><span class="icon" aria-hidden="true"><span class="classic-icon">◇</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="m10 2 8 4-8 4-8-4 8-4ZM2 10l8 4 8-4M2 14l8 4 8-4"/></svg></span>来源与 DNS</button><button data-tab="webhooks"><span class="icon" aria-hidden="true"><span class="classic-icon">⚡</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="m11 2-7 9h5l-1 7 8-10h-6l1-6Z"/></svg></span>推送 Webhook</button><button data-tab="projects"><span class="icon" aria-hidden="true"><span class="classic-icon">▣</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="12" y="3" width="6" height="6" rx="1"/><rect x="2" y="13" width="6" height="5" rx="1"/><rect x="12" y="13" width="6" height="5" rx="1"/></svg></span>项目管理</button><button data-tab="keys"><span class="icon" aria-hidden="true"><span class="classic-icon">◆</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4"/><path d="m10 10 7 7m-2-2 2-2m-5-1 2-2"/></svg></span>API Keys</button><button data-tab="security"><span class="icon" aria-hidden="true"><span class="classic-icon">⚙</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="m10 2 7 3v5c0 4-7 8-7 8s-7-4-7-8V5l7-3Z"/><path d="m6 10 3 3 5-6"/></svg></span>安全与文档</button></nav><div class="side-footer"><div class="monitor-sidebar" id="server-monitor-sidebar"></div><span style="display:block;margin-top:8px">多域名邮局 · mail.example.com</span></div></aside><main class="main"><header class="topbar"><div class="top-title" id="top-title">收件箱</div><div class="top-actions">${globalThis.mailAppearance?.markup()||''}<button class="btn btn-ghost" id="refresh-btn">↻ 刷新</button><div class="avatar">A</div><button class="btn btn-ghost" id="logout-btn">退出</button></div></header><section class="content" id="page"></section></main></div>`;$$('.nav button').forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;renderPage()});$('#refresh-btn').onclick=()=>state.tab==='inbox'?inboxPage(true):renderPage(true);$('#logout-btn').onclick=()=>logout()}
+    function shell(){resetPageCache();$('#app').innerHTML=`<div class="shell"><aside class="sidebar"><div class="brand"><div class="brand-mark">✉</div><span>Mail Stack</span></div><nav class="nav"><button data-tab="inbox"><span class="icon" aria-hidden="true"><span class="classic-icon">▤</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="16" height="14" rx="2"/><path d="M2 11h4l2 3h4l2-3h4M6 7h8"/></svg></span>收件箱</button><button data-tab="send"><span class="icon" aria-hidden="true"><span class="classic-icon">➤</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 15 7-15 7 3-7-3-7ZM6 10h12"/></svg></span>发送邮件</button><button data-tab="domains"><span class="icon" aria-hidden="true"><span class="classic-icon">◎</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="8"/><ellipse cx="10" cy="10" rx="3.5" ry="8"/><path d="M2 10h16"/></svg></span>域名管理</button><button data-tab="control"><span class="icon" aria-hidden="true"><span class="classic-icon">◇</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="m10 2 8 4-8 4-8-4 8-4ZM2 10l8 4 8-4M2 14l8 4 8-4"/></svg></span>来源与 DNS</button><button data-tab="webhooks"><span class="icon" aria-hidden="true"><span class="classic-icon">⚡</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="m11 2-7 9h5l-1 7 8-10h-6l1-6Z"/></svg></span>推送 Webhook</button><button data-tab="projects"><span class="icon" aria-hidden="true"><span class="classic-icon">▣</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="12" y="3" width="6" height="6" rx="1"/><rect x="2" y="13" width="6" height="5" rx="1"/><rect x="12" y="13" width="6" height="5" rx="1"/></svg></span>项目管理</button><button data-tab="keys"><span class="icon" aria-hidden="true"><span class="classic-icon">◆</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4"/><path d="m10 10 7 7m-2-2 2-2m-5-1 2-2"/></svg></span>API Keys</button><button data-tab="security"><span class="icon" aria-hidden="true"><span class="classic-icon">⚙</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="m10 2 7 3v5c0 4-7 8-7 8s-7-4-7-8V5l7-3Z"/><path d="m6 10 3 3 5-6"/></svg></span>安全与文档</button></nav><div class="side-footer"><div class="monitor-sidebar" id="server-monitor-sidebar"></div><span style="display:block;margin-top:8px">多域名邮局 · mail.example.com</span></div></aside><main class="main"><header class="topbar"><div class="top-title" id="top-title">收件箱</div><div class="top-actions">${globalThis.mailAppearance?.markup()||''}<button class="btn btn-ghost" id="refresh-btn">↻ 刷新</button><div class="avatar">A</div><button class="btn btn-ghost" id="logout-btn">退出</button></div></header><section class="content" id="page"></section></main></div>`;$$('.nav button').forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;renderPage()});$('#refresh-btn').onclick=()=>state.tab==='inbox'?inboxPage(true):renderPage(true);$('#logout-btn').onclick=()=>logout()}
     function render(){state.token?shell():loginView();globalThis.mailAppearance?.bind();if(state.token){renderPage();globalThis.mailServerMonitor?.start(state.token,()=>logout(false))}else globalThis.mailServerMonitor?.stop()}
-    function renderPage(force=false){closeModal();stopAutoRefresh();document.body.classList.toggle('inbox-mode',state.tab==='inbox');const titles={inbox:'收件箱',send:'发送邮件',domains:'域名管理',control:'来源与 DNS',webhooks:'推送 Webhook',keys:'API Keys',projects:'项目管理',security:'安全与文档'};$('#top-title').textContent=titles[state.tab];$$('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===state.tab));if(state.tab==='inbox'){ensureDomains().finally(()=>inboxPage(force))}if(state.tab==='send'){ensureDomains().then(()=>sendPage()).catch(e=>{$('#page').innerHTML=`<div class="notice warning">${esc(e.message)}</div>`})}if(state.tab==='domains')domainPage(force);if(state.tab==='control')controlPage();if(state.tab==='webhooks')webhooksPage(force);if(state.tab==='keys')keysPage(force);if(state.tab==='projects')projectsPage();if(state.tab==='security')securityPage()}
+    async function renderPage(force=false){
+      closeModal();stopAutoRefresh();closeControlBulkMenus();
+      if(!Object.hasOwn(PAGE_TITLES,state.tab))state.tab='inbox';
+      const tab=state.tab,token=state.token;saveNavigation();
+      document.body.classList.toggle('inbox-mode',tab==='inbox');
+      $('#top-title').textContent=PAGE_TITLES[tab];
+      $$('.nav button').forEach(button=>button.classList.toggle('active',button.dataset.tab===tab));
+      const previous=$('#page');let entry=pageCache.get(tab);
+      if(mountedTab!==tab){
+        const outgoing=pageCache.get(mountedTab);
+        if(outgoing){
+          outgoing.scroll=capturePageScroll(previous);outgoing.windowScroll=[globalThis.scrollX||0,globalThis.scrollY||0];
+          if(mountedTab==='inbox'&&(state.searchTimer||inboxRequest)){
+            clearTimeout(state.searchTimer);state.searchTimer=null;outgoing.dirty=true;
+          }
+        }
+        if(!entry?.ready){
+          const node=mountedTab?document.createElement('section'):previous;
+          node.id='page';node.className='content';entry={node,ready:false,dirty:false};pageCache.set(tab,entry);
+        }
+        if(previous!==entry.node)previous.replaceWith(entry.node);
+        mountedTab=tab;restorePageScroll(entry);
+      }
+      const current=()=>state.token===token&&state.tab===tab&&$('#page')===entry.node;
+      if(entry.ready&&!force&&!entry.dirty){
+        if(tab==='inbox')startAutoRefresh();
+        if(tab==='control'){renderControlUnifiedResults();renderControlJobProgress()}
+        if(tab==='domains')renderManagedDomainRows();
+        restorePageScroll(entry);return;
+      }
+      if(entry.loading&&!force)return entry.loading;
+      const partial=entry.ready&&['control','domains'].includes(tab);
+      entry.dirty=false;
+      entry.loading=Promise.resolve().then(async()=>{
+        try{
+          if(!current())return;
+          if(partial){if(tab==='control'){if(!await refreshControlLists())entry.dirty=true}else await refreshManagedDomains();return}
+          entry.ready=false;
+          if(tab==='inbox'||tab==='send'){await ensureDomains();if(!current())return}
+          if(tab==='inbox')await inboxPage(force);
+          if(tab==='send')await sendPage();
+          if(tab==='domains')await domainPage(force);
+          if(tab==='control')await controlPage();
+          if(tab==='webhooks')await webhooksPage(force);
+          if(tab==='keys')await keysPage(force);
+          if(tab==='projects')await projectsPage();
+          if(tab==='security')securityPage();
+          if(current())entry.ready=Boolean(entry.node.querySelector?.('h2'));
+        }catch(error){if(partial)entry.dirty=true;if(current())toast(error.message,true)}
+        finally{entry.loading=null}
+      });
+      return entry.loading;
+    }
     function renderInboxResults(){const totalPages=Math.max(1,Math.ceil(state.total/state.pageSize));$('#inbox-total').textContent=state.total;$('#inbox-count').textContent=state.messages.length;$('#inbox-page-note').textContent=`第 ${state.page} / ${totalPages} 页`;$('#inbox-domain-count').textContent=state.domains.length;$('#mail-table-body').innerHTML=state.messages.length?state.messages.map(m=>`<tr class="data-row" data-id="${esc(m.id)}"><td class="subject"><strong class="mail-subject" title="${esc(m.subject||'(无主题)')}">${esc(m.subject||'(无主题)')}</strong></td><td>${renderSender(m.sender)}</td><td>${renderActualSender(m)}</td><td><span class="mail-recipient" title="${esc(formatRecipient(m.envelope_recipient||m.to_header||''))}">${esc(formatRecipient(m.envelope_recipient||m.to_header||''))}</span></td><td>${renderActualRecipient(m)}</td><td>${renderReceivedAt(m.received_at)}</td></tr>`).join(''):`<tr><td colspan="6"><div class="empty"><strong>没有找到邮件</strong>尝试更换搜索关键词。</div></td></tr>`;$('#inbox-pagination-summary').textContent=`共 ${state.total} 封，当前第 ${state.page} / ${totalPages} 页`;$('#prev-page').disabled=state.page<=1;$('#next-page').disabled=state.page>=totalPages;$('#jump-page').max=totalPages;$('#jump-page').value=state.page;$$('.data-row',$('#mail-table-body')).forEach(r=>r.onclick=()=>showMessage(r.dataset.id))}
-    async function inboxPage(force=false,background=false){if(state.refreshInFlight)return;state.refreshInFlight=true;const initial=!$('#inbox-shell');if(initial)$('#page').innerHTML='<div class="empty">正在加载邮件…</div>';try{const d=await api(`/messages?limit=${state.pageSize}&offset=${(state.page-1)*state.pageSize}&q=${encodeURIComponent(state.query)}&meta=1`);state.messages=d.items||[];state.total=d.total||0}catch(e){if(initial)$('#page').innerHTML=`<div class="notice warning">${esc(e.message)}</div>`;else if(!background)toast(e.message,true);return}finally{state.refreshInFlight=false}const totalPages=Math.max(1,Math.ceil(state.total/state.pageSize));if(state.page>totalPages){state.page=totalPages;return inboxPage(true)}if(initial){$('#page').innerHTML=`<div class="inbox-page" id="inbox-shell"><div class="page-head"><div><h2>收件箱</h2><p>集中查看邮件，支持关键词搜索、分页浏览和快速跳转。</p></div></div><div class="grid"><div class="card"><div class="stat-label">邮件总数</div><div class="stat-value" id="inbox-total">0</div><div class="stat-note">当前搜索结果</div></div><div class="card"><div class="stat-label">本页邮件</div><div class="stat-value" id="inbox-count">0</div><div class="stat-note" id="inbox-page-note">第 1 / 1 页</div></div><div class="card"><div class="stat-label">收件域名</div><div class="stat-value" id="inbox-domain-count">0</div></div><div class="card"><div class="stat-label">状态</div><div class="stat-value">在线</div><div class="stat-note">API / SMTP 正常</div></div></div><div class="panel"><div class="panel-head"><div class="panel-title">邮件列表</div><div class="toolbar"><label class="auto-refresh-toggle" title="每 15 秒从服务器同步一次邮件列表"><input id="auto-refresh" type="checkbox" ${state.autoRefresh?"checked":""}>自动刷新</label><div class="search"><span>⌕</span><input id="mail-search" placeholder="搜索主题、实际发件人、实际收件人…" value="${esc(state.query)}"></div><select id="page-size" class="page-size" title="每页显示数量"><option value="20" ${state.pageSize===20?'selected':''}>20 条/页</option><option value="50" ${state.pageSize===50?'selected':''}>50 条/页</option><option value="100" ${state.pageSize===100?'selected':''}>100 条/页</option><option value="500" ${state.pageSize===500?'selected':''}>500 条/页</option><option value="1000" ${state.pageSize===1000?'selected':''}>1000 条/页</option></select></div></div><div class="table-wrap"><table class="table inbox-table"><colgroup><col class="col-subject"><col class="col-sender"><col class="col-actual-sender"><col class="col-recipient"><col class="col-actual-recipient"><col class="col-received"></colgroup><thead><tr><th scope="col">主题</th><th scope="col">发件人</th><th scope="col">实际发件人</th><th scope="col">收件人</th><th scope="col">实际收件人</th><th scope="col">接收时间</th></tr></thead><tbody id="mail-table-body"></tbody></table></div><div class="pagination"><span id="inbox-pagination-summary"></span><div class="pagination-actions"><button class="btn btn-small btn-secondary" id="prev-page">上一页</button><button class="btn btn-small btn-secondary" id="next-page">下一页</button><span>跳转</span><input id="jump-page" class="page-jump" type="number" min="1" value="${state.page}"><button class="btn btn-small btn-secondary" id="jump-btn">确定</button></div></div></div></div>`;$('#auto-refresh').onchange=e=>setAutoRefresh(e.target.checked);$('#mail-search').oninput=e=>{state.query=e.target.value;state.page=1;clearTimeout(state.searchTimer);state.searchTimer=setTimeout(()=>inboxPage(true),400)};$('#mail-search').onkeydown=e=>{if(e.key==='Enter'){clearTimeout(state.searchTimer);state.page=1;inboxPage(true)}};$('#page-size').onchange=e=>{state.pageSize=Number(e.target.value);state.page=1;inboxPage(true)};$('#prev-page').onclick=()=>{if(state.page>1){state.page--;inboxPage(true)}};$('#next-page').onclick=()=>{if(state.page<Math.max(1,Math.ceil(state.total/state.pageSize))){state.page++;inboxPage(true)}};$('#jump-btn').onclick=()=>{const n=Math.max(1,Number($('#jump-page').value)||1);state.page=n;inboxPage(true)};$('#jump-page').onkeydown=e=>{if(e.key==='Enter')$('#jump-btn').click()}}renderInboxResults();if(state.autoRefresh)startAutoRefresh()}
+    async function inboxPage(force=false,background=false){if(state.tab!=='inbox')return;const page=$('#page'),token=state.token,current=()=>state.tab==='inbox'&&state.token===token&&$('#page')===page;if(inboxRequest?.page===page&&inboxRequest.token===token)return;const request={page,token};inboxRequest=request;state.refreshInFlight=true;const initial=!$('#inbox-shell');if(initial)$('#page').innerHTML='<div class="empty">正在加载邮件…</div>';try{const d=await api(`/messages?limit=${state.pageSize}&offset=${(state.page-1)*state.pageSize}&q=${encodeURIComponent(state.query)}&meta=1`);if(!current())return;state.messages=d.items||[];state.total=d.total||0}catch(e){if(!current())return;if(initial)$('#page').innerHTML=`<div class="notice warning">${esc(e.message)}</div>`;else if(!background)toast(e.message,true);return}finally{if(inboxRequest===request){state.refreshInFlight=false;inboxRequest=null}}if(!current())return;const totalPages=Math.max(1,Math.ceil(state.total/state.pageSize));if(state.page>totalPages){state.page=totalPages;return inboxPage(true)}if(initial){$('#page').innerHTML=`<div class="inbox-page" id="inbox-shell"><div class="page-head"><div><h2>收件箱</h2><p>集中查看邮件，支持关键词搜索、分页浏览和快速跳转。</p></div></div><div class="grid"><div class="card"><div class="stat-label">邮件总数</div><div class="stat-value" id="inbox-total">0</div><div class="stat-note">当前搜索结果</div></div><div class="card"><div class="stat-label">本页邮件</div><div class="stat-value" id="inbox-count">0</div><div class="stat-note" id="inbox-page-note">第 1 / 1 页</div></div><div class="card"><div class="stat-label">收件域名</div><div class="stat-value" id="inbox-domain-count">0</div></div><div class="card"><div class="stat-label">状态</div><div class="stat-value">在线</div><div class="stat-note">API / SMTP 正常</div></div></div><div class="panel"><div class="panel-head"><div class="panel-title">邮件列表</div><div class="toolbar"><label class="auto-refresh-toggle" title="每 15 秒从服务器同步一次邮件列表"><input id="auto-refresh" type="checkbox" ${state.autoRefresh?"checked":""}>自动刷新</label><div class="search"><span>⌕</span><input id="mail-search" placeholder="搜索主题、实际发件人、实际收件人…" value="${esc(state.query)}"></div><select id="page-size" class="page-size" title="每页显示数量"><option value="20" ${state.pageSize===20?'selected':''}>20 条/页</option><option value="50" ${state.pageSize===50?'selected':''}>50 条/页</option><option value="100" ${state.pageSize===100?'selected':''}>100 条/页</option><option value="500" ${state.pageSize===500?'selected':''}>500 条/页</option><option value="1000" ${state.pageSize===1000?'selected':''}>1000 条/页</option></select></div></div><div class="table-wrap"><table class="table inbox-table"><colgroup><col class="col-subject"><col class="col-sender"><col class="col-actual-sender"><col class="col-recipient"><col class="col-actual-recipient"><col class="col-received"></colgroup><thead><tr><th scope="col">主题</th><th scope="col">发件人</th><th scope="col">实际发件人</th><th scope="col">收件人</th><th scope="col">实际收件人</th><th scope="col">接收时间</th></tr></thead><tbody id="mail-table-body"></tbody></table></div><div class="pagination"><span id="inbox-pagination-summary"></span><div class="pagination-actions"><button class="btn btn-small btn-secondary" id="prev-page">上一页</button><button class="btn btn-small btn-secondary" id="next-page">下一页</button><span>跳转</span><input id="jump-page" class="page-jump" type="number" min="1" value="${state.page}"><button class="btn btn-small btn-secondary" id="jump-btn">确定</button></div></div></div></div>`;$('#auto-refresh').onchange=e=>setAutoRefresh(e.target.checked);$('#mail-search').oninput=e=>{state.query=e.target.value;state.page=1;clearTimeout(state.searchTimer);state.searchTimer=setTimeout(()=>{state.searchTimer=null;inboxPage(true)},400)};$('#mail-search').onkeydown=e=>{if(e.key==='Enter'){clearTimeout(state.searchTimer);state.searchTimer=null;state.page=1;inboxPage(true)}};$('#page-size').onchange=e=>{state.pageSize=Number(e.target.value);state.page=1;inboxPage(true)};$('#prev-page').onclick=()=>{if(state.page>1){state.page--;inboxPage(true)}};$('#next-page').onclick=()=>{if(state.page<Math.max(1,Math.ceil(state.total/state.pageSize))){state.page++;inboxPage(true)}};$('#jump-btn').onclick=()=>{const n=Math.max(1,Number($('#jump-page').value)||1);state.page=n;inboxPage(true)};$('#jump-page').onkeydown=e=>{if(e.key==='Enter')$('#jump-btn').click()}}renderInboxResults();if(state.autoRefresh)startAutoRefresh()}
     function replyDialog(messageId,message){const sender=`test@${primaryDomain()}`;const originalSubject=String(message.subject||'');const subject=originalSubject.toLowerCase().startsWith('re:')?originalSubject:`Re: ${originalSubject}`;$('#modal-root').innerHTML=`<div class="modal-backdrop" id="reply-bg"><div class="modal dialog-modal"><div class="modal-head"><h3>回复邮件</h3><button class="btn btn-ghost" id="reply-close">✕</button></div><form class="modal-body" id="reply-form"><div class="field"><label>发件人</label><input id="reply-from" value="${esc(sender)}" required></div><div class="field"><label>主题</label><input id="reply-subject" value="${esc(subject)}"></div><div class="field"><label>正文</label><textarea id="reply-text" rows="10" required></textarea></div><div id="reply-msg"></div><div class="dialog-actions"><button type="button" class="btn btn-secondary" id="reply-cancel">取消</button><button class="btn btn-primary">加入发件队列</button></div></form></div></div>`;const finish=()=>{$('#modal-root').innerHTML=''};$('#reply-close').onclick=finish;$('#reply-cancel').onclick=finish;$('#reply-bg').onclick=e=>{if(e.target.id==='reply-bg')finish()};$('#reply-form').onsubmit=async e=>{e.preventDefault();const box=$('#reply-msg');box.className='success';box.textContent='正在加入队列…';try{const requestId='reply-'+crypto.randomUUID().replaceAll('-','');const result=await api('/messages/'+encodeURIComponent(messageId)+'/reply',{method:'POST',headers:{'X-Idempotency-Key':requestId},body:JSON.stringify({sender:$('#reply-from').value.trim(),subject:$('#reply-subject').value,text:$('#reply-text').value})});box.textContent=`已入队：${result.request_id||requestId}`;setTimeout(finish,700)}catch(err){box.className='error';box.textContent=err.message}}}
     async function showMessage(id){try{const[d,r,a,c]=await Promise.all([api('/messages/'+id),api('/messages/'+id+'/raw'),api('/messages/'+id+'/attachments'),api('/messages/'+id+'/content')]);$('#modal-root').innerHTML=`<div class="modal-backdrop" id="modal-bg"><div class="modal"><div class="modal-head"><h3>${esc(d.subject||'(无主题)')}</h3><div class="head-actions"><button class="btn btn-small btn-primary" id="reply-message">回复</button><button class="btn btn-ghost" id="close-modal">✕</button></div></div><div class="modal-body"><div class="meta-grid"><div class="meta"><label>发件人</label><div>${renderSender(d.sender)}</div></div><div class="meta"><label>实际发件人</label><div>${renderActualSender(d)}</div></div><div class="meta"><label>收件人</label><div>${esc(formatRecipient(d.envelope_recipient||d.to_header||''))}</div></div><div class="meta"><label>实际收件人</label><div>${renderActualRecipient(d)}</div></div><div class="meta"><label>接收时间</label><div>${fmtDate(d.received_at)}</div></div><div class="meta"><label>附件</label><div>${a.length?a.map(x=>`<button class="btn btn-small btn-secondary" data-attachment-part="${esc(x.part_id)}">${esc(x.filename)}</button>`).join(' '):'无'}</div></div></div><div class="panel" style="margin-top:0"><div class="panel-head"><div class="panel-title">邮件正文</div><span class="muted">${esc(c.content_type||'text/plain')} · ${esc(c.charset||'utf-8')}</span></div><div class="panel-body"><div class="mail-view-tabs"><button class="btn btn-small btn-secondary active" id="show-rendered">HTML 正文</button><button class="btn btn-small btn-secondary" id="show-raw">原始邮件</button><button class="btn btn-small btn-secondary" id="copy-raw">复制原文</button><button class="btn btn-small btn-secondary" id="download-raw">下载 EML</button></div><div id="mail-rendered" class="mail-rendered"></div><div id="mail-raw" class="hidden"><pre class="code" id="raw-content">${esc(r.raw)}</pre></div></div></div></div></div></div>`;const rendered=$('#mail-rendered'),rawBox=$('#mail-raw'),renderBtn=$('#show-rendered'),rawBtn=$('#show-raw');if(c.html){const frame=document.createElement('iframe');frame.className='mail-html-frame';frame.setAttribute('sandbox','');frame.title='邮件 HTML 正文';frame.srcdoc=c.html;rendered.append(frame)}else{rendered.innerHTML=`<pre class="mail-text-body">${esc(c.text||'')}</pre>`}const switchView=renderedView=>{rendered.classList.toggle('hidden',!renderedView);rawBox.classList.toggle('hidden',renderedView);renderBtn.classList.toggle('active',renderedView);rawBtn.classList.toggle('active',!renderedView)};$('#show-rendered').onclick=()=>switchView(true);$('#show-raw').onclick=()=>switchView(false);$('#close-modal').onclick=closeModal;$('#reply-message').onclick=()=>replyDialog(id,d);$('#modal-bg').onclick=e=>{if(e.target.id==='modal-bg')closeModal()};$('#copy-raw').onclick=()=>copyText(r.raw);$('#download-raw').onclick=()=>downloadFile('/messages/'+id+'/raw?download=true','message-'+id+'.eml').catch(e=>toast(e.message,true));$$('[data-attachment-part]').forEach(b=>b.onclick=()=>{const part=a.find(x=>String(x.part_id)===b.dataset.attachmentPart);if(part)downloadFile('/messages/'+id+'/attachments/'+encodeURIComponent(part.part_id),part.filename||'attachment').catch(e=>toast(e.message,true))})}catch(e){toast(e.message,true)}}
     function closeModal(){if(domainDialogCleanup){const cleanup=domainDialogCleanup;domainDialogCleanup=null;cleanup()}$('#modal-root').innerHTML=''}
@@ -633,7 +732,7 @@
     function webhookConfigDialog(){return new Promise(resolve=>{const defaultSecret=crypto.randomUUID().replaceAll('-','');$('#modal-root').innerHTML=`<div class="modal-backdrop" id="webhook-dialog-bg"><div class="modal dialog-modal"><div class="modal-head"><h3>添加 Webhook</h3><button class="btn btn-ghost" id="webhook-dialog-close">✕</button></div><form class="modal-body" id="webhook-dialog-form"><div class="field"><label>Webhook URL</label><input id="webhook-dialog-url" type="url" value="https://example.com/api/webhook/email" placeholder="https://你的公网域名/api/webhook/email" required><small class="muted">mail-stack 专用接口使用 /api/webhook/mail-stack；旧 SFREG/共享接口使用 /api/webhook/email</small></div><div class="field"><label>接口类型</label><select id="webhook-dialog-kind"><option value="shared">共享接口 · /api/webhook/email</option><option value="mail_stack">mail-stack 专用接口 · /api/webhook/mail-stack</option></select></div><div class="field"><label>Webhook Secret</label><input id="webhook-dialog-secret" type="text" value="${defaultSecret}" placeholder="YOUR_WEBHOOK_SECRET" autocomplete="off" required><small class="muted">签名会发送到 X-Email-Webhook-Secret / X-Webhook-Secret</small></div><div class="dialog-actions"><button type="button" class="btn btn-secondary" id="webhook-dialog-cancel">取消</button><button type="submit" class="btn btn-primary">保存 Webhook</button></div></form></div></div>`;let done=false;const finish=value=>{if(done)return;done=true;$('#modal-root').innerHTML='';resolve(value)};const url=$('#webhook-dialog-url'),kind=$('#webhook-dialog-kind');const syncKind=()=>{if(url.value.trim().toLowerCase().replace(/\/+$/,'').endsWith('/api/webhook/mail-stack'))kind.value='mail_stack';else if(kind.value==='mail_stack')kind.value='shared'};url.oninput=syncKind;$('#webhook-dialog-form').onsubmit=e=>{e.preventDefault();syncKind();finish({url:url.value.trim(),secret:$('#webhook-dialog-secret').value,kind:kind.value})};$('#webhook-dialog-cancel').onclick=()=>finish(null);$('#webhook-dialog-close').onclick=()=>finish(null);$('#webhook-dialog-bg').onclick=e=>{if(e.target.id==='webhook-dialog-bg')finish(null)};url.focus();url.select()})}
 
 
-    const domainProviderLabel=p=>p==='digitalplat'?'DigitalPlat DNS':p==='manual'?'手工 DNS':'Cloudflare DNS';
+    const domainProviderLabel=p=>p==='digitalplat'?'DigitalPlat DNS':p==='dynv6'?'dynv6 DNS':p==='manual'?'手工 DNS':'Cloudflare DNS';
     const digitalplatDnsHelp='DigitalPlat credential 用于读取和变更该域名的 DNS 记录；域名直接使用 Provider 的现有 DNS zone，无需逐域同步 Nameserver。';
     let domainDialogCleanup=null;
     function domainAuthStatus(){return state.cloudflare?.configured?`已配置（${esc(state.cloudflare.auth_mode)}）`:state.cloudflare?.error?`读取失败：${esc(state.cloudflare.error)}`:'未配置'}
@@ -671,7 +770,7 @@
     function showDomainEditor(domain=''){
       const editing=domain?state.mailDomains.find(d=>d.domain===domain):null;
       if(domain&&!editing){toast('域名配置已变化，请刷新后重试',true);return}
-      const dialog=showDomainDialog(editing?'编辑域名':'添加域名',`<p class="control-help">配置收发规则、多级子域、注册参与策略与邮件 DNS 参数；保存后请同步 DNS 并验证收发就绪状态。</p><form id="domain-form"><div class="control-form-grid"><div class="field"><label for="domain-name">域名</label><input id="domain-name" value="${esc(editing?.domain||'')}" placeholder="example.com" ${editing?'readonly':''} required></div><div class="field"><label for="domain-dns-provider">DNS provider</label><select id="domain-dns-provider"><option value="cloudflare" ${(!editing||editing.dns_provider==='cloudflare')?'selected':''}>Cloudflare DNS</option><option value="digitalplat" ${editing?.dns_provider==='digitalplat'?'selected':''}>DigitalPlat DNS（单域凭据）</option><option value="manual" ${editing?.dns_provider==='manual'?'selected':''}>手工 DNS / 外部服务商</option></select><small class="muted">${digitalplatDnsHelp} 手工 DNS 不会调用 Cloudflare。</small></div><div class="field field-wide"><label for="domain-project">所属项目</label><select id="domain-project" disabled><option value="">未分配项目</option>${editing?.project_id?`<option value="${esc(editing.project_id)}" selected>${esc(editing.project_id)}</option>`:''}</select><small class="muted" id="domain-project-status">正在加载项目；保存其他配置时会保留现有归属。</small></div><div class="field"><label for="domain-receive-mode">收件模式</label><select id="domain-receive-mode"><option value="catch_all" ${(!editing||editing.receive_mode==='catch_all')?'selected':''}>catch-all · 任意前缀</option><option value="fixed" ${editing?.receive_mode==='fixed'?'selected':''}>固定用户 · 兼容旧配置</option></select></div><label class="field" style="flex-direction:row;gap:9px"><input id="domain-receive-enabled" type="checkbox" ${editing?.receive_enabled!==false?'checked':''}>允许收件</label><label class="field" style="flex-direction:row;gap:9px"><input id="domain-send-enabled" type="checkbox" ${editing?.send_enabled!==false?'checked':''}>允许发件（另需认证就绪）</label><label class="field" style="flex-direction:row;gap:9px"><input id="domain-subdomains" type="checkbox" ${(!editing||editing.receive_subdomains)?'checked':''}>允许多级子域收件</label><div class="field"><label for="domain-depth">相对管理域最大层数</label><input id="domain-depth" type="number" min="0" max="7" value="${editing?.max_subdomain_depth??6}"><small class="muted">默认 6 层；显式子域配置优先于父域。DNS 覆盖需要单独验证。</small></div><label class="field" style="flex-direction:row;gap:9px"><input id="domain-registration-enabled" type="checkbox" ${editing?.registration_enabled!==false?'checked':''}>允许参与账号注册</label><label class="field" style="flex-direction:row;gap:9px"><input id="domain-registration-random" type="checkbox" ${(!editing||editing.registration_random_subdomain_depth)?'checked':''}>随机子域层级 <small class="muted" style="margin-left:2px">在 0–最大层数间随机</small></label><div class="field"><label for="domain-users">邮箱用户</label><input id="domain-users" value="${esc((editing?.users||['test','test','postmaster','admin']).join(', '))}" placeholder="test, test, postmaster, admin"><small class="muted">多个用户用逗号分隔；仅固定用户模式限定可接收前缀</small></div><div class="field"><label for="domain-selector">DKIM Selector</label><input id="domain-selector" value="${esc(editing?.dkim_selector||'default')}" placeholder="default" required><small class="muted">将生成 selector._domainkey.域名 的 DKIM TXT 记录</small></div><div class="field"><label for="domain-mx">MX 目标</label><input id="domain-mx" value="${esc(editing?.mx||'mail.example.com')}" required><small class="muted">MX 记录指向此主机，例如 mail.example.com</small></div><div class="field field-wide"><label for="domain-spf">SPF TXT</label><input id="domain-spf" value="${esc(editing?.spf||'v=spf1 ip4:203.0.113.10 -all')}" required><small class="muted">发布在域名根记录（@），同一域名只保留一条 SPF</small></div><div class="field field-wide"><label for="domain-dmarc">DMARC TXT</label><input id="domain-dmarc" value="${esc(editing?.dmarc||'v=DMARC1; p=none; rua=mailto:postmaster@example.com')}" required><small class="muted">发布在 _dmarc.域名；p=none 适合初始观测</small></div><label class="field" style="flex-direction:row;align-items:center;gap:9px"><input id="domain-enabled" type="checkbox" ${editing?.enabled!==false?'checked':''}>启用此域名</label></div><div id="domain-msg" role="status" aria-live="polite"></div></form>`,editing?'#domain-receive-mode':'#domain-name',`<button class="btn btn-secondary" type="button" id="cancel-domain">取消</button><button class="btn btn-primary" type="submit" form="domain-form" id="save-domain">${editing?'保存修改':'添加域名'}</button>`);
+      const dialog=showDomainDialog(editing?'编辑域名':'添加域名',`<p class="control-help">配置收发规则、多级子域、注册参与策略与邮件 DNS 参数；保存后请同步 DNS 并验证收发就绪状态。</p><form id="domain-form"><div class="control-form-grid"><div class="field"><label for="domain-name">域名</label><input id="domain-name" value="${esc(editing?.domain||'')}" placeholder="example.com" ${editing?'readonly':''} required></div><div class="field"><label for="domain-dns-provider">DNS provider</label><select id="domain-dns-provider"><option value="cloudflare" ${(!editing||editing.dns_provider==='cloudflare')?'selected':''}>Cloudflare DNS</option><option value="digitalplat" ${editing?.dns_provider==='digitalplat'?'selected':''}>DigitalPlat DNS（单域凭据）</option><option value="dynv6" ${editing?.dns_provider==='dynv6'?'selected':''}>dynv6 DNS</option><option value="manual" ${editing?.dns_provider==='manual'?'selected':''}>手工 DNS / 外部服务商</option></select><small class="muted">${digitalplatDnsHelp} dynv6 需先在 My Domains 登记域名、创建 Single zone，再配置记录并完成 NS 委派。</small></div><div class="field field-wide"><label for="domain-project">所属项目</label><select id="domain-project" disabled><option value="">未分配项目</option>${editing?.project_id?`<option value="${esc(editing.project_id)}" selected>${esc(editing.project_id)}</option>`:''}</select><small class="muted" id="domain-project-status">正在加载项目；保存其他配置时会保留现有归属。</small></div><div class="field"><label for="domain-receive-mode">收件模式</label><select id="domain-receive-mode"><option value="catch_all" ${(!editing||editing.receive_mode==='catch_all')?'selected':''}>catch-all · 任意前缀</option><option value="fixed" ${editing?.receive_mode==='fixed'?'selected':''}>固定用户 · 兼容旧配置</option></select></div><label class="field" style="flex-direction:row;gap:9px"><input id="domain-receive-enabled" type="checkbox" ${editing?.receive_enabled!==false?'checked':''}>允许收件</label><label class="field" style="flex-direction:row;gap:9px"><input id="domain-send-enabled" type="checkbox" ${editing?.send_enabled!==false?'checked':''}>允许发件（另需认证就绪）</label><label class="field" style="flex-direction:row;gap:9px"><input id="domain-subdomains" type="checkbox" ${(!editing||editing.receive_subdomains)?'checked':''}>允许多级子域收件</label><div class="field"><label for="domain-depth">相对管理域最大层数</label><input id="domain-depth" type="number" min="0" max="7" value="${editing?.max_subdomain_depth??6}"><small class="muted">默认 6 层；显式子域配置优先于父域。DNS 覆盖需要单独验证。</small></div><label class="field" style="flex-direction:row;gap:9px"><input id="domain-registration-enabled" type="checkbox" ${editing?.registration_enabled!==false?'checked':''}>允许参与账号注册</label><label class="field" style="flex-direction:row;gap:9px"><input id="domain-registration-random" type="checkbox" ${(!editing||editing.registration_random_subdomain_depth)?'checked':''}>随机子域层级 <small class="muted" style="margin-left:2px">在 0–最大层数间随机</small></label><div class="field"><label for="domain-users">邮箱用户</label><input id="domain-users" value="${esc((editing?.users||['icloud0','test','postmaster','admin']).join(', '))}" placeholder="icloud0, test, postmaster, admin"><small class="muted">多个用户用逗号分隔；仅固定用户模式限定可接收前缀</small></div><div class="field"><label for="domain-selector">DKIM Selector</label><input id="domain-selector" value="${esc(editing?.dkim_selector||'default')}" placeholder="default" required><small class="muted">将生成 selector._domainkey.域名 的 DKIM TXT 记录</small></div><div class="field"><label for="domain-mx">MX 目标</label><input id="domain-mx" value="${esc(editing?.mx||'mail.example.com')}" required><small class="muted">MX 记录指向此主机，例如 mail.example.com</small></div><div class="field field-wide"><label for="domain-spf">SPF TXT</label><input id="domain-spf" value="${esc(editing?.spf||'v=spf1 ip4:203.0.113.10 -all')}" required><small class="muted">发布在域名根记录（@），同一域名只保留一条 SPF</small></div><div class="field field-wide"><label for="domain-dmarc">DMARC TXT</label><input id="domain-dmarc" value="${esc(editing?.dmarc||'v=DMARC1; p=none; rua=mailto:postmaster@example.com')}" required><small class="muted">发布在 _dmarc.域名；p=none 适合初始观测</small></div><label class="field" style="flex-direction:row;align-items:center;gap:9px"><input id="domain-enabled" type="checkbox" ${editing?.enabled!==false?'checked':''}>启用此域名</label></div><div id="domain-msg" role="status" aria-live="polite"></div></form>`,editing?'#domain-receive-mode':'#domain-name',`<button class="btn btn-secondary" type="button" id="cancel-domain">取消</button><button class="btn btn-primary" type="submit" form="domain-form" id="save-domain">${editing?'保存修改':'添加域名'}</button>`);
       state.editingDomain=editing?.domain||'';
       const projectSelect=$('#domain-project');projectSelect.disabled=true;projectSelect.dataset.loaded='';projectSelect.value=editing?.project_id||'';
       loadDomainProjectOptions(dialog,projectSelect,$('#domain-project-status'),editing?.project_id||'',state.token);
@@ -840,14 +939,14 @@
       $$('[data-delete-domain]').forEach(b=>b.onclick=()=>runDomainOperations('delete',[b.dataset.deleteDomain]));
     }
     async function domainPage(force=false){
-      const revision=++domainPageRevision,token=state.token;
+      const revision=++domainPageRevision,page=$('#page'),token=state.token;
       if(force||!state.mailDomains.length){
         $('#page').innerHTML='<div class="empty">正在加载域名配置…</div>';
-        try{await fetchManagedDomains()}catch(e){if(state.token===token&&state.tab==='domains'&&revision===domainPageRevision)$('#page').innerHTML=`<div class="notice warning">${esc(e.message)}</div>`;return}
-        if(state.token!==token||state.tab!=='domains'||revision!==domainPageRevision)return;
+        try{await fetchManagedDomains()}catch(e){if(state.token===token&&state.tab==='domains'&&(revision===domainPageRevision&&$('#page')===page))$('#page').innerHTML=`<div class="notice warning">${esc(e.message)}</div>`;return}
+        if(state.token!==token||state.tab!=='domains'||(revision!==domainPageRevision||$('#page')!==page))return;
         try{const auth=await api('/dns/cloudflare');if(state.token===token)state.cloudflare=auth}catch(e){if(state.token===token)state.cloudflare={configured:false,error:e.message}}
       }
-      if(state.token!==token||state.tab!=='domains'||revision!==domainPageRevision)return;
+      if(state.token!==token||state.tab!=='domains'||(revision!==domainPageRevision||$('#page')!==page))return;
       $('#page').innerHTML=`<div class="domain-page"><div class="page-head"><div><h2>域名管理</h2><p>管理收件规则、多级子域、注册参与策略、独立收发开关与 DKIM。DNS 同步不等于收发就绪。</p></div><div class="head-actions"><button class="btn btn-secondary" id="reload-domains">↻ 刷新</button><button class="btn btn-secondary" id="open-dns-auth">DNS 鉴权</button><button class="btn btn-primary" id="add-domain">＋ 添加域名</button></div></div><div class="domain-status-bar"><span class="muted" id="domain-auth-summary">Cloudflare 鉴权：${domainAuthStatus()}</span><button class="btn btn-small btn-ghost" id="open-domain-control">来源与 DNS →</button></div><div class="panel"><div class="panel-head"><div class="panel-title">已配置域名 <span class="pill" id="domain-count">${state.mailDomains.length}</span></div><div class="toolbar"><div class="search"><span>⌕</span><input id="domain-search" aria-label="搜索域名" placeholder="搜索域名、项目、用户、MX…" value="${esc(state.domainQuery)}"></div><button type="button" class="btn btn-small btn-secondary" id="clear-domain-search">清空</button><select id="domain-page-size" class="page-size" aria-label="每页域名数量">${[10,20,50,100].map(n=>`<option value="${n}" ${state.domainPageSize===n?'selected':''}>${n} 条/页</option>`).join('')}</select></div></div><div class="domain-bulk-toolbar"><label class="domain-selection"><input type="checkbox" id="domain-select-all" aria-label="全选当前页域名">全选当前页</label><span class="muted" id="domain-selection-summary">已选 0 个（可跨页）</span><button class="btn btn-small btn-secondary" id="domain-bulk-enable" disabled>批量启用</button><button class="btn btn-small btn-secondary" id="domain-bulk-disable" disabled>批量停用</button><button class="btn btn-small btn-primary" id="domain-bulk-provision" disabled>批量同步 DNS（Cloudflare）</button><button class="btn btn-small btn-danger" id="domain-bulk-delete" disabled>批量删除</button><button class="btn btn-small btn-secondary" id="domain-bulk-clear" disabled>清除选择</button></div><div class="domain-bulk-progress" id="domain-bulk-progress" role="status" aria-live="polite"></div><div class="notice domain-bulk-result hidden" id="domain-bulk-result" role="status" aria-live="polite"></div><div class="table-wrap"><table class="table domain-table"><thead><tr><th scope="col" aria-label="选择"></th><th scope="col">操作</th><th scope="col">域名</th><th scope="col">用户</th><th scope="col">注册</th><th scope="col">DKIM</th><th scope="col">DNS provider</th><th scope="col">状态</th></tr></thead><tbody id="domain-table-body"></tbody></table></div><div class="pagination"><span id="domain-pagination-summary" role="status" aria-live="polite"></span><div class="pagination-actions"><button class="btn btn-small btn-secondary" id="domain-prev-page">上一页</button><div class="pagination-actions" id="domain-page-buttons"></div><button class="btn btn-small btn-secondary" id="domain-next-page">下一页</button><label for="domain-jump-page">跳转</label><input id="domain-jump-page" class="page-jump" type="number" min="1" step="1" value="${state.domainPage}" aria-label="跳转页码"><button class="btn btn-small btn-secondary" id="domain-jump-btn">确定</button></div></div></div></div>`;
       $('#reload-domains').onclick=async()=>{try{await refreshManagedDomains()}catch(error){toast(error.message,true)}};
       $('#domain-select-all').onchange=()=>{if(state.domainBatch)return;const checked=$('#domain-select-all').checked;domainListData().items.filter(d=>!state.domainBusy.has(d.domain)).forEach(d=>{if(checked)state.domainSelection.add(d.domain);else state.domainSelection.delete(d.domain)});renderDomainResults()};
@@ -919,9 +1018,9 @@
     }
     async function fileToAttachment(file){return await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>{const value=String(reader.result||'');resolve({filename:file.name,content_type:file.type||'application/octet-stream',data_base64:value.includes(',')?value.split(',',2)[1]:value})};reader.onerror=()=>reject(reader.error||Error('附件读取失败'));reader.readAsDataURL(file)})}
     async function sendPage(){
-      const revision=++sendPageRevision,token=state.token,domain=primaryDomain(),sender=`test@${domain}`;
+      const revision=++sendPageRevision,page=$('#page'),token=state.token,domain=primaryDomain(),sender=`test@${domain}`;
       if(!state.projects.length)state.projects=await api('/projects').catch(()=>[]);
-      if(state.token!==token||state.tab!=='send'||revision!==sendPageRevision)return;
+      if(state.token!==token||state.tab!=='send'||(revision!==sendPageRevision||$('#page')!==page))return;
       $('#page').innerHTML=`<div class="send-page"><div class="page-head"><div><h2>发送邮件</h2><p>填写地址、主题和正文即可发送，其他设置按需展开。</p></div><div class="head-actions"><span class="pill">${state.domains.length?`已配置 ${state.domains.length} 个域名`:'尚未配置域名'}</span><button type="button" class="btn btn-small btn-secondary" id="send-manage-domains">管理域名</button></div></div>
       <div class="send-layout"><div class="card send-compose"><form id="send-form">
         <div class="send-address-grid"><div class="field"><label for="send-from">发件人</label><input id="send-from" value="${esc(sender)}" placeholder="local@your-domain" list="domain-senders" required><datalist id="domain-senders">${state.domains.map(d=>`<option value="test@${esc(d.domain)}"><option value="postmaster@${esc(d.domain)}"><option value="admin@${esc(d.domain)}">`).join('')}</datalist></div>
@@ -963,7 +1062,7 @@ Content-Type: application/json
       $('#send-form').onsubmit=async event=>{
         event.preventDefault();const box=$('#send-msg'),result=$('#send-result'),submit=$('#send-submit');if(submit.disabled)return;
         submit.disabled=true;box.className='success';box.textContent='正在读取附件并加入队列…';
-        const current=()=>state.token===token&&state.tab==='send'&&revision===sendPageRevision;
+        const current=()=>state.token===token&&state.tab==='send'&&(revision===sendPageRevision&&$('#page')===page);
         const refreshHistory=()=>{if(current()&&$('#send-history').open)loadSendHistory()};
         try{
           const requestId='ui-'+crypto.randomUUID().replaceAll('-',''),files=Array.from($('#send-attachments').files||[]);
@@ -991,11 +1090,11 @@ Content-Type: application/json
 
     let projectsPageRevision=0;
     async function projectsPage(){
-      const revision=++projectsPageRevision,token=state.token;
+      const revision=++projectsPageRevision,page=$('#page'),token=state.token;
       $('#page').innerHTML='<div class="empty">正在加载项目…</div>';
       try{
         const projects=await api('/projects');
-        if(state.token!==token||state.tab!=='projects'||revision!==projectsPageRevision)return;
+        if(state.token!==token||state.tab!=='projects'||(revision!==projectsPageRevision||$('#page')!==page))return;
         state.projects=projects;
         $('#page').innerHTML=`<div class="page-head"><div><h2>项目管理</h2><p>为普通 Key 划分访问范围，管理域名归属和项目状态。</p></div><div class="head-actions"><button class="btn btn-secondary" id="project-domains">管理域名</button><button class="btn btn-secondary" id="project-keys">API Keys</button><button class="btn btn-primary" id="new-project">＋ 创建项目</button></div></div><div class="notice">配置顺序：创建项目 → 在域名管理中选择所属项目 → 给普通 Key 授权项目。调用邮件列表时传入对应项目 ID。</div><div class="panel"><div class="panel-head"><div class="panel-title">已创建项目 · ${projects.length}</div><button class="btn btn-small btn-secondary" id="reload-projects">刷新</button></div><div class="table-wrap"><table class="table"><thead><tr><th>项目 / ID</th><th>状态</th><th>域名</th><th>邮件</th><th>Key</th><th>Webhook</th><th>操作</th></tr></thead><tbody>${projects.length?projects.map(p=>`<tr><td><strong>${esc(p.name)}</strong><small class="muted" style="display:block">${esc(p.id)}</small></td><td>${p.enabled?'<span class="pill">启用</span>':'<span class="muted">已停用</span>'}</td><td>${Number(p.domain_count||0)}</td><td>${Number(p.message_count||0)}</td><td>${Number(p.key_count||0)}</td><td>${Number(p.webhook_count||0)}</td><td><div class="head-actions"><button class="btn btn-small btn-secondary" data-edit-project="${esc(p.id)}">修改</button><button class="btn btn-small btn-secondary" data-copy-project="${esc(p.id)}">复制 ID</button></div></td></tr>`).join(''):'<tr><td colspan="7"><div class="empty"><strong>还没有项目</strong>创建项目后，再配置域名归属和普通 Key 授权。</div></td></tr>'}</tbody></table></div></div><p class="muted">邮件数量按收件时的项目归属统计。修改域名所属项目不会迁移历史邮件；停用项目会暂停项目 Key 访问和项目 Webhook，邮件继续保留。</p>`;
         $('#new-project').onclick=()=>projectForm();$('#reload-projects').onclick=projectsPage;
@@ -1003,7 +1102,7 @@ Content-Type: application/json
         $('#project-keys').onclick=()=>{state.tab='keys';renderPage(true)};
         $$('[data-edit-project]').forEach(button=>button.onclick=()=>projectForm(state.projects.find(p=>p.id===button.dataset.editProject)));
         $$('[data-copy-project]').forEach(button=>button.onclick=()=>copyText(button.dataset.copyProject));
-      }catch(e){if(state.token===token&&state.tab==='projects'&&revision===projectsPageRevision)$('#page').innerHTML=`<div class="notice warning">${esc(e.message)}</div>`}
+      }catch(e){if(state.token===token&&state.tab==='projects'&&(revision===projectsPageRevision&&$('#page')===page))$('#page').innerHTML=`<div class="notice warning">${esc(e.message)}</div>`}
     }
     function projectForm(editing=null){
       const token=state.token;
@@ -1025,7 +1124,7 @@ Content-Type: application/json
         }catch(e){if(state.token===token)error.textContent=e.message}finally{button.disabled=false}
       };
     }
-    async function keysPage(force=false){if(force||!state.keys.length){$('#page').innerHTML='<div class="empty">正在加载 API Keys…</div>';try{state.keys=await api('/api-keys')}catch(e){$('#page').innerHTML=`<div class="notice warning">${esc(e.message)}</div>`;return}}$('#page').innerHTML=`<div class="page-head"><div><h2>API Keys</h2><p>给程序调用发件、收件查询和 Webhook 管理接口使用。密钥只在创建成功时完整显示一次。</p></div><div class="head-actions"><button class="btn btn-primary" id="new-key">＋ 创建 Key</button></div></div><div class="panel"><div class="panel-head"><div class="panel-title">已创建的密钥</div><button class="btn btn-small btn-secondary" id="reload-keys">刷新</button></div><div class="panel-body">${state.keys.length?state.keys.map(k=>`<div class="list-item"><div class="list-main"><strong>${esc(k.name||'未命名')} <span class="pill">${k.key_type==='admin'||k.global_access?'管理员':'普通'}</span></strong><small>创建于 ${fmtDate(k.created_at)} · ID ${k.id}</small></div><div class="head-actions"><button class="btn btn-small btn-secondary" data-edit-key="${k.id}">修改</button><button class="btn btn-small btn-danger" data-del-key="${k.id}">删除</button></div></div>`).join(''):'<div class="empty"><strong>还没有 API Key</strong>创建一个用于业务程序调用。</div>'}</div></div>`;$('#new-key').onclick=createKey;$('#reload-keys').onclick=()=>{state.keys=[];keysPage(true)};$$('[data-edit-key]').forEach(b=>b.onclick=()=>editKey(b.dataset.editKey));$$('[data-del-key]').forEach(b=>b.onclick=()=>deleteKey(b.dataset.delKey))}
+    async function keysPage(force=false){const page=$('#page'),token=state.token,current=()=>state.tab==='keys'&&state.token===token&&$('#page')===page;if(force||!state.keys.length){$('#page').innerHTML='<div class="empty">正在加载 API Keys…</div>';try{const data=await api('/api-keys');if(!current())return;state.keys=data}catch(e){if(!current())return;$('#page').innerHTML=`<div class="notice warning">${esc(e.message)}</div>`;return}}$('#page').innerHTML=`<div class="page-head"><div><h2>API Keys</h2><p>给程序调用发件、收件查询和 Webhook 管理接口使用。密钥只在创建成功时完整显示一次。</p></div><div class="head-actions"><button class="btn btn-primary" id="new-key">＋ 创建 Key</button></div></div><div class="panel"><div class="panel-head"><div class="panel-title">已创建的密钥</div><button class="btn btn-small btn-secondary" id="reload-keys">刷新</button></div><div class="panel-body">${state.keys.length?state.keys.map(k=>`<div class="list-item"><div class="list-main"><strong>${esc(k.name||'未命名')} <span class="pill">${k.key_type==='admin'||k.global_access?'管理员':'普通'}</span></strong><small>创建于 ${fmtDate(k.created_at)} · ID ${k.id}</small></div><div class="head-actions"><button class="btn btn-small btn-secondary" data-edit-key="${k.id}">修改</button><button class="btn btn-small btn-danger" data-del-key="${k.id}">删除</button></div></div>`).join(''):'<div class="empty"><strong>还没有 API Key</strong>创建一个用于业务程序调用。</div>'}</div></div>`;$('#new-key').onclick=createKey;$('#reload-keys').onclick=()=>{state.keys=[];keysPage(true)};$$('[data-edit-key]').forEach(b=>b.onclick=()=>editKey(b.dataset.editKey));$$('[data-del-key]').forEach(b=>b.onclick=()=>deleteKey(b.dataset.delKey))}
     const KEY_SCOPE_OPTIONS=[['mail.read','读取邮件'],['mail.send','发送邮件'],['webhook.manage','管理 Webhook'],['domain.manage','域名权限']];
     const keyScopeId=scope=>scope.replaceAll('.','-');
     function keyScopeFields(prefix,scopes){return KEY_SCOPE_OPTIONS.map(([scope,label])=>`<label class="key-scope-option" for="${prefix}-${keyScopeId(scope)}"><input type="checkbox" id="${prefix}-${keyScopeId(scope)}" ${scopes.includes(scope)?'checked':''}><span>${label}<small>${scope}</small></span></label>`).join('')}
@@ -1079,7 +1178,7 @@ Content-Type: application/json
     }
     async function deleteKey(id){if(!await appConfirm('确定删除这个 API Key？删除后使用它的程序会立即失效。'))return;try{await api('/api-keys/'+id,{method:'DELETE'});state.keys=[];keysPage(true);toast('API Key 已删除')}catch(e){toast(e.message,true)}}
     async function showWebhookDeliveries(id,url){try{const [history,dead]=await Promise.all([api(`/webhooks/${id}/deliveries?limit=100`),api(`/webhooks/${id}/dead-letter?limit=100`)]);const rows=history.items||[];const failed=dead.items||[];$('#modal-root').innerHTML=`<div class="modal-backdrop" id="hook-delivery-bg"><div class="modal" style="max-width:980px"><div class="modal-head"><h3>Webhook 投递 · ${esc(url)}</h3><button class="btn btn-ghost" id="close-hook-delivery">✕</button></div><div class="modal-body"><div class="notice" style="margin-bottom:14px">总投递 ${history.total||0} · dead-letter ${dead.total||0}</div><div class="table-wrap"><table class="table"><thead><tr><th>状态</th><th>event_id</th><th>尝试</th><th>错误</th><th>更新时间</th><th>操作</th></tr></thead><tbody>${rows.length?rows.map(r=>`<tr><td>${esc(r.status)}</td><td style="word-break:break-all">${esc(r.event_id)}</td><td>${esc(r.attempts)}</td><td style="word-break:break-word">${esc(r.last_error||'—')}</td><td>${esc(fmtDate(r.updated_at))}</td><td>${r.status==='failed'||r.status==='cancelled'?`<button class="btn btn-small btn-secondary" data-replay-hook="${r.id}">重放</button>`:'—'}</td></tr>`).join(''):`<tr><td colspan="6"><div class="empty">暂无投递记录</div></td></tr>`}</tbody></table></div><p class="muted" style="margin-top:14px">dead-letter 中的失败事件可显式重放；系统不会自动重复提交不确定事件。</p></div></div></div>`;$('#close-hook-delivery').onclick=closeModal;$('#hook-delivery-bg').onclick=e=>{if(e.target.id==='hook-delivery-bg')closeModal()};$$('[data-replay-hook]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await api(`/webhooks/${id}/deliveries/${b.dataset.replayHook}/replay`,{method:'POST'});toast('Webhook 事件已重新入队');showWebhookDeliveries(id,url)}catch(e){toast(e.message,true)}finally{b.disabled=false}})}catch(e){toast(e.message,true)}}
-    function webhookKindLabel(kind){return kind==='mail_stack'?'mail-stack 专用接口':'共享接口'}async function webhooksPage(force=false){if(force||!state.webhooks.length){$('#page').innerHTML='<div class="empty">正在加载 Webhook…</div>';try{state.webhooks=await api('/webhooks')}catch(e){$('#page').innerHTML=`<div class="notice warning">${esc(e.message)}</div>`;return}}$('#page').innerHTML=`<div class="page-head"><div><h2>推送 Webhook</h2><p>收到新邮件和 outbound 状态报告后，系统会写入持久 outbox，失败事件可在投递记录中显式重放。</p></div><div class="head-actions"><button class="btn btn-primary" id="new-hook">＋ 添加 Webhook</button></div></div><div class="two-col"><div class="panel" style="margin-top:0"><div class="panel-head"><div class="panel-title">已配置的地址</div><button class="btn btn-small btn-secondary" id="reload-hooks">刷新</button></div><div class="panel-body">${state.webhooks.length?state.webhooks.map(h=>`<div class="list-item"><div class="list-main"><strong>${esc(h.url)}</strong><small><span class="pill">${webhookKindLabel(h.kind)}</span> · 创建于 ${fmtDate(h.created_at)} · ${h.enabled?'已启用':'已停用'}</small></div><div class="head-actions"><button class="btn btn-small btn-secondary" data-toggle-hook="${h.id}" data-enabled="${h.enabled?'false':'true'}">${h.enabled?'停用':'启用'}</button><button class="btn btn-small btn-secondary" data-view-hook="${h.id}">投递记录</button><button class="btn btn-small btn-danger" data-del-hook="${h.id}">删除</button></div></div>`).join(''):'<div class="empty"><strong>还没有 Webhook</strong>添加地址后，新邮件会自动推送。</div>'}</div></div><div class="card"><h3 style="margin-top:0">接口类型</h3><p class="muted"><strong>mail-stack 专用接口</strong>：接收 project-scoped 的 message.received 和 outbound.status_reported 事件。<br><strong>共享接口</strong>：兼容 SFREG、HME、OpenAI CPA 等旧邮件 Payload。</p><h3>接收与验签</h3><p class="muted">推送请求包含以下 Header：</p><pre class="code">Content-Type: application/json
+    function webhookKindLabel(kind){return kind==='mail_stack'?'mail-stack 专用接口':'共享接口'}async function webhooksPage(force=false){const page=$('#page'),token=state.token,current=()=>state.tab==='webhooks'&&state.token===token&&$('#page')===page;if(force||!state.webhooks.length){$('#page').innerHTML='<div class="empty">正在加载 Webhook…</div>';try{const data=await api('/webhooks');if(!current())return;state.webhooks=data}catch(e){if(!current())return;$('#page').innerHTML=`<div class="notice warning">${esc(e.message)}</div>`;return}}$('#page').innerHTML=`<div class="page-head"><div><h2>推送 Webhook</h2><p>收到新邮件和 outbound 状态报告后，系统会写入持久 outbox，失败事件可在投递记录中显式重放。</p></div><div class="head-actions"><button class="btn btn-primary" id="new-hook">＋ 添加 Webhook</button></div></div><div class="two-col"><div class="panel" style="margin-top:0"><div class="panel-head"><div class="panel-title">已配置的地址</div><button class="btn btn-small btn-secondary" id="reload-hooks">刷新</button></div><div class="panel-body">${state.webhooks.length?state.webhooks.map(h=>`<div class="list-item"><div class="list-main"><strong>${esc(h.url)}</strong><small><span class="pill">${webhookKindLabel(h.kind)}</span> · 创建于 ${fmtDate(h.created_at)} · ${h.enabled?'已启用':'已停用'}</small></div><div class="head-actions"><button class="btn btn-small btn-secondary" data-toggle-hook="${h.id}" data-enabled="${h.enabled?'false':'true'}">${h.enabled?'停用':'启用'}</button><button class="btn btn-small btn-secondary" data-view-hook="${h.id}">投递记录</button><button class="btn btn-small btn-danger" data-del-hook="${h.id}">删除</button></div></div>`).join(''):'<div class="empty"><strong>还没有 Webhook</strong>添加地址后，新邮件会自动推送。</div>'}</div></div><div class="card"><h3 style="margin-top:0">接口类型</h3><p class="muted"><strong>mail-stack 专用接口</strong>：接收 project-scoped 的 message.received 和 outbound.status_reported 事件。<br><strong>共享接口</strong>：兼容 SFREG、HME、OpenAI CPA 等旧邮件 Payload。</p><h3>接收与验签</h3><p class="muted">推送请求包含以下 Header：</p><pre class="code">Content-Type: application/json
 X-Email-Webhook-Secret: YOUR_SHARED_SECRET
 X-Webhook-Timestamp: 1790990000
 X-Webhook-Signature: sha256=...</pre><p class="muted">签名原文为 <code>timestamp + "." + request_body</code>。使用创建 Webhook 时填写的 secret，通过 HMAC-SHA256 计算并与 Header 比较。</p></div></div>`;$('#new-hook').onclick=createWebhook;$('#reload-hooks').onclick=()=>{state.webhooks=[];webhooksPage(true)};$$('[data-toggle-hook]').forEach(b=>b.onclick=()=>toggleWebhook(b.dataset.toggleHook,b.dataset.enabled==='true'));$$('[data-view-hook]').forEach(b=>b.onclick=()=>{const h=state.webhooks.find(x=>String(x.id)===b.dataset.viewHook);if(h)showWebhookDeliveries(h.id,h.url)});$$('[data-del-hook]').forEach(b=>b.onclick=()=>deleteWebhook(b.dataset.delHook))}
@@ -1106,9 +1205,60 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
     async function copyText(text){try{await navigator.clipboard.writeText(text);toast('已复制到剪贴板')}catch{toast('复制失败，请手动选择文本',true)}}
     // P2 control-plane: never cache provider secrets or infer readiness from job ACK.
     let controlPreview=null;
+    // Keep live DOM nodes during polling so copying, focus and row menus survive.
+    const controlHtmlSnapshots=new WeakMap();
+    function controlUpdateText(target,value){
+      if(!target)return;const text=String(value??'');
+      if(target.textContent===text)return;
+      if(target.childNodes?.length===1&&target.firstChild.nodeType===3)target.firstChild.data=text;
+      else target.textContent=text;
+    }
+    function controlNodeKey(node){
+      if(node.nodeType!==1)return '';
+      return node.id||(node.tagName==='TR'?node.querySelector('[data-control-select]')?.getAttribute('data-control-select'):'')||'';
+    }
+    function controlPatchChildren(target,incoming){
+      const wanted=[...incoming.childNodes],keys=new Set(wanted.map(controlNodeKey).filter(Boolean));
+      const existing=new Map([...target.childNodes].map(node=>[controlNodeKey(node),node]).filter(([key])=>key));
+      for(const [key,node] of existing)if(!keys.has(key))node.remove();
+      let cursor=target.firstChild;
+      for(const next of wanted){
+        const key=controlNodeKey(next),node=key?existing.get(key):cursor&&!controlNodeKey(cursor)?cursor:null;
+        if(!node||node.nodeType!==next.nodeType||node.nodeName!==next.nodeName){
+          const added=next.cloneNode(true);target.insertBefore(added,cursor);cursor=added.nextSibling;continue;
+        }
+        if(node!==cursor)target.insertBefore(node,cursor);
+        if(node.nodeType===3){if(node.data!==next.data)node.data=next.data}
+        else if(node.nodeType===1){
+          // Opening a row's More menu is browser state, not server-rendered data.
+          for(const attr of [...node.attributes])if(!next.hasAttribute(attr.name)&&!(node.tagName==='DETAILS'&&attr.name==='open'))node.removeAttribute(attr.name);
+          for(const attr of next.attributes)if(node.getAttribute(attr.name)!==attr.value)node.setAttribute(attr.name,attr.value);
+          if(node.tagName==='INPUT'&&['checkbox','radio'].includes(node.type)&&node.checked!==next.checked)node.checked=next.checked;
+          controlPatchChildren(node,next);
+        }
+        cursor=node.nextSibling;
+      }
+      while(cursor){const next=cursor.nextSibling;cursor.remove();cursor=next}
+    }
+    function controlUpdateHtml(target,html){
+      if(!target||controlHtmlSnapshots.get(target)===html)return;
+      if(target.ownerDocument?.createRange){
+        const selection=target.ownerDocument.getSelection(),anchor=selection?.anchorNode,focus=selection?.focusNode;
+        const saved=selection&&!selection.isCollapsed&&(target.contains(anchor)||target.contains(focus))?
+          {anchor,focus,anchorOffset:selection.anchorOffset,focusOffset:selection.focusOffset,anchorText:anchor.textContent,focusText:focus.textContent}:null;
+        const range=target.ownerDocument.createRange();range.selectNodeContents(target);
+        controlPatchChildren(target,range.createContextualFragment(html));
+        if(saved&&anchor.isConnected&&focus.isConnected&&anchor.textContent===saved.anchorText&&focus.textContent===saved.focusText&&
+          (selection.anchorNode!==anchor||selection.focusNode!==focus||selection.anchorOffset!==saved.anchorOffset||selection.focusOffset!==saved.focusOffset)){
+          selection.setBaseAndExtent(anchor,saved.anchorOffset,focus,saved.focusOffset);
+        }
+      }else target.innerHTML=html;
+      controlHtmlSnapshots.set(target,html);
+    }
     let controlRevision=0;
     const controlPendingKeys=new Map();
     const controlJobWatchers=new Map();
+    const controlCompletionErrors=new Map();
     let controlJobPollTimer=null,controlJobPollRunning=false,controlJobProgressRefreshAt=0,controlRefreshRequest=null,controlDnsDialogUpdate=null;
     function scheduleControlJobPoll(delay=2000){
       if(controlJobPollTimer!==null||controlJobPollRunning||!controlJobWatchers.size)return;
@@ -1129,10 +1279,10 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
       const hosting=watchers.filter(w=>w.kind==='dns_hosting');
       if(hosting.length)messages.push(`DNS 托管准备：${hosting.filter(w=>w.latest?.status==='queued').length} 条排队，${hosting.filter(w=>w.latest?.status==='running').length} 条处理中`);
       for(const batch of state.controlBatches){
-        const label=batch.kind==='configure'?'DNS 应用':batch.kind==='repair'?'wildcard MX 修复':'DNS 验证';
-        messages.push(batch.phase==='preview'?`DNS 预览 ${batch.previewed}/${batch.total}`:
+        const label=batch.kind==='dynv6'?'dynv6 接入':batch.kind==='configure'?'DNS 应用':batch.kind==='repair'?'wildcard MX 修复':batch.kind==='activate'?'验证并启用':batch.kind==='complete'?'配置与启用':'DNS 验证';
+        messages.push(batch.kind==='complete'?`配置与启用：已预览 ${batch.previewed}/${batch.total}，已提交 ${batch.submitted}，已完成 ${batch.completed}`:batch.phase==='preview'?`DNS 预览 ${batch.previewed}/${batch.total}`:
           batch.phase==='submit'?`${label}任务提交 ${batch.submitted}/${batch.total}`:
-          `${label}与验证完成 ${batch.completed}/${batch.expected??batch.total}`);
+          `${label}完成 ${batch.completed}/${batch.expected??batch.total}`);
       }
       const waiting=watchers.filter(w=>controlJobWaiting(w.latest));
       if(waiting.length)messages.push(`DNS 写入等待 ${waiting.length} 条（暂停 ${waiting.filter(w=>w.latest.wait_reason==='incident_hold').length} 条）`);
@@ -1140,7 +1290,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
       const automatic=watchers.filter(w=>w.latest?.automatic);
       if(automatic.length)messages.push(`后台自动验证：${automatic.filter(w=>w.latest.status==='queued').length} 条排队，${automatic.filter(w=>w.latest.status==='running').length} 条验证中`);
       if(applying.length)messages.push(`DNS 任务：${applying.filter(w=>w.latest?.status==='queued').length} 条排队，${applying.filter(w=>w.latest?.status==='running'&&w.latest?.step!=='dns_validating').length} 条应用中，${applying.filter(w=>w.latest?.step==='dns_validating').length} 条验证中`);
-      target.hidden=!messages.length;target.textContent=messages.join('；')+(messages.length?'。进度和列表会自动更新。':'');
+      target.hidden=!messages.length;controlUpdateText(target,messages.join('；')+(messages.length?'。进度和列表会自动更新。':''));
     }
     function controlJobDomain(path){const match=String(path||'').match(/^\/mail-domains\/([^/]+)/);return match?decodeURIComponent(match[1]):''}
     function lockControlDomain(domain){if(!domain)return;state.controlBusyCounts.set(domain,(state.controlBusyCounts.get(domain)||0)+1)}
@@ -1155,9 +1305,12 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
       if(job?.status==='queued'){
         if(job.wait_reason==='incident_hold')return '写入已暂停，等待恢复';
         if(job.wait_reason==='provider_cooldown')return '上游限额，等待 '+new Date(job.wait_until*1000).toLocaleString('zh-CN',{hour12:false});
+        if(job.wait_reason==='retry_at'&&job.kind==='dns_complete')return job.step==='dns_completion_readback_pending'?'NS 请求待回读确认，将自动核对':job.step==='dns_completion_waiting_delegation'?'等待父区 NS 委派生效，将自动验证':'等待 DNS 或上游恢复，将自动重试';
         if(job.wait_reason==='retry_at')return '定时等待至 '+new Date(job.wait_until*1000).toLocaleString('zh-CN',{hour12:false});
         return job.automatic?'后台自动验证排队中':'排队等待';
       }
+      if(job?.kind==='dns_complete')return job.step==='dns_completion_validating'?'正在验证 DNS 并启用':'正在核验并配置 dynv6 委派';
+      if(job?.kind==='dynv6_register')return '正在登记并绑定 dynv6';
       if(job?.kind==='dns_validate')return job.automatic?'后台自动验证中':'DNS 验证中';
       if(job?.kind==='dns_repair')return job.step==='dns_repair_waiting_for_dns'?'等待 DNS 生效，自动验证中':'正在修复 wildcard MX';
       return job?.kind==='dns_apply'?(job.step==='dns_validating'?'DNS 验证中':'正在应用 DNS'):'操作中';
@@ -1166,6 +1319,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
       if(controlJobPollTimer!==null)clearTimeout(controlJobPollTimer);controlJobPollTimer=null;
       for(const watcher of controlJobWatchers.values())watcher.onCancel?.();
       controlJobWatchers.clear();state.controlBusyCounts.clear();state.controlBatches.clear();controlJobProgressRefreshAt=0;
+      controlCompletionErrors.clear();
     }
     function controlHostingError(job){
       const code=job?.error_code||'';
@@ -1175,16 +1329,86 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
         `DNS 托管准备未完成（${code||job?.status||'unknown'}），可在操作记录中查看结果。`;
     }
     function watchClaimHostingJobs(job,snapshots=null){
-      const items=job?.kind==='claim_setup'?[job.result]:job?.result?.items||[];
+      const items=['claim_setup','dns_hosting','dns_apply'].includes(job?.kind)?[job.result]:job?.result?.items||[];
       for(const item of items){
-        for(const field of ['claim_setup_job','dns_hosting_job']){
+        for(const field of ['claim_setup_job','dns_hosting_job','dns_apply_job','completion_job']){
           const child=snapshots?.get(item?.[field]?.id)||item?.[field];
-          if(!['claim_setup','dns_hosting'].includes(child?.kind)||child.scope!==item.domain||!['queued','running'].includes(child.status)||controlJobWatchers.has(child.id))continue;
+          if(!['claim_setup','dns_hosting','dns_apply','dns_validate','dns_complete'].includes(child?.kind)||child.scope!==item.domain||!['queued','running'].includes(child.status)||controlJobWatchers.has(child.id))continue;
           lockControlDomain(item.domain);watchControlJob(child,{domain:item.domain,notify:false});
         }
       }
     }
     function controlActivationOptions(domain){return domain?.claim_id&&!domain.enabled?{activate_on_success:true}:{}}
+    function controlActivationEligible(domain){return Boolean(domain&&!domain.enabled&&!['released','revoked','expired','releasing'].includes(domain.source_status)&&(domain.receive_enabled!==false||domain.send_enabled!==false))}
+    function controlCompletionEligible(domain){
+      return Boolean(domain&&!controlDomainReady(domain)&&!['released','revoked','expired','releasing'].includes(domain.source_status)
+        &&(domain.receive_enabled!==false||domain.send_enabled!==false)&&(controlConfigEligible(domain)||domain.dns_provider==='manual'));
+    }
+    function controlNextAction(domain){
+      if(controlDomainBusy(domain.domain))return controlDomainActivity(domain.domain);
+      if(controlDomainReady(domain))return '重新验证';
+      if(domain.dns_provider==='manual'||controlDnsStatus(domain)==='最近检查通过')return domain.enabled?'重新验证':'验证并启用';
+      return controlConfigEligible(domain)?'配置并启用':'绑定凭据';
+    }
+    async function continueControlDomain(domain){
+      if(!domain||controlDomainBusy(domain.domain))return;
+      if(controlDomainReady(domain)){
+        try{await controlJob('/mail-domains/'+encodeURIComponent(domain.domain)+'/dns-validate')}catch(error){toast(error.message,true)}
+        return;
+      }
+      if(!controlCompletionEligible(domain)){showControlDnsDialog(domain.domain,'binding');return}
+      return runControlCompletion([domain]);
+    }
+    async function runControlCompletion(domains=null){
+      const rows=(domains||selectedControlDomains()).filter(d=>controlCompletionEligible(d)&&!controlDomainBusy(d.domain));
+      if(!rows.length)return;
+      const token=state.token,current=()=>state.token===token&&state.tab==='control';
+      const batch={kind:'complete',total:rows.length,phase:'preview',previewed:0,submitted:0,completed:0,expected:null,ready:0,results:[],notified:false},started=new Set();
+      state.controlBatches.add(batch);rows.forEach(d=>{controlCompletionErrors.delete(d.domain);lockControlDomain(d.domain)});renderControlUnifiedResults();renderControlJobProgress();
+      const finish=()=>{
+        if(batch.notified||batch.expected===null||batch.completed<batch.expected)return;
+        batch.notified=true;state.controlBatches.delete(batch);renderControlJobProgress();
+        if(!current())return;
+        const pending=batch.results.filter(item=>item.error||item.status!=='succeeded'||controlChecksFailed(item)||controlActivationPending(item)).length;
+        toast(`配置与启用完成：已就绪 ${batch.ready}，待处理 ${pending}${rows.length>batch.expected?`，未提交 ${rows.length-batch.expected}`:''}`,pending>0);
+      };
+      const onComplete=job=>{batch.completed++;batch.results.push(job);if(job?.result?.activation?.status==='ready')batch.ready++;else if(job?.scope)controlCompletionErrors.set(job.scope,controlJobNotice(job));if(current())renderControlUnifiedResults();renderControlJobProgress();finish()};
+      try{
+        await mapControlBatch(rows,async domain=>{
+          started.add(domain.domain);
+          if(!current())return;
+          try{
+            let path='/mail-domains/'+encodeURIComponent(domain.domain)+'/dns-validate',body={activate_on_success:!domain.enabled};
+            if(domain.dns_provider!=='manual'&&controlDnsStatus(domain)!=='最近检查通过'){
+              const preview=await previewControlDns(domain,current);
+              if(!preview.executable)throw Error((preview.conflicts||[]).map(c=>({foreign_record_conflict:'存在外部 DNS 记录冲突',owned_record_changed_externally:'托管记录已被外部修改',unresolved_dns_write:'此前写入结果待核对',dkim_public_key_pending:'DKIM 公钥尚未准备完成'}[c.code]||c.code)).join('、')||'DNS 预览未通过');
+              if((preview.actions||[]).some(action=>action.action!=='exists')){
+                path='/mail-domains/'+encodeURIComponent(domain.domain)+'/dns-apply';body.plan_id=preview.id;
+              }
+            }
+            batch.submitted++;renderControlJobProgress();
+            try{await controlJob(path,body,{notify:false,onComplete})}catch(error){batch.submitted--;throw error}
+          }catch(error){
+            if(current()){controlCompletionErrors.set(domain.domain,error.message);batch.results.push({domain:domain.domain,error:error.message,status:'failed'})}
+          }finally{batch.previewed++;if(state.token===token)unlockControlDomain(domain.domain);if(current()){renderControlUnifiedResults();renderControlJobProgress()}}
+        },current);
+      }catch(error){if(current())batch.results.push({status:'failed',error:error.message})}
+      finally{
+        if(state.token===token){
+          // Each submitted job owns its own row lock; unstarted rows have only
+          // the initial hold and are released when navigation cancels the batch.
+          for(const domain of rows)if(!started.has(domain.domain))unlockControlDomain(domain.domain);
+          batch.expected=batch.submitted;batch.phase='running';finish();
+          if(!batch.notified&&current())toast(`已提交 ${batch.submitted} 个任务，将自动配置、验证并启用；异常项独立保留`);
+          if(current()){renderControlUnifiedResults();renderControlJobProgress()}
+        }
+      }
+    }
+    async function activateControlDomain(domain){
+      if(!controlActivationEligible(domain)||controlDomainBusy(domain.domain))return;
+      try{const pending=controlJob('/mail-domains/'+encodeURIComponent(domain.domain)+'/dns-validate',{activate_on_success:true});renderControlUnifiedResults();await pending;renderControlUnifiedResults()}
+      catch(error){renderControlUnifiedResults();toast(error.message,true)}
+    }
     function controlActivationPending(job){return ['blocked','routing_pending','configuration_changed'].includes(job?.result?.activation?.status)}
     function controlChecksFailed(job){return ['failed','error'].includes(job?.result?.validation_status)||Object.values(job?.result?.checks||{}).some(check=>!['passed','not_required'].includes(check?.status))}
     function controlRepairEligible(domain){
@@ -1214,11 +1438,36 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
       catch(error){renderControlUnifiedResults();toast(error.message,true)}
     }
     function controlJobNotice(job){
+      if(job?.result?.completion_job)return 'DNS 已写入，后台正在确认 NS 委派、等待解析并验证启用';
+      if(job?.kind==='dns_complete'&&job.status!=='succeeded')return ({
+        digitalplat_delegation_credential_required:'缺少该域名的 DigitalPlat 凭据，请补齐后重新配置并启用',
+        dns_delegation_external_provider_conflict:'当前 NS 指向其他托管平台，请核对后再操作',
+        dns_delegation_parent_conflict:'父区 NS 与 DigitalPlat 记录冲突，请查看操作记录',
+        dns_completion_records_missing:'dynv6 记录尚未齐全，请执行配置并启用',
+        dns_completion_configuration_changed:'等待期间配置已变更，请按最新配置重新操作',
+        dns_delegation_unconfirmed:'NS 请求结果仍待确认，请核对委派；系统保留原请求记录',
+        dns_publication_timeout:'等待解析超时，域名保留未就绪，可重新配置并启用'
+      })[job.error_code]||'自动配置尚未完成，请查看任务记录与检查项';
+      if(job?.result?.configuration_status==='blocked')return 'DNS 配置存在冲突，该域名保留待处理，其他域名继续执行';
+      if(job?.result?.configuration_status==='pending')return 'DNS 自动配置尚未提交，请检查凭据或任务记录后继续配置';
+      if(job?.kind==='claim'&&job.request?.configure_on_success&&job.status==='succeeded')return '领取完成，后台将按当前托管方式配置、验证并启用，无需逐步操作';
+      if(job?.kind==='dynv6_register'){
+        if(job.status==='succeeded')return 'dynv6 域名登记与绑定完成；可继续批量预览/应用 DNS';
+        return {dynv6_session_expired:'dynv6 会话已过期，请更新会话后重新操作',
+          dynv6_session_required:'请在 dynv6 账号管理中补充登录信息或会话',
+          dynv6_login_rejected:'dynv6 登录未通过，请检查账号密码',
+          dynv6_login_verification_required:'dynv6 要求额外验证，请查看账号状态',
+          dynv6_login_cooldown:'此账号登录失败后正在冷却，请检查登录信息',
+          dynv6_account_token_required:'此账号缺少可复用的全域 HTTP Token',
+          dynv6_session_account_mismatch:'dynv6 Cookie 与 HTTP Token 账号未匹配',
+          dynv6_registration_unconfirmed:'登记结果待核对；再次操作会先回读，结果不明确时不会重复提交'}[job.error_code]||'dynv6 接入未完成，请查看任务记录';
+      }
       if(job?.kind==='dns_repair'&&job.status==='succeeded'&&!controlActivationPending(job))return 'wildcard MX 修复与验证通过，列表已更新';
       if(job?.kind==='dns_repair'&&job.status==='partial')return 'wildcard MX 修复流程已结束，仍有检查项待处理，请查看操作记录';
       if(job?.kind==='dns_hosting')return job.status==='succeeded'?'DNS 托管已就绪，可继续预览并配置记录':controlHostingError(job);
       if(job?.kind==='claim'&&job.status==='succeeded'&&job.result?.items?.some(item=>item.claim_setup_job))return '领取与导入完成，Brevo 登记和 DNS 托管准备将在后台自动完成';
       if(job?.kind==='claim'&&job.status==='succeeded'&&job.result?.items?.some(item=>item.dns_hosting_job))return '领取完成，正在后台准备 DNS 托管，列表会自动更新';
+      if(job?.status==='succeeded'&&job.kind==='dns_apply'&&['mx','spf','dkim','dmarc'].every(name=>job.result?.checks?.[name]?.status==='failed')&&state.controlDomains.some(d=>d.domain===(job.scope||job.result?.domain)&&d.dns_provider==='dynv6'))return '记录已写入 dynv6，但公网验证未通过；请核对父区 NS 委派和解析生效情况，域名保持未就绪';
       if(job?.status==='succeeded'&&controlChecksFailed(job))return job.kind==='dns_apply'?'DNS 已应用，验证仍有未通过项，检查结果已刷新':'DNS 验证完成，仍有未通过项，检查结果已刷新';
       if(job?.result?.activation?.status==='ready')return '检查通过，域名已自动启用并移入已就绪';
       if(controlActivationPending(job))return '检查结果已刷新，域名仍在未就绪，可查看检查项和路由状态';
@@ -1263,10 +1512,14 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
                 routing.push([id,watcher,latest]);refresh=true;continue;
               }
               controlJobWatchers.delete(id);unlockControlDomain(watcher.domain);
-              watchClaimHostingJobs(latest,observed);completed.push([watcher,latest]);refresh=true;continue;
+              watchClaimHostingJobs(latest,observed);
+              const continuation=controlJobWatchers.get(latest.result?.completion_job?.id);
+              if(continuation){continuation.notify=watcher.notify;continuation.onComplete=watcher.onComplete;continuation.onCancel=watcher.onCancel}
+              else completed.push([watcher,latest]);
+              refresh=true;continue;
             }
           }
-          const limit=['claim','claim_setup','dns_hosting'].includes(watcher.kind)||latest?.status==='queued'?1800:watcher.kind==='dns_repair'?450:150;
+          const limit=watcher.kind==='dns_complete'?4500:['claim','claim_setup','dns_hosting','dynv6_register'].includes(watcher.kind)||latest?.status==='queued'?1800:watcher.kind==='dns_repair'?450:150;
           if(watcher.attempts>=limit){
             controlJobWatchers.delete(id);unlockControlDomain(watcher.domain);
             if(watcher.notify&&state.tab==='control')toast('任务仍在后台处理，可在“持久任务 / 操作记录”中查看进度',true);
@@ -1292,7 +1545,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
         if(state.tab==='control'){renderControlJobProgress();renderControlUnifiedResults()}
         for(const [watcher,latest] of completed){
           if(state.token!==token)return;
-          if(watcher.notify&&state.tab==='control')toast(controlJobNotice(latest),latest.status!=='succeeded'||controlChecksFailed(latest)||controlActivationPending(latest));
+          invalidateCachedPages('domains','control');if(watcher.notify&&state.tab==='control')toast(controlJobNotice(latest),latest.status!=='succeeded'||controlChecksFailed(latest)||controlActivationPending(latest));
           try{watcher.onComplete?.(latest)}catch{}
         }
       }finally{
@@ -1325,9 +1578,11 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
         unlockControlDomain(domain);state.mailDomains=[];state.domains=[];
         watchClaimHostingJobs(job);
         if(state.tab==='control')await refreshControlLists();
-        if(state.token===token)try{options.onComplete?.(job)}catch{}
+        const continuation=controlJobWatchers.get(job.result?.completion_job?.id);
+        if(continuation){continuation.notify=notify;continuation.onComplete=options.onComplete;continuation.onCancel=options.onCancel}
+        else if(state.token===token)try{options.onComplete?.(job)}catch{}
       }
-      if(notify&&state.token===token)toast(['queued','running'].includes(job?.status)?(path.endsWith('/dns-repair')?'修复任务已提交，将核对权威 DNS、按需重建并等待验证后刷新列表':path.endsWith('/dns-apply')?'任务已提交，应用后自动验证并刷新列表':'任务已提交，完成后自动刷新列表'):controlJobNotice(job),!['queued','running','succeeded'].includes(job?.status)||controlChecksFailed(job)||controlActivationPending(job));
+      if(notify&&state.token===token)toast(['queued','running'].includes(job?.status)?(path.endsWith('/dns-repair')?'修复任务已提交，将核对权威 DNS、按需重建并等待验证后刷新列表':path.endsWith('/dns-apply')?'任务已提交，应用后自动验证并刷新列表':body.activate_on_success?'验证与启用任务已提交，检查通过后启用并刷新列表':'任务已提交，完成后自动刷新列表'):controlJobNotice(job),!['queued','running','succeeded'].includes(job?.status)||controlChecksFailed(job)||controlActivationPending(job));
       return job;
     }
     function controlDetails(title,value){$('#modal-root').innerHTML=`<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>${esc(title)}</h3><button class="btn btn-ghost" id="close-modal">✕</button></div><div class="modal-body"><pre class="code">${esc(JSON.stringify(value,null,2))}</pre></div></div></div>`;$('#close-modal').onclick=closeModal}
@@ -1366,12 +1621,12 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
       },'来源已加密保存');
     }
     function showCredentialCreateDialog(){
-      const dialog=showDomainDialog('添加 DNS 凭据',`<p class="control-help">DigitalPlat credential 必须绑定到具体域名；Cloudflare credential 可以覆盖账户下多个 zone。密钥只保存到服务端加密存储，提交后不会回显。</p><form id="credential-create-form"><div class="control-form-grid"><div class="field"><label for="credential-label">名称</label><input id="credential-label" required maxlength="80" placeholder="sender DigitalPlat"></div><div class="field"><label for="credential-provider">DNS provider</label><select id="credential-provider"><option value="cloudflare">Cloudflare account</option><option value="digitalplat">DigitalPlat per-domain</option></select></div><div class="field"><label for="credential-domain">绑定域名</label><input id="credential-domain" placeholder="DigitalPlat 必填，例如 example.com"><small class="muted" id="credential-domain-note">Cloudflare 可留空</small></div><div class="field" id="credential-base-field"><label for="credential-base">DigitalPlat API Base</label><input id="credential-base" type="url" value="https://domain-api.digitalplat.org/api/v1"><small class="muted">仅 DigitalPlat 使用</small></div><div class="field field-wide"><label for="credential-secret">API Token</label><input id="credential-secret" type="password" autocomplete="new-password" required></div></div><div id="control-create-msg" role="status" aria-live="polite"></div></form>`,'#credential-label',`<button type="button" class="btn btn-secondary" id="cancel-control-create">取消</button><button type="submit" form="credential-create-form" class="btn btn-primary" id="save-control-create">加密保存凭据</button>`);
+      const dialog=showDomainDialog('添加 DNS 凭据',`<p class="control-help">DigitalPlat credential 必须绑定到具体域名；Cloudflare、dynv6 凭据可以管理账户下多个 zone。dynv6 可通过页面上方“dynv6 账号”自动获取 HTTP Token，也可在这里手动保存。密钥只保存到服务端加密存储，提交后不会回显。</p><form id="credential-create-form"><div class="control-form-grid"><div class="field"><label for="credential-label">名称</label><input id="credential-label" required maxlength="80" placeholder="sender DigitalPlat"></div><div class="field"><label for="credential-provider">DNS provider</label><select id="credential-provider"><option value="cloudflare">Cloudflare account</option><option value="digitalplat">DigitalPlat per-domain</option><option value="dynv6">dynv6 account</option></select></div><div class="field"><label for="credential-domain">绑定域名</label><input id="credential-domain" placeholder="DigitalPlat 必填，例如 example.com"><small class="muted" id="credential-domain-note">Cloudflare 可留空</small></div><div class="field" id="credential-base-field"><label for="credential-base">DigitalPlat API Base</label><input id="credential-base" type="url" value="https://domain-api.digitalplat.org/api/v1"><small class="muted">仅 DigitalPlat 使用</small></div><div class="field field-wide"><label for="credential-secret">API Token</label><input id="credential-secret" type="password" autocomplete="new-password" required></div></div><div id="control-create-msg" role="status" aria-live="polite"></div></form>`,'#credential-label',`<button type="button" class="btn btn-secondary" id="cancel-control-create">取消</button><button type="submit" form="credential-create-form" class="btn btn-primary" id="save-control-create">加密保存凭据</button>`);
       const provider=$('#credential-provider'),domain=$('#credential-domain'),base=$('#credential-base');
       provider.onchange=()=>{
         const perDomain=provider.value==='digitalplat';domain.required=perDomain;base.disabled=!perDomain;base.required=perDomain;
         $('#credential-base-field').classList.toggle('hidden',!perDomain);
-        $('#credential-domain-note').textContent=perDomain?'DigitalPlat 必填，只用于这个域名':'Cloudflare 可留空，用于账户下多个 zone';
+        $('#credential-domain-note').textContent=perDomain?'DigitalPlat 必填，只用于这个域名':provider.value==='dynv6'?'可留空；自带域名先在 dynv6 的 My Domains 创建 Single zone':'Cloudflare 可留空，用于账户下多个 zone';
       };
       provider.onchange();
       bindControlCreateDialog(dialog,'#credential-create-form','#credential-secret','/dns-credentials',()=>{
@@ -1379,6 +1634,124 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
         if(type==='digitalplat'){if(!name)throw Error('DigitalPlat 凭据必须绑定具体域名');secret.api_base=base.value.trim()}
         return {provider:type,domain:name||null,label:$('#credential-label').value.trim(),secret};
       },'DNS 凭据已加密保存');
+    }
+
+    function dynv6SessionLabel(credential){
+      if(credential?.login?.configured)return {valid:'自动登录已配置',failed:'登录失败',verification_required:'需要额外验证'}[credential.login.status]||'自动登录待检查';
+      return {valid:'会话检查通过',expired:'会话已过期',missing:'尚未保存会话',unavailable:'会话凭据不可读'}[credential?.session?.status]||'待检查会话';
+    }
+    function showDynv6AccountsDialog(){
+      const dialog=showDomainDialog('dynv6 账号管理',`<p class="control-help">保存多个账号的邮箱和密码，自动登录并读取已有 HTTP Token。会话过期时自动尝试重新登录；密码、Cookie 和 Token 均加密保存，不回显。现有凭据可补充登录信息并保留域名绑定。</p><div class="table-wrap"><table class="table dynv6-accounts-table"><thead><tr><th>账号 / 名称</th><th>登录与会话</th><th>Token / Zone</th><th>绑定域名</th><th>操作</th></tr></thead><tbody id="dynv6-accounts-body"></tbody></table></div><div id="dynv6-accounts-message" role="status" aria-live="polite"></div>`,'#add-dynv6-account','<button class="btn btn-secondary" id="close-dynv6-accounts">关闭</button><button class="btn btn-secondary" id="manual-dynv6-session">手动会话</button><button class="btn btn-primary" id="add-dynv6-account">添加账号</button>');
+      dialog.querySelector?.('.modal')?.classList.add('dynv6-accounts-modal');
+      const token=state.token,busy=new Set(),current=()=>state.token===token&&$('#domain-dialog-bg')===dialog;
+      const render=()=>{
+        if(!current())return;
+        const rows=state.controlCredentials.filter(c=>c.provider==='dynv6');
+        $('#dynv6-accounts-body').innerHTML=rows.length?rows.map(c=>`<tr><td><strong>${esc(c.label)}</strong><small class="muted">${esc(c.login?.email||'尚未补充登录邮箱')}</small></td><td>${esc(c.login?.configured?dynv6SessionLabel(c):"手动会话")}<small class="muted">${esc(c.session?.status==='valid'?'会话检查通过':c.session?.status==='expired'?'会话已过期':'会话待检查')}</small></td><td>${c.login?.token_id?`#${esc(c.login.token_id)} · ${esc(c.login.token_scope==='all'?'全域':'指定 Zone')}`:'已有加密凭据'}<small class="muted">${c.login?.token_id?`${Number(c.login.zone_count)||0} 个 Zone`:'同步后读取 Zone 数量'}</small></td><td>${state.controlDomains.filter(d=>d.dns_credential_ref===c.id).length}</td><td><button class="btn btn-small btn-secondary" data-dynv6-account-edit="${esc(c.id)}" ${busy.has(c.id)?'disabled':''}>${c.login?.configured?'编辑登录':'补充登录'}</button> <button class="btn btn-small btn-secondary" data-dynv6-account-refresh="${esc(c.id)}" ${busy.has(c.id)?'disabled':''}>${busy.has(c.id)?'同步中…':'同步账号'}</button></td></tr>`).join(''):'<tr><td colspan="5"><div class="empty">尚无 dynv6 账号，点击“添加账号”开始。</div></td></tr>';
+        $$('[data-dynv6-account-edit]').forEach(button=>button.onclick=()=>showDynv6AccountForm(state.controlCredentials.find(c=>c.id===button.dataset.dynv6AccountEdit)));
+        $$('[data-dynv6-account-refresh]').forEach(button=>button.onclick=async()=>{
+          const ref=button.dataset.dynv6AccountRefresh;if(busy.has(ref))return;
+          busy.add(ref);render();$('#dynv6-accounts-message').className='notice';$('#dynv6-accounts-message').textContent='正在登录并同步账号…';
+          try{
+            await api('/dynv6/accounts/'+encodeURIComponent(ref)+'/refresh',{method:'POST'});
+            if(!current())return;await refreshControlLists();
+            if(current()){$('#dynv6-accounts-message').className='notice';$('#dynv6-accounts-message').textContent='账号已同步，登录会话与 Token 已加密保存。'}
+          }catch(error){if(current()){$('#dynv6-accounts-message').className='error';$('#dynv6-accounts-message').textContent=error.message}}
+          finally{busy.delete(ref);render()}
+        });
+      };
+      $('#close-dynv6-accounts').onclick=closeModal;$('#manual-dynv6-session').onclick=showDynv6SessionDialog;
+      $('#add-dynv6-account').onclick=()=>showDynv6AccountForm();render();
+    }
+    function showDynv6AccountForm(credential=null){
+      const configured=credential?.login?.configured;
+      const dialog=showDomainDialog(credential?'更新 dynv6 登录':'添加 dynv6 账号',`<p class="control-help">使用邮箱和密码登录，自动读取并复用已有 HTTP Token，无需手动填写 Key。账号需要至少一个范围为 all 的 HTTP Token；程序会先验证其可用性再保存。${credential?'现有凭据引用及域名绑定会保留。':''}</p><form id="dynv6-account-form"><div class="field"><label for="dynv6-account-label">名称</label><input id="dynv6-account-label" maxlength="80" value="${esc(credential?.label||'')}" placeholder="可留空，使用登录邮箱"></div><div class="field"><label for="dynv6-account-email">登录邮箱</label><input id="dynv6-account-email" type="email" autocomplete="off" required maxlength="254" value="${esc(credential?.login?.email||'')}"></div><div class="field"><label for="dynv6-account-password">登录密码</label><input id="dynv6-account-password" type="password" autocomplete="new-password" maxlength="1024" ${configured?'':'required'}><small class="muted">${configured?'密码不会回显；保持原邮箱并留空可保留已保存密码。':'登录通过后加密保存，自动管理会话。'}</small></div><div id="dynv6-account-message" role="status" aria-live="polite"></div></form>`,'#dynv6-account-email','<button class="btn btn-secondary" id="cancel-dynv6-account">返回账号列表</button><button class="btn btn-primary" type="submit" form="dynv6-account-form" id="save-dynv6-account">登录并加密保存</button>');
+      const token=state.token,password=$('#dynv6-account-password'),button=$('#save-dynv6-account'),message=$('#dynv6-account-message');
+      const current=()=>state.token===token&&$('#domain-dialog-bg')===dialog;let busy=false;
+      $('#cancel-dynv6-account').onclick=()=>{password.value='';showDynv6AccountsDialog()};
+      $('#dynv6-account-form').onsubmit=async event=>{
+        event.preventDefault();if(busy)return;
+        busy=true;button.disabled=true;message.className='notice';message.textContent='正在登录、读取 Token 并检查 API…';
+        const payload={label:$('#dynv6-account-label').value.trim(),email:$('#dynv6-account-email').value.trim(),password:password.value};
+        try{
+          await api('/dynv6/accounts'+(credential?'/'+encodeURIComponent(credential.id):''),{method:credential?'PUT':'POST',body:JSON.stringify(payload)});
+          password.value='';if(!current())return;await refreshControlLists();
+          if(current()){showDynv6AccountsDialog();toast('dynv6 账号已保存，Token 和会话已自动获取')}
+        }catch(error){if(current()){message.className='error';message.textContent=error.message}}
+        finally{payload.password='';password.value='';busy=false;if(current())button.disabled=false}
+      };
+    }
+    function showDynv6SessionDialog(){
+      const credentials=state.controlCredentials.filter(c=>c.provider==='dynv6');
+      const dialog=showDomainDialog('dynv6 登录会话',`<p class="control-help">HTTP Token 用于 DNS 管理；首次登记自带域名还需要同账号的登录会话。可粘贴 _dynv6_session 的值、完整 Cookie header 或 Cookie 导出 JSON。仅保存 session Cookie，密钥加密保存且不回显。</p><form id="dynv6-session-form"><div class="field"><label for="dynv6-session-ref">dynv6 凭据</label><select id="dynv6-session-ref" required><option value="">选择已有 dynv6 HTTP Token 凭据</option>${credentials.map(c=>`<option value="${esc(c.id)}">${esc(c.label)} · ${esc(dynv6SessionLabel(c))}</option>`).join('')}</select><small class="muted">${credentials.length?'保存时会检查会话与 HTTP Token 的账号一致。':'请先通过“添加 DNS 凭据”保存 dynv6 HTTP Token。'}</small></div><div class="field"><label for="dynv6-session-cookie">登录会话 Cookie</label><textarea id="dynv6-session-cookie" autocomplete="off" spellcheck="false" rows="4" maxlength="32768" placeholder="_dynv6_session 的值或 Cookie 导出 JSON"></textarea></div><div id="dynv6-session-message" role="status" aria-live="polite"></div></form>`,'#dynv6-session-ref','<button class="btn btn-secondary" id="close-dynv6-session">关闭</button><button class="btn btn-secondary" id="check-dynv6-session">检查已存会话</button><button class="btn btn-primary" type="submit" form="dynv6-session-form" id="save-dynv6-session">检查并加密保存</button>');
+      const token=state.token,current=()=>state.token===token&&$('#domain-dialog-bg')===dialog;
+      const input=$('#dynv6-session-cookie'),ref=$('#dynv6-session-ref'),message=$('#dynv6-session-message');
+      let busy=false;
+      $('#close-dynv6-session').onclick=()=>{input.value='';closeModal()};
+      const run=async save=>{
+        if(busy)return;if(!ref.value){message.textContent='请选择 dynv6 凭据';return}
+        busy=true;$('#save-dynv6-session').disabled=true;$('#check-dynv6-session').disabled=true;
+        message.className='notice';message.textContent='正在检查登录会话和账号…';
+        try{
+          await api('/dns-credentials/'+encodeURIComponent(ref.value)+'/dynv6-session'+(save?'':'/check'),{method:save?'PUT':'POST',...(save?{body:JSON.stringify({cookie:input.value})}:{})});
+          if(!current())return;message.className='notice';message.textContent=save?'会话检查通过，已加密保存。':'已存会话检查通过。';
+          if(state.tab==='control')await refreshControlLists();
+        }catch(error){if(current()){message.className='error';message.textContent=error.message}}
+        finally{input.value='';busy=false;if(current()){$('#save-dynv6-session').disabled=false;$('#check-dynv6-session').disabled=false}}
+      };
+      $('#dynv6-session-form').onsubmit=e=>{e.preventDefault();return run(true)};
+      $('#check-dynv6-session').onclick=()=>run(false);
+    }
+    function showDynv6RegistrationDialog(rows=null){
+      rows=(rows||selectedControlDomains()).filter(d=>!d.enabled&&!controlDomainBusy(d.domain));
+      if(!rows.length)return;
+      const eligible=state.controlCredentials.filter(c=>c.provider==='dynv6'&&(!c.domain||rows.every(d=>d.domain===c.domain)));
+      const dialog=showDomainDialog('登记并绑定 dynv6',`<p class="control-help">将 ${rows.length} 个停用域名登记到 dynv6 并绑定所选凭据。已有 zone 会直接复用；随机子域最大层数设为 1。完成后继续“批量预览/应用 DNS”，再完成父区 NS 委派并验证启用。</p><div class="field"><label for="dynv6-register-ref">dynv6 凭据</label><select id="dynv6-register-ref"><option value="">选择 dynv6 凭据</option>${eligible.map(c=>`<option value="${esc(c.id)}">${esc(c.label)} · ${esc(dynv6SessionLabel(c))}</option>`).join('')}</select><small class="muted">新增域名先在页面上方“dynv6 账号”添加账号；现有凭据可补充登录信息或手动会话。</small></div><div id="dynv6-register-message" role="status" aria-live="polite"></div>`,'#dynv6-register-ref','<button class="btn btn-secondary" id="cancel-dynv6-register">取消</button><button class="btn btn-primary" id="submit-dynv6-register">登记并绑定</button>');
+      $('#cancel-dynv6-register').onclick=closeModal;
+      $('#submit-dynv6-register').onclick=async()=>{
+        const ref=$('#dynv6-register-ref').value,message=$('#dynv6-register-message');if(!ref){message.textContent='请选择 dynv6 凭据';return}
+        $('#submit-dynv6-register').disabled=true;
+        try{await registerControlDynv6(rows,ref);if($('#domain-dialog-bg')===dialog)closeModal()}
+        catch(error){message.className='error';message.textContent=error.message;$('#submit-dynv6-register').disabled=false}
+      };
+    }
+    async function registerControlDynv6(rows,ref){
+      const token=state.token,names=rows.map(d=>d.domain).sort(),body={domains:names,credential_ref:ref,bind:true,max_subdomain_depth:1};
+      const identity=JSON.stringify(['/dynv6/registrations',body]);
+      if(!controlPendingKeys.has(identity))controlPendingKeys.set(identity,controlKey());
+      rows.forEach(d=>lockControlDomain(d.domain));renderControlUnifiedResults();
+      let transferred=new Set(),batch=null;
+      try{
+        const data=await api('/dynv6/registrations',{method:'POST',headers:{'Idempotency-Key':controlPendingKeys.get(identity)},body:JSON.stringify(body)});
+        if(state.token!==token)return;
+        controlPendingKeys.delete(identity);
+        const jobs=data.items||[],errors=data.errors||[];
+        batch={kind:'dynv6',phase:'running',total:rows.length,expected:jobs.length,completed:0,results:[],errors:errors.length};
+        state.controlBatches.add(batch);
+        const complete=job=>{
+          batch.completed++;batch.results.push(job);renderControlJobProgress();
+          if(batch.completed<batch.expected)return;
+          state.controlBatches.delete(batch);renderControlJobProgress();
+          const failed=batch.results.filter(j=>j.status!=='succeeded');
+          if(state.tab==='control'&&state.token===token)toast(`dynv6 接入完成：成功 ${batch.results.length-failed.length}，待处理 ${failed.length+errors.length}${failed.length?'；'+controlJobNotice(failed[0]):''}`,failed.length+errors.length>0);
+        };
+        for(const job of jobs){
+          transferred.add(job.scope);
+          if(['queued','running'].includes(job.status)){
+            if(controlJobWatchers.has(job.id)){
+              unlockControlDomain(job.scope);
+              const watcher=controlJobWatchers.get(job.id),previous=watcher.onComplete;
+              watcher.onComplete=latest=>{previous?.(latest);complete(latest)};
+            }else watchControlJob(job,{domain:job.scope,notify:false,onComplete:complete});
+          }else{unlockControlDomain(job.scope);complete(job)}
+        }
+        if(!jobs.length){state.controlBatches.delete(batch);throw Error(errors.map(e=>e.domain+': '+(typeof e.message==='string'?e.message:'未入队')).join('；')||'没有可提交的域名')}
+        if(errors.length)toast(`${jobs.length} 个已入队，${errors.length} 个未入队：${errors.map(e=>e.domain).join('、')}`,true);
+        else if(batch.completed<batch.expected)toast(`已提交 ${jobs.length} 个 dynv6 接入任务，完成后自动刷新列表`);
+        await refreshControlLists();
+      }finally{
+        if(state.token===token){rows.filter(d=>!transferred.has(d.domain)).forEach(d=>unlockControlDomain(d.domain));renderControlUnifiedResults();renderControlJobProgress()}
+      }
     }
 
     function sourcePool(source){return state.sourcePools[source.id]||{status:'registered',sync_provider:'none'}}
@@ -1426,8 +1799,9 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
     function showSourceClaimDialog(source,selection=null){
       const legacy=source.source_type==='legacy_digitalplat_pool',sfreg=source.source_type==='sfreg_mx',selected=selection?.items||[];
       const pool=selection?.pool||sourcePool(source);
-      const dialog=showDomainDialog('领取域名 · '+source.name,`<p class="control-help">提交后会实际领取域名并保存归属信息；新域名默认停用，完成 DNS 配置与验证后再启用。每批最多 200 个。</p><form id="source-claim-form">${sfreg&&!selection?sourcePoolFields(source,'source-claim'):''}${selection?`<div class="notice">状态 ${esc(pool.status)} · 同步方案 ${esc(pool.sync_provider)}</div><ul>${selected.map(r=>`<li>${esc(r.domain)} · ID ${esc(r.external_id)}</li>`).join('')}</ul>`:''}<div class="field"><label for="source-claim-count">领取数量</label><input id="source-claim-count" type="number" min="1" max="200" step="1" value="${selection?selected.length:state.sourceClaimCounts[source.id]||1}" ${selection?'readonly':''} required></div>${legacy?'<div class="field"><label for="source-claim-ids">候选 external_id</label><textarea id="source-claim-ids" placeholder="每行一个，或用逗号分隔" required></textarea><small class="muted">填写与领取数量一致的候选 ID，重复 ID 会被拒绝。</small></div>':`<div class="notice" id="source-claim-note">${sourcePoolNote(pool)}</div>`}<div id="source-claim-msg" role="status" aria-live="polite"></div></form>`,'#source-claim-count','<button type="button" class="btn btn-secondary" id="cancel-source-claim">取消</button><button type="submit" form="source-claim-form" class="btn btn-primary" id="submit-source-claim">确认领取</button>');
+      const dialog=showDomainDialog('领取域名 · '+source.name,`<p class="control-help">领取后保存归属信息，按当前托管方式配置 DNS、验证并启用。每批最多 200 个；失败项保留待处理，不影响其他域名。</p><form id="source-claim-form">${sfreg&&!selection?sourcePoolFields(source,'source-claim'):''}${selection?`<div class="notice">状态 ${esc(pool.status)} · 同步方案 ${esc(pool.sync_provider)}</div><ul>${selected.map(r=>`<li>${esc(r.domain)} · ID ${esc(r.external_id)}</li>`).join('')}</ul>`:''}<div class="field"><label for="source-claim-count">领取数量</label><input id="source-claim-count" type="number" min="1" max="200" step="1" value="${selection?selected.length:state.sourceClaimCounts[source.id]||1}" ${selection?'readonly':''} required></div>${legacy?'<div class="field"><label for="source-claim-ids">候选 external_id</label><textarea id="source-claim-ids" placeholder="每行一个，或用逗号分隔" required></textarea><small class="muted">填写与领取数量一致的候选 ID，重复 ID 会被拒绝。</small></div>':`<div class="notice" id="source-claim-note">${sourcePoolNote(pool)}</div>`}${sfreg?'<label class="control-auto-claim"><input type="checkbox" id="source-claim-auto" checked><span>领取后自动配置、验证并启用<small class="muted">沿用域名当前托管方式，后台执行；缺少凭据或存在冲突时保留待处理。</small></span></label>':''}<div id="source-claim-msg" role="status" aria-live="polite"></div></form>`,'#source-claim-count','<button type="button" class="btn btn-secondary" id="cancel-source-claim">取消</button><button type="submit" form="source-claim-form" class="btn btn-primary" id="submit-source-claim">确认领取</button>');
       const token=state.token,button=$('#submit-source-claim'),message=$('#source-claim-msg');let submitting=false;
+      if(sfreg){const auto=$('#source-claim-auto'),update=()=>{button.textContent=auto.checked?'领取并自动完成':'仅领取'};auto.onchange=update;update()}
       $('#cancel-source-claim').onclick=closeModal;
       if(sfreg&&!selection){
         const updateNote=()=>{try{$('#source-claim-note').textContent=sourcePoolNote(readSourcePool(source,'source-claim'))}catch(err){$('#source-claim-note').textContent=err.message}};
@@ -1439,7 +1813,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
         try{
           if(source.claim_blocked)throw Error('请先核对已有领取任务');
           const count=Number($('#source-claim-count').value);if(!Number.isInteger(count)||count<1||count>200)throw Error('领取数量须为 1–200 的整数');
-          const body={count};
+          const body={count};if(sfreg&&$('#source-claim-auto')?.checked)body.configure_on_success=true;
           if(sfreg){const filters=selection?pool:readSourcePool(source,'source-claim');Object.assign(body,filters);state.sourcePools[source.id]=filters;if(selection)body.external_ids=selected.map(r=>r.external_id)}
           if(legacy){const ids=$('#source-claim-ids').value.trim().split(/[\s,，]+/).filter(Boolean);if(ids.length!==count||new Set(ids).size!==count||ids.some(id=>! /^[A-Za-z0-9_.:-]{1,128}$/.test(id)))throw Error('请填写与领取数量一致、格式有效且不重复的候选 ID');body.external_ids=ids}
           state.sourceClaimCounts[source.id]=count;submitting=true;button.disabled=true;message.className='success';message.textContent='正在提交领取任务…';
@@ -1489,12 +1863,14 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
       return load();
     }
 
-    const controlProviderLabel=p=>p==='digitalplat'?'DigitalPlat':p==='cloudflare'?'Cloudflare':'手工 DNS';
-    function claimForDomain(domain){return state.controlClaims.find(c=>c.domain===domain||c.id===domain?.claim_id)}
+    const controlProviderLabel=p=>p==='digitalplat'?'DigitalPlat':p==='cloudflare'?'Cloudflare':p==='dynv6'?'dynv6':'手工 DNS';
+    function claimForDomain(domain){const name=typeof domain==='string'?domain:domain?.domain;return state.controlClaims.find(c=>c.domain===name||Boolean(domain?.claim_id&&c.id===domain.claim_id))}
     function claimNameservers(claim){return (Array.isArray(claim?.nameservers)?claim.nameservers:[]).map(v=>String(v||'').trim()).filter(Boolean)}
-    function claimStatusLabel(claim){const status=String(claim?.status||'—'),upstream=String(claim?.upstream_status||'');return upstream&&upstream!==status?`${status} · ${upstream}`:status}
+    const CLAIM_STATUS_LABELS={imported:'已导入',reserved:'已预留',claimed:'已领取',allocated:'已分配',available:'可领取',pending:'待处理',queued:'排队中',running:'处理中',awaiting_dns:'待配置 DNS',validating:'验证中',active:'已激活',enabled:'已启用',disabled:'已停用',partial:'部分完成',failed:'失败',released:'已释放',releasing:'释放中',revoked:'已撤销',expired:'已过期',unknown:'待核对'};
+    function claimStatusLabel(claim){const status=String(claim?.status||'—'),upstream=String(claim?.upstream_status||''),label=value=>CLAIM_STATUS_LABELS[value]||value;return upstream&&upstream!==status?`${label(status)} · ${label(upstream)}`:label(status)}
     function claimSourceLabel(claim){const source=state.controlSources.find(s=>s.id===claim?.source_id);return source?.name||source?.source_type||claim?.source_id||'—'}
-    function claimNameserverCell(claim,ns){
+    function claimNameserverCell(claim,ns,provider=''){
+      if(provider==='dynv6')return '<span class="pill" title="目标 NS：ns1.dynv6.com、ns2.dynv6.com、ns3.dynv6.com；配置并启用时会核验记录、按需切换父区委派并等待传播；已有 dynv6 委派会跳过切换。实际委派以公网查询为准。">dynv6 目标 NS</span>';
       if(ns.length)return ns.map(esc).join('<br>');
       if(claim)return '<span class="pill">无需同步</span>';
       return '<span class="muted">—</span>';
@@ -1516,7 +1892,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
     }
     function controlDnsPanel(){
       const filter=state.controlDns;
-      return `<div class="panel control-section control-dns-panel"><div class="panel-head"><div><div class="panel-title">② DNS 绑定与变更</div><small class="muted">直接绑定凭据、预览、应用和验证 DNS；启用域名仍在“域名管理”中执行。</small></div><div class="toolbar"><div class="search"><span>⌕</span><input id="control-dns-search" aria-label="搜索 DNS 域名" placeholder="搜索域名、Provider、凭据、状态…" value="${esc(filter.query)}"></div><select id="control-dns-provider" aria-label="DNS Provider 筛选"><option value="">全部 Provider</option>${['cloudflare','digitalplat','manual'].map(p=>`<option value="${p}" ${filter.provider===p?'selected':''}>${controlProviderLabel(p)}</option>`).join('')}</select><select id="control-dns-size" aria-label="每页 DNS 域名数量">${[10,20,50,100].map(n=>`<option value="${n}" ${filter.pageSize===n?'selected':''}>${n} 条/页</option>`).join('')}</select><button class="btn btn-small btn-secondary" id="clear-control-dns-search">清空</button></div></div><div class="table-wrap"><table class="table control-dns-table"><thead><tr><th>域名</th><th>DNS Provider</th><th>DNS 管理凭据</th><th>Nameserver 信息</th><th>DNS 检查结果</th><th>最近 DNS 验证</th><th>操作</th></tr></thead><tbody id="control-dns-body"></tbody></table></div><div class="pagination"><span id="control-dns-summary" role="status" aria-live="polite"></span><div class="pagination-actions"><button class="btn btn-small btn-secondary" id="control-dns-prev">上一页</button><div class="pagination-actions" id="control-dns-pages"></div><button class="btn btn-small btn-secondary" id="control-dns-next">下一页</button><label for="control-dns-jump">跳转</label><input id="control-dns-jump" class="page-jump" aria-label="DNS 跳转页码" type="number" min="1" step="1" value="${filter.page}"><button class="btn btn-small btn-secondary" id="control-dns-jump-btn">确定</button></div></div></div>`;
+      return `<div class="panel control-section control-dns-panel"><div class="panel-head"><div><div class="panel-title">② DNS 绑定与变更</div><small class="muted">直接绑定凭据、预览、应用和验证 DNS；已有 DNS 可执行“验证并启用”，检查通过后启用并刷新就绪状态。</small></div><div class="toolbar"><div class="search"><span>⌕</span><input id="control-dns-search" aria-label="搜索 DNS 域名" placeholder="搜索域名、Provider、凭据、状态…" value="${esc(filter.query)}"></div><select id="control-dns-provider" aria-label="DNS Provider 筛选"><option value="">全部 Provider</option>${['cloudflare','digitalplat','dynv6','manual'].map(p=>`<option value="${p}" ${filter.provider===p?'selected':''}>${controlProviderLabel(p)}</option>`).join('')}</select><select id="control-dns-size" aria-label="每页 DNS 域名数量">${[10,20,50,100].map(n=>`<option value="${n}" ${filter.pageSize===n?'selected':''}>${n} 条/页</option>`).join('')}</select><button class="btn btn-small btn-secondary" id="clear-control-dns-search">清空</button></div></div><div class="table-wrap"><table class="table control-dns-table"><thead><tr><th>域名</th><th>DNS Provider</th><th>DNS 管理凭据</th><th>Nameserver 信息</th><th>DNS 检查结果</th><th>最近 DNS 验证</th><th>操作</th></tr></thead><tbody id="control-dns-body"></tbody></table></div><div class="pagination"><span id="control-dns-summary" role="status" aria-live="polite"></span><div class="pagination-actions"><button class="btn btn-small btn-secondary" id="control-dns-prev">上一页</button><div class="pagination-actions" id="control-dns-pages"></div><button class="btn btn-small btn-secondary" id="control-dns-next">下一页</button><label for="control-dns-jump">跳转</label><input id="control-dns-jump" class="page-jump" aria-label="DNS 跳转页码" type="number" min="1" step="1" value="${filter.page}"><button class="btn btn-small btn-secondary" id="control-dns-jump-btn">确定</button></div></div></div>`;
     }
     const CONTROL_DNS_STATUSES=[['pending','未就绪'],['ready','已就绪'],['all','全部']];
     function controlDomainReady(domain){
@@ -1537,7 +1913,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
       if(!CONTROL_DNS_STATUSES.some(([value])=>value===filter.status))filter.status='pending';
       const matched=state.controlDomains.filter(d=>{
         const claim=claimForDomain(d);const nameservers=claimNameservers(claim).join(' ');
-        return (!filter.provider||d.dns_provider===filter.provider)&&(!q||[d.domain,d.dns_provider,controlProviderLabel(d.dns_provider),controlDnsBindingLabel(d),d.dns_credential_ref,nameservers,claimStatusLabel(claim),claimSourceLabel(claim),controlDnsStatus(d),controlDomainReady(d)?'已就绪':'未就绪',d.enabled?'启用':'停用'].join(' ').toLowerCase().includes(q));
+        return (!filter.provider||d.dns_provider===filter.provider)&&(!q||[d.domain,d.dns_provider,controlProviderLabel(d.dns_provider),controlDnsBindingLabel(d),d.dns_credential_ref,nameservers,claim?.status,claim?.upstream_status,claimStatusLabel(claim),claimSourceLabel(claim),controlDnsStatus(d),controlDomainReady(d)?'已就绪':'未就绪',d.enabled?'启用':'停用'].join(' ').toLowerCase().includes(q));
       });
       const ready=matched.filter(controlDomainReady).length,counts={pending:matched.length-ready,ready,all:matched.length};
       const rows=matched.filter(controlDnsStatusMatches).sort((a,b)=>Number(controlDomainReady(a))-Number(controlDomainReady(b))||String(a.domain||'').localeCompare(String(b.domain||'')));
@@ -1548,13 +1924,71 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
     function selectedControlDomains(){
       return state.controlDomains.filter(d=>state.controlSelection.has(d.domain)&&controlDnsStatusMatches(d)&&!controlDomainBusy(d.domain));
     }
+    const CONTROL_CONFIG_PROVIDERS=['digitalplat','cloudflare','dynv6'];
+    const CONTROL_CONFIG_NOTES={digitalplat:'按需准备托管，预览后应用并自动验证',cloudflare:'使用已绑定的 Zone 和凭据，预览后应用并自动验证',dynv6:'使用已登记的 Zone，预览后应用并自动验证'};
+    function controlConfigEligible(domain){return CONTROL_CONFIG_PROVIDERS.includes(domain.dns_provider)&&Boolean(domain.dns_credential_ref)&&state.controlCredentials.some(c=>c.id===domain.dns_credential_ref&&c.provider===domain.dns_provider&&(!c.domain||c.domain===domain.domain))}
+    function closeControlBulkMenus(){
+      for(const menu of [$('#control-bulk-configure-menu'),$('#control-bulk-more-menu'),$$('.control-row-menu')].flat()){
+        if(menu?.matches?.(':popover-open'))menu.hidePopover();
+      }
+    }
+    function bindControlPopover(menu,trigger,enabled,align='right'){
+      menu.ontoggle=event=>{
+        trigger.ariaExpanded=String(event.newState==='open');if(event.newState!=='open')return;
+        const rect=trigger.getBoundingClientRect(),width=menu.offsetWidth,height=menu.offsetHeight;
+        const viewWidth=globalThis.innerWidth||document.documentElement.clientWidth,viewHeight=globalThis.innerHeight||document.documentElement.clientHeight;
+        const left=align==='left'?rect.left:rect.right-width;
+        const top=rect.bottom+height+7<=viewHeight-12?rect.bottom+7:Math.max(12,(rect.top??rect.bottom)-height-7);
+        menu.style.left=Math.max(12,Math.min(left,viewWidth-width-12))+'px';
+        menu.style.top=Math.max(12,Math.min(top,viewHeight-height-12))+'px';
+        enabled()[0]?.focus();
+      };
+      trigger.onkeydown=event=>{if(!trigger.disabled&&trigger.ariaHasPopup!=='false'&&event.key==='ArrowDown'){event.preventDefault();menu.showPopover?.()}};
+      menu.onkeydown=event=>{
+        if(event.key==='Escape'){event.preventDefault();event.stopPropagation?.();menu.hidePopover?.();trigger.focus();return}
+        const buttons=enabled(),index=buttons.indexOf(document.activeElement);
+        const next=event.key==='Home'?0:event.key==='End'?buttons.length-1:event.key==='ArrowDown'?(index+1)%buttons.length:event.key==='ArrowUp'?(index-1+buttons.length)%buttons.length:-1;
+        if(next>=0){event.preventDefault();buttons[next]?.focus()}
+      };
+    }
+    function bindControlRowMenus(){
+      $$('[data-control-more]').forEach(trigger=>{
+        const menu=$('#control-row-menu-'+trigger.dataset.controlMore);
+        if(!menu)return;
+        const enabled=()=>$$('[role="menuitem"]',menu).filter(button=>!button.disabled&&!button.hidden);
+        bindControlPopover(menu,trigger,enabled,'left');
+        trigger.onclick=()=>menu.togglePopover?.();
+        menu.onclick=event=>{if(event.target.closest?.('[role="menuitem"]')&&!event.target.closest('[role="menuitem"]').disabled)menu.hidePopover?.()};
+      });
+    }
+    function bindControlBulkMenus(){
+      for(const id of ['configure','more']){
+        const menu=$('#control-bulk-'+id+'-menu'),trigger=$('#control-bulk-'+id);
+        const enabled=()=>$$('[data-control-bulk-menu]',menu).filter(button=>button.dataset.controlBulkMenu===id&&!button.disabled&&!button.hidden);
+        bindControlPopover(menu,trigger,enabled);
+      }
+      $('#control-bulk-configure').onclick=()=>{
+        const providers=[...new Set(selectedControlDomains().filter(controlConfigEligible).map(d=>d.dns_provider))];
+        if(providers.length>1){$('#control-bulk-configure-menu').togglePopover?.();return}
+        closeControlBulkMenus();return runControlBatch('configure',null,providers[0]||null);
+      };
+      $('#control-bulk-more').onclick=()=>{if(!$('#control-bulk-more').disabled)$('#control-bulk-more-menu').togglePopover?.()};
+      for(const provider of CONTROL_CONFIG_PROVIDERS)$('#control-config-'+provider).onclick=()=>{closeControlBulkMenus();return runControlBatch('configure',null,provider)};
+      $('#control-config-all').onclick=()=>{closeControlBulkMenus();return runControlBatch('configure')};
+      $('#control-bulk-validate').onclick=()=>{closeControlBulkMenus();return runControlBatch('validate')};
+      $('#control-bulk-activate').onclick=()=>{closeControlBulkMenus();return runControlBatch('activate')};
+      $('#control-bulk-complete').onclick=()=>{closeControlBulkMenus();return runControlCompletion()};
+      $('#control-bulk-dynv6').onclick=()=>{closeControlBulkMenus();showDynv6RegistrationDialog()};
+      $('#control-bulk-repair').onclick=()=>{closeControlBulkMenus();return runControlBatch('repair')};
+      $('#control-bulk-clear').onclick=()=>{closeControlBulkMenus();state.controlSelection.clear();renderControlUnifiedResults()};
+    }
     function renderControlUnifiedResults(resetScroll=false){
       const body=$('#control-dns-body');if(!body)return;
       if(resetScroll)$('#control-dns-results>.table-wrap').scrollTop=0;
-      const filter=state.controlDns,{items,total,pages,counts}=controlUnifiedListData();
+      const filter=state.controlDns,{items,total,pages,counts}=controlUnifiedListData();saveNavigation();
       const tabs=$$('[data-control-dns-status]');
       const activeLabel=CONTROL_DNS_STATUSES.find(([value])=>value===filter.status)[1];
-      for(const [value] of CONTROL_DNS_STATUSES){const count=$('#control-dns-count-'+value);if(count)count.textContent=counts[value]}
+      for(const [value] of CONTROL_DNS_STATUSES){const count=$('#control-dns-count-'+value);if(count)controlUpdateText(count,counts[value])}
       tabs.forEach((button,index)=>{
         const active=button.dataset.controlDnsStatus===filter.status;
         button.ariaSelected=String(active);button.tabIndex=active?0:-1;button.classList.toggle('is-active',active);
@@ -1564,32 +1998,52 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
       const panel=$('#control-dns-results');if(panel)panel.ariaLabel=activeLabel+'域名列表';
       const valid=new Set(state.controlDomains.filter(controlDnsStatusMatches).map(d=>d.domain));
       [...state.controlSelection].forEach(name=>{if(!valid.has(name))state.controlSelection.delete(name)});
-      const pageSelectable=items.map(d=>d.domain),allSelected=pageSelectable.length>0&&pageSelectable.every(name=>state.controlSelection.has(name));
-      body.innerHTML=items.length?items.map(d=>{
+      const pageSelectable=items.filter(d=>!controlDomainBusy(d.domain)).map(d=>d.domain),allSelected=pageSelectable.length>0&&pageSelectable.every(name=>state.controlSelection.has(name));
+      const rowHtml=items.length?items.map((d,index)=>{
         const credential=state.controlCredentials.find(c=>c.id===d.dns_credential_ref);const claim=claimForDomain(d);const nameservers=claimNameservers(claim);
         const checkedAt=Math.max(0,...Object.entries(d.dns_checks||{}).filter(([name])=>name!=='smtp_submission').map(([,c])=>Number(c.checked_at)||0));
          const status=controlDnsStatus(d),claimStatus=claim?claimStatusLabel(claim):'未领取',selected=state.controlSelection.has(d.domain),busy=controlDomainBusy(d.domain),readBusy=controlDomainReadBusy(d.domain),disabled=busy?' disabled title="'+esc(controlDomainActivity(d.domain))+'"':'',readDisabled=readBusy?' disabled title="该域名正在操作中"':'';
-         return `<tr${readBusy?' class="control-row-busy"':''}><td class="selection-cell"><input type="checkbox" data-control-select="${esc(d.domain)}" aria-label="选择 ${esc(d.domain)}" ${selected?'checked':''}${disabled}></td><td><div class="head-actions">${claim?`<button class="btn btn-small btn-secondary" data-claim-status="${esc(claim.id)}"${disabled}>刷新 Claim</button>`:''}<button class="btn btn-small btn-secondary" data-control-dns-bind="${esc(d.domain)}"${disabled}>绑定凭据</button><button class="btn btn-small btn-secondary" data-control-dns-records="${esc(d.domain)}"${readDisabled}>查看 DNS</button><button class="btn btn-small btn-primary" data-control-dns-config="${esc(d.domain)}"${disabled}>${d.dns_provider==='manual'?'配置说明':'配置 DNS'}</button>${controlRepairEligible(d)?`<button class="btn btn-small btn-secondary" data-control-dns-repair="${esc(d.domain)}" title="核对权威 DNS，按需删除并重建 wildcard MX，然后自动验证"${disabled}>修复 wildcard MX</button>`:''}</div></td><td><strong>${esc(d.domain)}</strong><small class="muted">${claim?`Claim · ${esc(claim.external_id||claim.id||'—')}`:'手工 / 导入域名'} · ${d.enabled?'已启用':'已停用'}${busy?' · '+esc(controlDomainActivity(d.domain)):''}</small></td><td>${claim?`<span class="pill">${esc(claimStatus)}</span><small class="muted">${esc(claimSourceLabel(claim))}</small>`:'<span class="muted">—</span>'}</td><td>${controlProviderLabel(d.dns_provider)}</td><td>${controlDnsCredentialCell(d)}</td><td>${claim?claimNameserverCell(claim,nameservers):'—'}</td><td><span class="pill ${status==='最近检查通过'?'':'dns-status-pending'}">${status}</span><small class="muted">收件${d.receive_ready?'就绪':'未就绪'} · 发件${d.send_ready?'就绪':'未就绪'}${d.receive_subdomains&&d.max_subdomain_depth>0?` · 子域收件${d.subdomain_receive_ready?'就绪':'待验证'}`:''}</small></td><td>${renderReceivedAt(checkedAt)}</td></tr>`;
+         return `<tr${readBusy?' class="control-row-busy"':''}><td class="selection-cell"><input type="checkbox" data-control-select="${esc(d.domain)}" aria-label="选择 ${esc(d.domain)}" ${selected?'checked':''}${disabled}></td><td><div class="head-actions control-row-actions"><button class="btn btn-small btn-primary" data-control-complete="${esc(d.domain)}"${disabled||(['released','revoked','expired','releasing'].includes(d.source_status)||d.receive_enabled===false&&d.send_enabled===false?' disabled':'')}>${esc(controlNextAction(d))}</button><button class="btn btn-small btn-secondary" data-control-dns-records="${esc(d.domain)}"${readDisabled}>查看 DNS</button><button class="btn btn-small btn-secondary control-row-more" data-control-more="${index}" aria-haspopup="menu" aria-controls="control-row-menu-${index}" aria-expanded="false">更多 ⌄</button><div class="control-bulk-menu control-row-menu" id="control-row-menu-${index}" popover="auto" role="menu" aria-label="${esc(d.domain)} 的更多操作">${claim?`<button class="control-bulk-menu-item" role="menuitem" data-claim-status="${esc(claim.id)}"${disabled}>刷新 Claim</button>`:''}${!d.enabled?`<button class="control-bulk-menu-item" role="menuitem" data-dynv6-register="${esc(d.domain)}"${disabled}>接入 dynv6</button>`:''}<button class="control-bulk-menu-item" role="menuitem" data-control-dns-bind="${esc(d.domain)}"${disabled}>绑定凭据</button><button class="control-bulk-menu-item" role="menuitem" data-control-dns-config="${esc(d.domain)}"${disabled}>${d.dns_provider==='manual'?'配置说明':'配置 '+controlProviderLabel(d.dns_provider)}</button>${!d.enabled?`<button class="control-bulk-menu-item" role="menuitem" data-control-dns-activate="${esc(d.domain)}"${disabled||(!controlActivationEligible(d)?' disabled title="域名归属失效或尚未开启收发能力"':' title="验证现有 DNS 与 SMTP，检查通过后启用并刷新就绪状态"')}>验证并启用</button>`:''}${controlRepairEligible(d)?`<button class="control-bulk-menu-item" role="menuitem" data-control-dns-repair="${esc(d.domain)}" title="核对权威 DNS，按需删除并重建 wildcard MX，然后自动验证"${disabled}>修复 wildcard MX</button>`:''}</div></div></td><td><strong>${esc(d.domain)}</strong><small class="muted">${claim?`Claim · ${esc(claim.external_id||claim.id||'—')}`:'手工 / 导入域名'} · ${d.enabled?'已启用':'已停用'}${busy?' · '+esc(controlDomainActivity(d.domain)):''}</small>${controlCompletionErrors.has(d.domain)?`<small class="error">${esc(controlCompletionErrors.get(d.domain))}</small>`:''}</td><td>${claim?`<span class="pill">${esc(claimStatus)}</span><small class="muted">${esc(claimSourceLabel(claim))}</small>`:'<span class="muted">—</span>'}</td><td>${controlProviderLabel(d.dns_provider)}</td><td>${controlDnsCredentialCell(d)}</td><td>${claimNameserverCell(claim,nameservers,d.dns_provider)}</td><td><span class="pill ${status==='最近检查通过'?'':'dns-status-pending'}">${status}</span><small class="muted">收件${d.receive_ready?'就绪':'未就绪'} · 发件${d.send_ready?'就绪':'未就绪'}${d.receive_subdomains&&d.max_subdomain_depth>0?` · 子域收件${d.subdomain_receive_ready?'就绪':'待验证'}`:''}</small></td><td>${renderReceivedAt(checkedAt)}</td></tr>`;
       }).join(''):`<tr><td colspan="9"><div class="empty"><strong>${counts.all?'当前没有'+activeLabel+'的域名':'没有匹配的域名'}</strong>可切换状态页签、清空搜索或切换 Provider；新域名请在“域名管理”中添加。</div></td></tr>`;
-      $('#control-dns-summary').textContent=`共 ${state.controlDomains.length} 个域名，匹配 ${total} 个，第 ${filter.page} / ${pages} 页 · 已选 ${state.controlSelection.size} 个`;
+      controlUpdateHtml(body,rowHtml);
+      controlUpdateText($('#control-dns-summary'),`共 ${state.controlDomains.length} 个域名，匹配 ${total} 个，第 ${filter.page} / ${pages} 页 · 已选 ${state.controlSelection.size} 个`);
       const selectionSummary=$('#control-dns-selection-summary');
-      if(selectionSummary)selectionSummary.textContent=`已选 ${state.controlSelection.size} 个`;
+      if(selectionSummary)controlUpdateText(selectionSummary,`已选 ${state.controlSelection.size} 个`);
       $('#control-dns-prev').disabled=filter.page<=1;$('#control-dns-next').disabled=filter.page>=pages;$('#control-dns-jump').value=filter.page;$('#control-dns-jump').max=pages;
-      $('#control-dns-all').checked=allSelected;$('#control-dns-all').indeterminate=!allSelected&&pageSelectable.some(name=>state.controlSelection.has(name));
-      const selected=selectedControlDomains(),validateCount=selected.length,configCount=selected.filter(d=>d.dns_provider!=='manual'&&d.dns_credential_ref&&state.controlCredentials.some(c=>c.id===d.dns_credential_ref)).length;
+      $('#control-dns-all').disabled=!pageSelectable.length;$('#control-dns-all').checked=allSelected;$('#control-dns-all').indeterminate=!allSelected&&pageSelectable.some(name=>state.controlSelection.has(name));
+      const selected=selectedControlDomains(),completionButton=$('#control-bulk-complete'),completionCount=selected.filter(controlCompletionEligible).length;
+      if(completionButton){completionButton.disabled=!completionCount;controlUpdateText(completionButton,completionCount?`配置并启用 (${completionCount})`:'配置并启用');completionButton.title='逐个预览并提交，通过后自动验证与启用；异常项独立保留'}
+      const validateCount=selected.length,configurable=selected.filter(controlConfigEligible),configCount=configurable.length;
+      const activateButton=$('#control-bulk-activate'),activateCount=selected.filter(controlActivationEligible).length;
+      if(activateButton){activateButton.disabled=!activateCount;activateButton.title=activateCount?`验证 ${activateCount} 个停用域名的现有 DNS 与 SMTP，检查通过后启用并刷新就绪状态`:'请选择未在执行任务、归属有效且已开启收发能力的停用域名'}
       const validateButton=$('#control-bulk-validate'),configButton=$('#control-bulk-configure'),clearButton=$('#control-bulk-clear'),repairButton=$('#control-bulk-repair');
-      const repairCount=selected.filter(controlRepairEligible).length;
-      if(repairButton){repairButton.disabled=!repairCount;repairButton.textContent=`批量修复 wildcard MX${repairCount?`（${repairCount}）`:''}`}
-      if(validateButton){validateButton.disabled=!validateCount;validateButton.textContent=`批量 DNS 验证${validateCount?`（${validateCount}）`:''}`}
-      if(configButton){configButton.disabled=!configCount;configButton.textContent=`批量预览/应用 DNS${configCount?`（${configCount}）`:''}`}
-      if(clearButton)clearButton.disabled=!state.controlSelection.size;
+      const dynv6Button=$('#control-bulk-dynv6'),dynv6Count=selected.filter(d=>!d.enabled).length,repairCount=selected.filter(controlRepairEligible).length;
+      const providers=[...new Set(configurable.map(d=>d.dns_provider))],selectionCount=state.controlSelection.size,busyCount=selectionCount-validateCount;
+      if(dynv6Button){dynv6Button.disabled=!dynv6Count;controlUpdateText($('#control-bulk-dynv6-note'),dynv6Count?`${dynv6Count} 个停用域名可登记并绑定；之后配置 DNS 并核对委派`:'仅适用于已停用且未在执行任务的域名')}
+      if(repairButton){repairButton.disabled=!repairCount;controlUpdateText($('#control-bulk-repair-note'),repairCount?`${repairCount} 个 DigitalPlat 域名可修复，完成后自动验证`:'仅适用于 DigitalPlat 的 wildcard MX 检查失败项')}
+      if(validateButton){validateButton.disabled=!validateCount;controlUpdateText(validateButton,'验证 DNS');validateButton.title=validateCount?`验证 ${validateCount} 个域名的现有 DNS；新领取域名检查通过后自动启用`:'请先选择未在执行任务的域名'}
+      if(configButton){configButton.disabled=!configCount;controlUpdateText(configButton,providers.length===1?'配置 '+controlProviderLabel(providers[0]):providers.length>1?'配置 DNS ⌄':'配置 DNS');configButton.ariaHasPopup=providers.length>1?'menu':'false';configButton.title=configCount?`${configCount} 个域名可配置。${providers.length===1?CONTROL_CONFIG_NOTES[providers[0]]:'可按托管方式分别配置，或统一配置全部可操作项'}；新领取域名验证通过后自动启用`:'请先选择已绑定有效凭据的自动托管域名'}
+      for(const provider of CONTROL_CONFIG_PROVIDERS){
+        const button=$('#control-config-'+provider),count=configurable.filter(d=>d.dns_provider===provider).length;
+        if(button){button.hidden=!selected.some(d=>d.dns_provider===provider);button.disabled=!count;controlUpdateText($('#control-config-'+provider+'-note'),count?`${count} 个可配置 · ${CONTROL_CONFIG_NOTES[provider]}`:'请先绑定有效的 DNS 凭据')}
+      }
+      const allConfig=$('#control-config-all');if(allConfig){allConfig.disabled=!configCount;controlUpdateText($('#control-config-all-note'),`统一配置 ${configCount} 个可操作域名，保留各自托管方式`)}
+      const more=$('#control-bulk-more');if(more){more.disabled=!validateCount;more.title=more.disabled?'请先选择未在执行任务的域名':'分步配置、验证、启用，以及托管迁移和修复'}
+      const hint=$('#control-bulk-hint');if(hint)controlUpdateText(hint,!selectionCount?'领取 → 配置 → 验证 → 启用：勾选后可一键继续':!validateCount?`所选 ${selectionCount} 个域名正在执行任务`:configCount?`一键配置、验证并启用；失败项独立保留${configCount<validateCount?` · ${validateCount-configCount} 个需手动配置或补齐凭据`:''}${busyCount?` · ${busyCount} 个执行中`:''}`:'所选域名需手动配置或先绑定 DNS 凭据，可验证现有记录');
+      if(clearButton)clearButton.disabled=!selectionCount;
+      if(!configCount||providers.length<2){const menu=$('#control-bulk-configure-menu');if(menu?.matches?.(':popover-open'))menu.hidePopover()}
+      if(more?.disabled){const menu=$('#control-bulk-more-menu');if(menu?.matches?.(':popover-open'))menu.hidePopover()}
       const numbers=[...new Set([1,...Array.from({length:5},(_,i)=>filter.page+i-2).filter(n=>n>=1&&n<=pages),pages])].sort((a,b)=>a-b);
-      $('#control-dns-pages').innerHTML=numbers.map((n,i)=>`${i&&n>numbers[i-1]+1?'<span class="muted">…</span>':''}<button class="btn btn-small ${n===filter.page?'btn-primary':'btn-secondary'}" data-control-dns-page="${n}" aria-label="DNS 第 ${n} 页" ${n===filter.page?'aria-current="page"':''}>${n}</button>`).join('');
+      controlUpdateHtml($('#control-dns-pages'),numbers.map((n,i)=>`${i&&n>numbers[i-1]+1?'<span class="muted">…</span>':''}<button class="btn btn-small ${n===filter.page?'btn-primary':'btn-secondary'}" data-control-dns-page="${n}" aria-label="DNS 第 ${n} 页" ${n===filter.page?'aria-current="page"':''}>${n}</button>`).join(''));
       $$('[data-control-dns-page]').forEach(b=>b.onclick=()=>{filter.page=Number(b.dataset.controlDnsPage);renderControlUnifiedResults(true)});
-      $$('[data-control-select]').forEach(box=>box.onchange=()=>{if(box.checked)state.controlSelection.add(box.dataset.controlSelect);else state.controlSelection.delete(box.dataset.controlSelect);renderControlUnifiedResults()});
+      $$('[data-control-select]').forEach(box=>box.onchange=()=>{if(controlDomainBusy(box.dataset.controlSelect)){box.checked=state.controlSelection.has(box.dataset.controlSelect);return}if(box.checked)state.controlSelection.add(box.dataset.controlSelect);else state.controlSelection.delete(box.dataset.controlSelect);renderControlUnifiedResults()});
       for(const [attribute,mode] of [['bind','binding'],['records','records'],['config','configure']])$$(`[data-control-dns-${attribute}]`).forEach(b=>b.onclick=()=>showControlDnsDialog(b.dataset['controlDns'+attribute[0].toUpperCase()+attribute.slice(1)],mode));
+      $$('[data-dynv6-register]').forEach(b=>b.onclick=()=>showDynv6RegistrationDialog([state.controlDomains.find(d=>d.domain===b.dataset.dynv6Register)]));
       $$('[data-control-dns-repair]').forEach(b=>b.onclick=()=>repairControlDns(state.controlDomains.find(d=>d.domain===b.dataset.controlDnsRepair)));
+      $$('[data-control-dns-activate]').forEach(b=>b.onclick=()=>activateControlDomain(state.controlDomains.find(d=>d.domain===b.dataset.controlDnsActivate)));
+      $$('[data-control-complete]').forEach(b=>b.onclick=()=>continueControlDomain(state.controlDomains.find(d=>d.domain===b.dataset.controlComplete)));
       $$('[data-claim-status]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await controlJob('/domain-claims/'+encodeURIComponent(b.dataset.claimStatus)+'/status')}catch(e){toast(e.message,true)}finally{b.disabled=false}});
+      bindControlRowMenus();
       controlDnsDialogUpdate?.();
     }
     async function previewControlDns(domain,current=()=>true){
@@ -1614,7 +2068,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
       if(!current())throw Error('当前操作已结束，请重新预览');
       if(preview.domain!==domain.domain)throw Error('预览域名不匹配，请刷新后重试');
       const pending=(preview.conflicts||[]).filter(c=>c.code==='unresolved_dns_write'&&c.operation_id);
-      if(domain.dns_provider==='digitalplat'&&pending.length){
+      if(['digitalplat','dynv6'].includes(domain.dns_provider)&&pending.length){
         for(const conflict of pending){
           if(!current())throw Error('当前操作已结束，请重新预览');
           await api(path+'/dns-operations/'+encodeURIComponent(conflict.operation_id)+'/reconcile',{method:'POST'});
@@ -1640,7 +2094,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
     }
     function showControlBatchPreview(previews,conflicts){
       const token=state.token;
-      const labels={foreign_record_conflict:'存在外部 DNS 记录冲突',owned_record_changed_externally:'托管记录已被外部修改',unresolved_dns_write:'此前 DNS 写入结果待核对',cname_or_multiple_semantic_records:'存在 CNAME 或重复记录冲突',dkim_public_key_pending:'DKIM 公钥尚未准备完成',provider_record_locked:'记录被上游锁定'};
+      const labels={foreign_record_conflict:'存在外部 DNS 记录冲突',owned_record_changed_externally:'托管记录已被外部修改',unresolved_dns_write:'此前 DNS 写入结果待核对',cname_or_multiple_semantic_records:'存在 CNAME 或重复记录冲突',dkim_public_key_pending:'DKIM 公钥尚未准备完成',provider_record_locked:'记录被上游锁定',dynv6_multilevel_wildcard_not_supported:'dynv6 仅匹配一层随机子域，请在域名配置中将最大层数设为 1'};
       const body=`<p class="control-help">预览通过 <strong>${previews.length}</strong> 个，需处理 <strong>${conflicts.length}</strong> 个。本次尚未提交 DNS 应用；可继续应用通过项，异常域名保留待处理。</p><div class="domain-bulk-result dns-preview-results"><strong>需处理的域名</strong><ul>${conflicts.map(item=>`<li><strong>${esc(item.domain)}</strong><p>${esc(item.error||(item.conflicts||[]).map(c=>(c.name?c.name+'：':'')+(labels[c.code]||c.code)).join('；')||'预览未通过，请重新检查')}</p></li>`).join('')}</ul>${previews.length?`<details><summary>查看 ${previews.length} 个预览通过的域名</summary><ul class="dns-preview-passed">${previews.map(item=>`<li>${esc(item.domain.domain)}</li>`).join('')}</ul></details>`:''}</div>`;
       const dialog=showDomainDialog('批量 DNS 预览结果',body,previews.length?'#control-apply-passed':'#control-preview-close',`<button type="button" class="btn btn-secondary" id="control-preview-close">关闭</button>${previews.length?`<button type="button" class="btn btn-primary" id="control-apply-passed">应用 ${previews.length} 个通过项</button>`:''}`);
       $('#control-preview-close').onclick=closeModal;
@@ -1649,12 +2103,12 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
         button.disabled=true;closeModal();await runControlBatch('configure',previews);
       }}
     }
-    async function runControlBatch(kind,prepared=null){
+    async function runControlBatch(kind,prepared=null,provider=null){
       const candidates=prepared?.map(item=>state.controlDomains.find(d=>d.domain===item.domain.domain));
       if(prepared&&(kind!=='configure'||prepared.some((item,index)=>!candidates[index]||controlDomainBusy(item.domain.domain)||candidates[index].dns_credential_ref!==(item.preview.credential_ref||item.domain.dns_credential_ref)||candidates[index].dns_provider!==(item.preview.provider||item.domain.dns_provider)||(item.preview.config_hash&&candidates[index].config_hash&&item.preview.config_hash!==candidates[index].config_hash)||item.preview.domain!==item.domain.domain||!item.preview.executable||(item.preview.expires_at&&item.preview.expires_at<=Date.now()/1000)))){
         toast('通过项的预览已过期、配置已变化或正在操作，请重新选择并预览',true);return;
       }
-      const selected=prepared?candidates:selectedControlDomains(),rows=kind==='configure'?selected.filter(d=>d.dns_provider!=='manual'&&d.dns_credential_ref&&state.controlCredentials.some(c=>c.id===d.dns_credential_ref)):kind==='repair'?selected.filter(controlRepairEligible):selected;
+      const selected=prepared?candidates:selectedControlDomains().filter(d=>kind!=='configure'||!provider||d.dns_provider===provider),rows=kind==='configure'?selected.filter(controlConfigEligible):kind==='repair'?selected.filter(controlRepairEligible):kind==='activate'?selected.filter(controlActivationEligible):selected;
       if(!rows.length)return;
       if(prepared&&rows.length!==prepared.length){toast('部分域名凭据已变化，请重新预览',true);return}
       rows.forEach(domain=>lockControlDomain(domain.domain));
@@ -1670,7 +2124,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
         const counts={succeeded:0,partial:0,failed:0,unknown:0,checks_failed:0,readiness_pending:0};
         batch.results.forEach(status=>{if(Object.prototype.hasOwnProperty.call(counts,status))counts[status]++;else counts.unknown++});
         const bad=counts.partial+counts.failed+counts.unknown+counts.checks_failed+counts.readiness_pending;
-        const label=kind==='configure'?'DNS 应用与验证':kind==='repair'?'wildcard MX 修复与验证':'DNS 验证';
+        const label=kind==='configure'?'DNS 应用与验证':kind==='repair'?'wildcard MX 修复与验证':kind==='activate'?'验证并启用':'DNS 验证';
         toast(`批量${label}完成：成功 ${counts.succeeded}，部分 ${counts.partial}，失败 ${counts.failed}，待核对 ${counts.unknown}，检查未通过 ${counts.checks_failed}${batch.ready?`，已就绪 ${batch.ready}`:''}${counts.readiness_pending?`，待就绪 ${counts.readiness_pending}`:''}`,bad>0);
       };
       const onComplete=job=>{
@@ -1699,23 +2153,23 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
           batch.phase='running';batch.expected=batch.submitted;renderControlJobProgress();finishBatch();
           releaseHold();if(!batch.notified)toast(`已提交 ${applied} 个 DNS 应用任务，自动验证并启用检查通过的新领取域名`);return;
         }
-        const label=kind==='repair'?'wildcard MX 修复':'DNS 验证';
+        const label=kind==='repair'?'wildcard MX 修复':kind==='activate'?'验证并启用':'DNS 验证';
         const button=$('#control-bulk-validate');if(button)button.disabled=true;
         let submitted=0;
         await mapControlBatch(rows,async domain=>{
           const path='/mail-domains/'+encodeURIComponent(domain.domain)+(kind==='repair'?'/dns-repair':'/dns-validate');
           batch.submitted++;
-          try{await controlJob(path,controlActivationOptions(domain), {notify:false,onComplete});submitted++;if(current())renderControlJobProgress()}
+          try{await controlJob(path,kind==='activate'?{activate_on_success:true}:controlActivationOptions(domain), {notify:false,onComplete});submitted++;if(current())renderControlJobProgress()}
           catch(error){batch.submitted--;throw error}
         },current);
         batch.phase='running';batch.expected=batch.submitted;renderControlJobProgress();finishBatch();
-        releaseHold();if(!batch.notified)toast(`已提交 ${submitted} 个${label}任务，新领取域名检查通过后自动启用`);
-      }catch(e){batch.phase='running';batch.expected=batch.submitted;finishBatch();releaseHold();if(current())toast(`${kind==='configure'?'批量 DNS 应用':kind==='repair'?'wildcard MX 修复':'DNS 验证'}提交中断：${e.message}`,true)}
+        releaseHold();if(!batch.notified)toast(`已提交 ${submitted} 个${label}任务，${kind==='activate'?'所选停用域名':'新领取域名'}检查通过后自动启用`);
+      }catch(e){batch.phase='running';batch.expected=batch.submitted;finishBatch();releaseHold();if(current())toast(`${kind==='configure'?'批量 DNS 应用':kind==='repair'?'wildcard MX 修复':kind==='activate'?'验证并启用':'DNS 验证'}提交中断：${e.message}`,true)}
       finally{releaseHold();if(!batch.submitted)state.controlBatches.delete(batch);if(current()){const button=$('#control-bulk-validate');if(button)button.disabled=false;renderControlUnifiedResults();renderControlJobProgress()}}
     }
     function controlUnifiedPanel(){
       const filter=state.controlDns;
-      return `<div class="panel control-section control-dns-panel"><div class="panel-head"><div class="control-dns-heading"><div class="panel-title">域名与 DNS</div><span class="control-dns-help" title="领取后自动准备 DNS 托管；应用、验证通过后自动启用，就绪后移入已就绪页签。Nameserver 仅展示。" aria-label="DNS 配置与就绪说明">ⓘ</span></div><div class="toolbar"><div class="search"><span>⌕</span><input id="control-dns-search" aria-label="搜索域名、Claim 或 DNS" placeholder="搜索域名、Claim、Provider、凭据、状态…" value="${esc(filter.query)}"></div><select id="control-dns-provider" aria-label="DNS Provider 筛选"><option value="">全部 Provider</option>${['cloudflare','digitalplat','manual'].map(p=>`<option value="${p}" ${filter.provider===p?'selected':''}>${controlProviderLabel(p)}</option>`).join('')}</select><select id="control-dns-size" aria-label="每页 DNS 域名数量">${[10,20,50,100].map(n=>`<option value="${n}" ${filter.pageSize===n?'selected':''}>${n} 条/页</option>`).join('')}</select><button class="btn btn-small btn-secondary" id="clear-control-dns-search">清空</button><button class="btn btn-small btn-secondary" id="reload-control-dns">↻ 刷新</button></div></div>${controlDnsTabs()}<div id="control-dns-results" role="tabpanel" aria-label="域名列表" tabindex="0"><div class="control-bulk-toolbar"><label class="control-dns-selection"><input type="checkbox" id="control-dns-all" aria-label="全选当前页">全选当前页</label><span class="muted" id="control-dns-selection-summary">已选 0 个</span><button class="btn btn-small btn-primary" id="control-bulk-configure" disabled>批量预览/应用 DNS</button><button class="btn btn-small btn-secondary" id="control-bulk-validate" disabled>批量 DNS 验证</button><button class="btn btn-small btn-secondary" id="control-bulk-repair" disabled>批量修复 wildcard MX</button><button class="btn btn-small btn-secondary" id="control-bulk-clear" disabled>清除选择</button></div><div class="table-wrap"><table class="table control-dns-table"><thead><tr><th></th><th>操作</th><th>域名 / Claim</th><th>领取状态</th><th>DNS Provider</th><th>DNS 管理凭据</th><th>Nameserver 信息</th><th>DNS 检查结果</th><th>最近 DNS 验证</th></tr></thead><tbody id="control-dns-body"></tbody></table></div><div class="pagination"><span id="control-dns-summary" role="status" aria-live="polite"></span><div class="pagination-actions"><button class="btn btn-small btn-secondary" id="control-dns-prev">上一页</button><div class="pagination-actions" id="control-dns-pages"></div><button class="btn btn-small btn-secondary" id="control-dns-next">下一页</button><label for="control-dns-jump">跳转</label><input id="control-dns-jump" class="page-jump" aria-label="DNS 跳转页码" type="number" min="1" step="1" value="${filter.page}"><button class="btn btn-small btn-secondary" id="control-dns-jump-btn">确定</button></div></div></div></div>`;
+      return `<div class="panel control-section control-dns-panel"><div class="panel-head"><div class="control-dns-heading"><div class="panel-title">域名与 DNS</div><span class="control-dns-help" title="领取后自动准备 DNS 托管；已有 DNS 可直接验证并启用，检查通过且路由生效后移入已就绪页签。Nameserver 仅展示。" aria-label="DNS 配置与就绪说明">ⓘ</span></div><div class="toolbar"><div class="search"><span>⌕</span><input id="control-dns-search" aria-label="搜索域名、Claim 或 DNS" placeholder="搜索域名、Claim、Provider、凭据、状态…" value="${esc(filter.query)}"></div><select id="control-dns-provider" aria-label="DNS Provider 筛选"><option value="">全部 Provider</option>${['cloudflare','digitalplat','dynv6','manual'].map(p=>`<option value="${p}" ${filter.provider===p?'selected':''}>${controlProviderLabel(p)}</option>`).join('')}</select><select id="control-dns-size" aria-label="每页 DNS 域名数量">${[10,20,50,100].map(n=>`<option value="${n}" ${filter.pageSize===n?'selected':''}>${n} 条/页</option>`).join('')}</select><button class="btn btn-small btn-secondary" id="clear-control-dns-search">清空</button><button class="btn btn-small btn-secondary" id="reload-control-dns">↻ 刷新</button></div></div>${controlDnsTabs()}<div id="control-dns-results" role="tabpanel" aria-label="域名列表" tabindex="0"><div class="control-bulk-toolbar"><div class="control-bulk-selection"><label class="control-dns-selection"><input type="checkbox" id="control-dns-all" aria-label="全选当前页">全选当前页</label><span class="muted" id="control-dns-selection-summary">已选 0 个</span><button class="btn btn-ghost" id="control-bulk-clear" disabled>清除</button></div><div class="control-bulk-hint" id="control-bulk-hint" role="status">勾选域名后，按托管方式配置或验证</div><div class="control-bulk-actions" role="group" aria-label="所选域名操作"><button class="btn btn-small btn-primary" id="control-bulk-complete" disabled>配置并启用</button><button class="btn btn-small btn-secondary" id="control-bulk-more" aria-haspopup="menu" aria-controls="control-bulk-more-menu" aria-expanded="false" disabled>更多操作 ⌄</button></div></div><div class="control-bulk-menu" id="control-bulk-configure-menu" popover="auto" role="menu" aria-label="按托管方式配置 DNS"><div class="control-bulk-menu-heading">按当前托管方式配置</div>${CONTROL_CONFIG_PROVIDERS.map(provider=>`<button class="control-bulk-menu-item" id="control-config-${provider}" role="menuitem" data-control-bulk-menu="configure" disabled><span>配置 ${controlProviderLabel(provider)} DNS</span><small id="control-config-${provider}-note"></small></button>`).join('')}<div class="control-bulk-menu-divider"></div><button class="control-bulk-menu-item" id="control-config-all" role="menuitem" data-control-bulk-menu="configure" disabled><span>配置全部可操作项</span><small id="control-config-all-note"></small></button></div><div class="control-bulk-menu" id="control-bulk-more-menu" popover="auto" role="menu" aria-label="更多域名批量操作"><div class="control-bulk-menu-heading">分步操作</div><div class="control-step-actions"><button class="btn btn-small btn-secondary" id="control-bulk-configure" role="menuitem" data-control-bulk-menu="more" aria-controls="control-bulk-configure-menu" aria-expanded="false" aria-describedby="control-bulk-hint" disabled>配置 DNS</button><button class="btn btn-small btn-secondary" id="control-bulk-validate" role="menuitem" data-control-bulk-menu="more" disabled>验证 DNS</button><button class="btn btn-small btn-secondary" id="control-bulk-activate" role="menuitem" data-control-bulk-menu="more" disabled>验证并启用</button></div><div class="control-bulk-menu-divider"></div><div class="control-bulk-menu-heading">托管接入</div><button class="control-bulk-menu-item" id="control-bulk-dynv6" role="menuitem" data-control-bulk-menu="more" disabled><span>接入 dynv6</span><small id="control-bulk-dynv6-note"></small></button><div class="control-bulk-menu-divider"></div><div class="control-bulk-menu-heading">故障修复</div><button class="control-bulk-menu-item" id="control-bulk-repair" role="menuitem" data-control-bulk-menu="more" disabled><span>修复 wildcard MX</span><small id="control-bulk-repair-note"></small></button></div><div class="table-wrap"><table class="table control-dns-table"><thead><tr><th></th><th>操作</th><th>域名 / Claim</th><th>领取状态</th><th>DNS Provider</th><th>DNS 管理凭据</th><th>Nameserver 信息</th><th>DNS 检查结果</th><th>最近 DNS 验证</th></tr></thead><tbody id="control-dns-body"></tbody></table></div><div class="pagination"><span id="control-dns-summary" role="status" aria-live="polite"></span><div class="pagination-actions"><button class="btn btn-small btn-secondary" id="control-dns-prev">上一页</button><div class="pagination-actions" id="control-dns-pages"></div><button class="btn btn-small btn-secondary" id="control-dns-next">下一页</button><label for="control-dns-jump">跳转</label><input id="control-dns-jump" class="page-jump" aria-label="DNS 跳转页码" type="number" min="1" step="1" value="${filter.page}"><button class="btn btn-small btn-secondary" id="control-dns-jump-btn">确定</button></div></div></div></div>`;
     }
     function controlDnsBindingLabel(domain){
       if(domain.dns_provider==='manual')return '外部控制台维护';
@@ -1756,11 +2210,12 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
       const claimNames=claimNameservers(claim);
       const claimSource=state.controlSources.find(s=>s.id===claim?.source_id);
       if(!domain){toast('域名配置已变化，请刷新后重试',true);return}
-      const eligible=state.controlCredentials.filter(c=>['cloudflare','digitalplat'].includes(c.provider)&&(!c.domain||c.domain===name)&&(domain.dns_provider==='manual'||c.provider===domain.dns_provider));
+      const eligible=state.controlCredentials.filter(c=>['cloudflare','digitalplat','dynv6'].includes(c.provider)&&(!c.domain||c.domain===name)&&(domain.dns_provider==='manual'||c.provider===domain.dns_provider||(!domain.enabled&&c.provider==='dynv6')));
       const globalBinding=domain.dns_provider==='cloudflare'&&!domain.dns_credential_ref&&state.controlGlobalCloudflare?.configured;
-      const dialog=showDomainDialog('DNS 绑定与变更 · '+name,`<p class="control-help">当前域名固定为 ${esc(name)}；先绑定凭据；DigitalPlat 会按需自动准备 DNS 托管，再执行冲突预览、应用和验证。任务入队不等于 DNS 验证通过。</p><div class="notice" id="control-dns-context"></div><div class="field"><label for="control-credential">DNS 凭据</label><select id="control-credential"><option value="">选择适用于此域名的凭据</option>${eligible.map(c=>`<option value="${esc(c.id)}" ${c.id===domain.dns_credential_ref?'selected':''}>${esc(c.label)} · ${controlProviderLabel(c.provider)} · ${esc(c.domain||'account')}</option>`).join('')}</select><small class="muted">仅显示 Provider 匹配且适用于此域名的凭据；手工域名绑定后将切换到所选 Provider。${eligible.length?'':'请先通过页面上方“添加 DNS 凭据”配置凭据。'}</small></div>${globalBinding?'<div class="notice">此域名沿用全局 Cloudflare 鉴权。点击接入后可使用批量 DNS 管理，无需重新输入密钥。</div><button class="btn btn-primary" id="control-bind-global">接入全局 Cloudflare 凭据</button>':''}<div class="control-toolbar-actions"><button class="btn btn-secondary" id="control-bind">保存绑定</button><button class="btn btn-secondary" id="control-inventory">查看实际 DNS</button><button class="btn btn-secondary" id="control-plan">查看本地计划</button><button class="btn btn-secondary" id="control-preview">冲突预览</button><button class="btn btn-secondary" id="control-validate">DNS 验证</button></div><div id="control-preview-summary" class="control-status" role="status" aria-live="polite"></div><div class="control-dns-records" id="control-dns-records"></div><pre class="code control-output" id="control-preview-output">请选择操作。冲突预览会按需准备 DNS 托管；邮件 DNS 记录在应用时写入。</pre><label class="field" style="flex-direction:row;align-items:center;gap:9px"><input type="checkbox" id="control-apply-confirm" disabled>确认仅应用当前无冲突预览列出的 DNS 记录</label>` ,mode==='binding'?'#control-credential':'#control-plan','<button class="btn btn-secondary" id="close-control-dns">关闭</button><button class="btn btn-primary" id="control-apply" disabled>应用已预览计划</button>');
+      const dialog=showDomainDialog('DNS 绑定与变更 · '+name,`<p class="control-help">当前域名固定为 ${esc(name)}；先绑定凭据；DigitalPlat 会按需自动准备 DNS 托管，再执行冲突预览、应用和验证。任务入队不等于 DNS 验证通过。</p><div class="notice" id="control-dns-context"></div><div class="field"><label for="control-credential">DNS 凭据</label><select id="control-credential"><option value="">选择适用于此域名的凭据</option>${eligible.map(c=>`<option value="${esc(c.id)}" ${c.id===domain.dns_credential_ref?'selected':''}>${esc(c.label)} · ${controlProviderLabel(c.provider)} · ${esc(c.domain||'account')}</option>`).join('')}</select><small class="muted">显示适用于此域名的凭据；停用域名可绑定 dynv6 进行迁移。dynv6 可在 My Domains 手动创建 Single zone，也可通过“登记并绑定 dynv6”自动接入；配置 DNS 后再完成父区 NS 委派。${eligible.length?'':'请先通过页面上方“添加 DNS 凭据”配置凭据。'}</small></div>${globalBinding?'<div class="notice">此域名沿用全局 Cloudflare 鉴权。点击接入后可使用批量 DNS 管理，无需重新输入密钥。</div><button class="btn btn-primary" id="control-bind-global">接入全局 Cloudflare 凭据</button>':''}<div class="control-toolbar-actions"><button class="btn btn-secondary" id="control-bind">保存绑定</button><button class="btn btn-secondary" id="control-inventory">查看实际 DNS</button><button class="btn btn-secondary" id="control-plan">查看本地计划</button><button class="btn btn-secondary" id="control-preview">冲突预览</button><button class="btn btn-secondary" id="control-validate">DNS 验证</button>${!domain.enabled?'<button class="btn btn-secondary" id="control-activate" title="验证现有 DNS 与 SMTP，检查通过后启用并刷新就绪状态">验证并启用</button>':''}</div><div id="control-preview-summary" class="control-status" role="status" aria-live="polite"></div><div class="control-dns-records" id="control-dns-records"></div><pre class="code control-output" id="control-preview-output">请选择操作。冲突预览会按需准备 DNS 托管；邮件 DNS 记录在应用时写入。</pre><label class="field" style="flex-direction:row;align-items:center;gap:9px"><input type="checkbox" id="control-apply-confirm" disabled>确认仅应用当前无冲突预览列出的 DNS 记录</label>` ,mode==='binding'?'#control-credential':'#control-plan','<button class="btn btn-secondary" id="close-control-dns">关闭</button><button class="btn btn-primary" id="control-apply" disabled>应用已预览计划</button>');
       const token=state.token,selection=$('#control-credential'),summary=$('#control-preview-summary'),output=$('#control-preview-output'),records=$('#control-dns-records'),context=$('#control-dns-context'),confirm=$('#control-apply-confirm'),apply=$('#control-apply');
       const buttons=['bind','inventory','plan','preview','validate'].map(id=>$('#control-'+id));
+      const activateButton=!domain.enabled?$('#control-activate'):null;
       const bindGlobal=globalBinding?$('#control-bind-global'):null;
       const path='/mail-domains/'+encodeURIComponent(name);let busy=false,preview=null,revision=0,dnsZoneUnavailable=false;
       const current=()=>$('#domain-dialog-bg')===dialog&&state.tab==='control'&&state.token===token;
@@ -1770,8 +2225,9 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
       function update(){
         const writeBusy=controlDomainBusy(name),readBusy=controlDomainReadBusy(name);
         const message=writeBusy?controlDomainActivity(name)+'；查看与验证不会恢复暂停的写入任务。':(domain.dns_provider==='manual'?'手工 DNS：在外部 DNS 控制台按本地计划配置；仍可执行 DNS 验证。':dnsZoneUnavailable?'DigitalPlat DNS zone 当前不可读取，只能查看本地计划；请检查 credential 或稍后重试。':controlDnsBindingLabel(domain)+' · '+controlDnsStatus(domain)+'；自动写入须先绑定本页 DNS 凭据。');
-        context.textContent=message;
+        controlUpdateText(context,message);
         selection.disabled=busy||writeBusy;buttons.forEach(b=>b.disabled=busy||readBusy);
+        if(activateButton)activateButton.disabled=busy||writeBusy||!controlActivationEligible(domain);
         if(bindGlobal)bindGlobal.disabled=busy||writeBusy;
         buttons[0].disabled=busy||writeBusy||!eligible.length||!selection.value;buttons[3].disabled=busy||writeBusy||!canPreview();
         confirm.disabled=busy||writeBusy||!preview?.executable;apply.disabled=busy||writeBusy||!preview?.executable||!confirm.checked;
@@ -1817,6 +2273,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
         const planId=preview.id;await controlJob(path+'/dns-apply',{plan_id:planId,...controlActivationOptions(domain)});if(!current())return;closeModal();await refreshControlLists();
       },true);
       buttons[4].onclick=()=>run(async()=>{invalidate();await controlJob(path+'/dns-validate',controlActivationOptions(domain));if(!current())return;closeModal();await refreshControlLists()});
+      if(activateButton)activateButton.onclick=()=>run(async()=>{if(!controlActivationEligible(domain))return;invalidate();await controlJob(path+'/dns-validate',{activate_on_success:true});if(!current())return;closeModal();await refreshControlLists()},true);
       update();if(mode==='records')return buttons[1].onclick();
     }
 
@@ -1845,12 +2302,12 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
         state.controlSources=sources.items||[];state.controlDomains=domains;state.controlClaims=claims?.items||[];state.controlCredentials=credentials.items||[];state.controlGlobalCloudflare=credentials.global_cloudflare||{configured:false};
         const jobSummary=controlJobSummary(jobs),pendingJobs=jobSummary.active;
         const blockedSources=new Set(jobs.blocked_claim_sources||jobs.items.filter(j=>j.kind==='claim'&&['queued','running','unknown'].includes(j.status)).map(j=>j.scope));
-        if($('#control-sources-body'))$('#control-sources-body').innerHTML=controlSourcesMarkup(state.controlSources,blockedSources);
-        const sourceSummary=$('#control-source-summary');if(sourceSummary){sourceSummary.textContent=state.controlSources.map(s=>s.name).join('、')||'尚未配置来源';sourceSummary.title=sourceSummary.textContent}
-        if($('#control-stat-sources'))$('#control-stat-sources').textContent=state.controlSources.length;
-        if($('#control-stat-credentials'))$('#control-stat-credentials').textContent=state.controlCredentials.length;
-        if($('#control-stat-pending'))$('#control-stat-pending').textContent=pendingJobs;
-        if($('#control-stat-pending-note'))$('#control-stat-pending-note').textContent=jobSummary.unknown?`${jobSummary.unknown} 个待核对`:'';
+        controlUpdateHtml($('#control-sources-body'),controlSourcesMarkup(state.controlSources,blockedSources));
+        const sourceSummary=$('#control-source-summary');if(sourceSummary){controlUpdateText(sourceSummary,state.controlSources.map(s=>s.name).join('、')||'尚未配置来源');sourceSummary.title=sourceSummary.textContent}
+        controlUpdateText($('#control-stat-sources'),state.controlSources.length);
+        controlUpdateText($('#control-stat-credentials'),state.controlCredentials.length);
+        controlUpdateText($('#control-stat-pending'),pendingJobs);
+        controlUpdateText($('#control-stat-pending-note'),jobSummary.unknown?`${jobSummary.unknown} 个待核对`:'');
         watchActiveDomainJobs(jobs);
         renderControlUnifiedResults();
         bindControlSourceActions(state.controlSources,blockedSources);
@@ -1858,6 +2315,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
       }catch(e){if(state.tab==='control')toast(e.message,true);return false}
     }
     function bindControlSourceActions(sources,blockedSources){
+      state.controlBlockedSources=blockedSources;
       const run=fn=>async()=>{try{await fn()}catch(e){toast(e.message,true)}};
       $$('[data-source-candidates]').forEach(b=>b.onclick=run(()=>{const source=sources.find(s=>s.id===b.dataset.sourceCandidates);return showSourceCandidates({...source,claim_blocked:blockedSources.has(source.id)})}));
       $$('[data-source-toggle]').forEach(b=>b.onclick=run(async()=>{const s=sources.find(x=>x.id===b.dataset.sourceToggle);await api('/domain-sources/'+encodeURIComponent(s.id)+'/toggle?enabled='+(!s.enabled),{method:'POST'});await refreshControlLists()}));
@@ -1866,18 +2324,18 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
 
     async function controlPage(){
       const revision=++controlRevision;
-      const token=state.token;
+      const token=state.token,page=$('#page');
       $('#page').innerHTML='<div class="empty">正在加载来源、DNS 凭据和持久任务…</div>';
       try{
         const [sources,credentials,jobs,domains,claims]=await Promise.all([api('/domain-sources'),api('/dns-credentials'),api('/domain-jobs?limit=1'),api('/mail-domains'),api('/domain-claims')]);
-        if(revision!==controlRevision||state.tab!=='control'||state.token!==token)return;
+        if((revision!==controlRevision||$('#page')!==page)||state.tab!=='control'||state.token!==token)return;
         state.controlSources=sources.items||[];state.controlDomains=domains;state.controlClaims=claims?.items||[];state.controlCredentials=credentials.items||[];state.controlGlobalCloudflare=credentials.global_cloudflare||{configured:false};
         controlPreview=null;
         const sourceLabel=s=>s==='sfreg_mx'?'SFREG MX':s==='legacy_digitalplat_pool'?'DigitalPlat 域名池':'Cloudflare 导入';
         const jobSummary=controlJobSummary(jobs),pendingJobs=jobSummary.active;
         const blockedSources=new Set(jobs.blocked_claim_sources||jobs.items.filter(j=>j.kind==='claim'&&['queued','running','unknown'].includes(j.status)).map(j=>j.scope));
         const sourceSummary=sources.items.map(s=>s.name).join('、')||'尚未配置来源';
-        $('#page').innerHTML=`<div class="control-page"><div class="page-head"><div><h2>来源与 DNS</h2><p>配置域名来源与凭据，预览、应用并验证 DNS。</p></div><div class="head-actions"><button class="btn btn-secondary" id="control-reload">↻ 刷新</button><button class="btn btn-secondary" id="open-control-tasks" title="持久任务 / 操作记录">任务记录</button><button class="btn btn-secondary" id="add-dns-credential">添加 DNS 凭据</button><button class="btn btn-primary" id="add-domain-source">＋ 添加域名来源</button></div></div>
+        $('#page').innerHTML=`<div class="control-page"><div class="page-head"><div><h2>来源与 DNS</h2><p>领取 → 配置 DNS → 验证 → 启用；按域名自动推进，已完成的步骤直接跳过。</p></div><div class="head-actions"><button class="btn btn-secondary" id="control-reload">↻ 刷新</button><button class="btn btn-secondary" id="open-control-tasks" title="持久任务 / 操作记录">任务记录</button><button class="btn btn-secondary" id="dynv6-session-settings">dynv6 账号</button><button class="btn btn-primary" id="control-start-claim">领取域名</button></div></div>
         <div class="control-overview">
           <div class="control-grid" role="group" aria-label="配置概览">
             <div class="control-stat"><span class="muted">域名来源</span><strong id="control-stat-sources">${sources.items.length}</strong></div>
@@ -1888,21 +2346,18 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
         </div>
         <details class="panel control-source-panel" id="control-source-panel"${sources.items.length?'':' open'}>
           <summary><span class="control-source-heading"><span class="panel-title">来源配置</span><span class="muted" id="control-source-summary" title="${esc(sourceSummary)}">${esc(sourceSummary)}</span></span><span class="control-source-toggle"><span class="control-source-expand">展开</span><span class="control-source-collapse">收起</span></span></summary>
-          <div class="panel-body" id="control-sources-body">${controlSourcesMarkup(sources.items,blockedSources)}</div>
+          <div class="panel-body"><div class="toolbar" style="margin-bottom:12px"><button class="btn btn-secondary" id="add-dns-credential">添加 DNS 凭据</button><button class="btn btn-secondary" id="add-domain-source">＋ 添加域名来源</button></div><div id="control-sources-body">${controlSourcesMarkup(sources.items,blockedSources)}</div></div>
         </details>
         ${controlUnifiedPanel()}
         </div>`;
-        $('#control-reload').onclick=()=>controlPage();$('#open-control-tasks').onclick=showControlTasks;
-        $('#add-domain-source').onclick=showSourceCreateDialog;$('#add-dns-credential').onclick=showCredentialCreateDialog;
+        $('#control-reload').onclick=()=>refreshControlLists();$('#control-start-claim').onclick=()=>{const sources=state.controlSources.filter(s=>s.enabled&&s.source_type!=='cloudflare_import');if(sources.length===1){showSourceClaimDialog({...sources[0],claim_blocked:(state.controlBlockedSources||blockedSources).has(sources[0].id)});return}$('#control-source-panel').open=true;$('#control-source-panel').scrollIntoView?.({block:'nearest'});if(!sources.length)showSourceCreateDialog()};$('#open-control-tasks').onclick=showControlTasks;
+        $('#add-domain-source').onclick=showSourceCreateDialog;$('#add-dns-credential').onclick=showCredentialCreateDialog;$('#dynv6-session-settings').onclick=showDynv6AccountsDialog;
         bindControlSourceActions(sources.items,blockedSources);
         watchActiveDomainJobs(jobs);
         renderControlUnifiedResults();
         $('#reload-control-dns').onclick=()=>refreshControlLists();
-        $('#control-dns-all').onchange=()=>{const {items}=controlUnifiedListData();items.forEach(d=>{if($('#control-dns-all').checked)state.controlSelection.add(d.domain);else state.controlSelection.delete(d.domain)});renderControlUnifiedResults()};
-        $('#control-bulk-configure').onclick=()=>runControlBatch('configure');
-        $('#control-bulk-repair').onclick=()=>runControlBatch('repair');
-        $('#control-bulk-validate').onclick=()=>runControlBatch('validate');
-        $('#control-bulk-clear').onclick=()=>{state.controlSelection.clear();renderControlUnifiedResults()};
+        $('#control-dns-all').onchange=()=>{const {items}=controlUnifiedListData();items.filter(d=>!controlDomainBusy(d.domain)).forEach(d=>{if($('#control-dns-all').checked)state.controlSelection.add(d.domain);else state.controlSelection.delete(d.domain)});renderControlUnifiedResults()};
+        bindControlBulkMenus();
         const filter=state.controlDns;
         $('#control-dns-search').oninput=e=>{filter.query=e.target.value;filter.page=1;renderControlUnifiedResults(true)};
         $('#control-dns-search').onkeydown=e=>{if(e.key==='Enter'){filter.page=1;renderControlUnifiedResults(true)}};
@@ -1913,7 +2368,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
         $('#control-dns-jump-btn').onclick=()=>{filter.page=Number($('#control-dns-jump').value);renderControlUnifiedResults(true)};$('#control-dns-jump').onkeydown=e=>{if(e.key==='Enter')return $('#control-dns-jump-btn').onclick()};
         renderControlUnifiedResults();
 
-      }catch(e){if(revision===controlRevision&&state.tab==='control'&&state.token===token)$('#page').innerHTML=`<div class="notice warning">${esc(e.message)}</div>`}
+      }catch(e){if((revision===controlRevision&&$('#page')===page)&&state.tab==='control'&&state.token===token)$('#page').innerHTML=`<div class="notice warning">${esc(e.message)}</div>`}
     }
 
     render();
