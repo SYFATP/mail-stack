@@ -40,8 +40,9 @@ function credentialValues(provider='cloudflare'){
 (async()=>{
  await t.controlPage();
  assert.doesNotMatch(node('#page').innerHTML,/id="(?:source-create-form|credential-create-form)"/);
- assert.match(node('#page').innerHTML,/① 已配置的域名来源/);
- assert.match(node('#page').innerHTML,/领取结果与 DNS 绑定、变更/);
+ assert.match(node('#page').innerHTML,/<details class="panel control-source-panel" id="control-source-panel" open>/);
+ assert.match(node('#page').innerHTML,/来源配置/);
+ assert.match(node('#page').innerHTML,/class="panel-title">域名与 DNS/);
  assert.match(node('#page').innerHTML,/id="open-control-tasks"/);assert.doesNotMatch(node('#page').innerHTML,/id="control-task-body"/);
  node('#add-domain-source').onclick();
  assert.match(markup,/role="dialog" aria-modal="true"/);assert.match(markup,/添加域名来源/);

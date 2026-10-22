@@ -94,7 +94,71 @@
       .domain-page .pagination-actions{flex-wrap:nowrap;max-width:100%;overflow-x:auto}
       .domain-page .pagination-actions>*{flex-shrink:0}
     }
+    /* The control workbench gives the domain table the remaining viewport height. */
+    body:has(.control-page){overflow:hidden}
+    .shell:has(.control-page){height:100vh;height:100dvh;min-height:0;grid-template-rows:minmax(0,1fr)}
+    .shell:has(.control-page) .main{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+    .shell:has(.control-page) .topbar{flex:none}
+    .shell:has(.control-page) .content{flex:1;min-height:0;width:100%;max-width:none;padding-top:20px;padding-bottom:20px;overflow:hidden}
+    .control-page{height:100%;min-height:0;display:flex;flex-direction:column;gap:10px}
+    .control-page>.page-head{flex:none}
+    .shell:has(.control-page) .page-head{margin-bottom:0}
+    .control-overview{flex:none;display:flex;align-items:center;gap:10px 20px;flex-wrap:wrap}
+    .control-page .control-grid{display:flex;align-items:center;flex-wrap:wrap;gap:6px 22px;margin:0}
+    .control-overview .control-grid .control-stat{display:flex;align-items:baseline;gap:7px;padding:0;border:0;border-radius:0;background:none;font-size:12px}
+    .control-page .control-stat strong{display:inline;font-size:17px;margin:0;font-variant-numeric:tabular-nums}
+    .control-page .control-stat small{margin:0;font-size:11px}
+    .control-page .control-stat small:empty{display:none}
+    .control-overview #control-job-progress{flex:1;min-width:240px;margin:0;padding:6px 10px;font-size:12px}
+    .control-overview [hidden]{display:none!important}
+    .control-page .control-source-panel{flex:none;margin:0}
+    .control-source-panel>summary{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 14px;cursor:pointer;list-style:none}
+    .control-source-panel>summary::-webkit-details-marker{display:none}
+    .control-source-panel>summary:focus-visible{outline:2px solid var(--brand);outline-offset:-3px;border-radius:7px}
+    .control-source-heading{display:flex;align-items:center;gap:12px;min-width:0}
+    .control-source-heading .panel-title{flex:none;font-size:13px}
+    #control-source-summary{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+    .control-source-toggle{display:flex;align-items:center;gap:7px;flex:none;color:var(--muted);font-size:12px}
+    .control-source-toggle::after{content:"⌄";transition:transform .15s}
+    .control-source-panel[open] .control-source-toggle::after{transform:rotate(180deg)}
+    .control-source-panel[open] .control-source-expand,.control-source-panel:not([open]) .control-source-collapse{display:none}
+    .control-page .control-source-panel>.panel-body{max-height:160px;max-height:min(160px,22dvh);overflow:auto;overscroll-behavior:contain;padding:0 14px;border-top:1px solid var(--line)}
+    .control-source-panel .control-source-item{padding:10px 0;align-items:center}
+    .control-source-panel .empty{padding:18px 12px}
+    .control-page>.control-dns-panel{flex:1;min-height:0;display:flex;flex-direction:column;margin:0}
+    .control-page .control-dns-panel>.panel-head{flex:none;padding:10px 14px;gap:10px}
+    .control-dns-heading{display:flex;align-items:center;gap:8px}
+    .control-dns-help{color:var(--muted);font-size:13px;cursor:help}
+    .control-page .control-dns-panel .toolbar{gap:7px}
+    .control-page .control-dns-panel .search input{height:34px}
+    .control-page .control-dns-panel .search span{top:5px}
+    .control-page .control-dns-status-bar{flex:none;padding:0 14px 8px;gap:8px}
+    .control-page .control-dns-tab{padding:6px 10px}
+    .control-page #control-dns-results{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+    .control-page #control-dns-results>.table-wrap{flex:1;min-height:0;max-height:none;overflow:auto;overscroll-behavior:contain}
+    .control-page .control-bulk-toolbar{flex:none;flex-wrap:nowrap;overflow-x:auto;padding:8px 14px}
+    .control-page .control-bulk-toolbar>*{flex-shrink:0}
+    .control-page .control-bulk-toolbar .muted{width:auto}
+    .control-page .control-dns-panel .pagination{flex:none;padding:10px 14px;gap:8px}
     @media(max-width:980px){.shell:has(.domain-page),.shell:has(.control-page){grid-template-rows:auto minmax(0,1fr)}}
+    @media(max-width:600px){
+      .shell:has(.control-page) .content{padding-top:12px;padding-bottom:12px}
+      .control-page{gap:8px}
+      .control-page>.page-head .head-actions{margin-top:10px;gap:6px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px}
+      .control-page>.page-head .head-actions>.btn{flex-shrink:0;white-space:nowrap}
+      .control-overview{gap:8px}
+      .control-page .control-grid{gap:5px 12px}
+      .control-overview .control-grid .control-stat{gap:5px}
+      .control-page .control-stat small{display:none}
+      .control-page .control-dns-panel .toolbar{flex-basis:100%;display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:6px}
+      .control-page .control-dns-panel .search{grid-column:1/-1}
+      .control-page .control-dns-panel .toolbar select{height:32px;padding:0 7px;font-size:12px}
+      .control-page .control-dns-panel .toolbar>.btn{padding:5px 8px;white-space:nowrap}
+      .control-page .control-source-panel>.panel-body{max-height:120px;max-height:min(120px,15dvh)}
+      .control-page .control-dns-status-bar>small{display:none}
+      .control-page .control-dns-panel .pagination-actions{flex-wrap:nowrap;max-width:100%;overflow-x:auto}
+      .control-page .control-dns-panel .pagination-actions>*{flex-shrink:0}
+    }
     @media(max-width:600px){.domain-page .toolbar{width:100%;justify-content:flex-start}.domain-page .search{flex-basis:100%;min-width:0;max-width:none}.domain-page .page-head .head-actions{margin-top:15px}.domain-page .pagination-actions{gap:5px}.domain-modal .modal-body{padding:16px}.domain-dialog-actions{padding:12px 16px}}
     .control-jobs-modal{width:min(1100px,100%)}.control-jobs-modal .modal-body{display:flex;flex-direction:column;overflow:hidden}.control-jobs-modal .modal-body>.control-help,.control-jobs-toolbar,.control-jobs-modal .pagination{flex:none}.control-jobs-toolbar{margin-bottom:16px}.control-jobs-toolbar .search input{width:100%;color:var(--text);outline:0}.control-task-table-wrap{min-height:0;overflow:auto}.control-task-table-wrap .table{min-width:900px}.control-task-id{display:block;max-width:170px;overflow:hidden;text-overflow:ellipsis}.control-task-scope{max-width:240px;white-space:normal!important;overflow-wrap:anywhere}
     .control-claims-panel>.table-wrap{max-height:520px}.control-claims-table{min-width:980px}.control-claims-table td{vertical-align:top;white-space:normal;overflow-wrap:anywhere}.control-claims-table small{display:block;margin-top:4px}.control-claims-panel .panel-head{flex-wrap:wrap}.control-dns-panel .panel-head{flex-wrap:wrap}.control-dns-panel .toolbar{min-width:0;flex:1;justify-content:flex-end}.control-dns-panel .search{max-width:340px}.control-dns-panel .search input{width:100%;color:var(--text);outline:0}.control-dns-table{min-width:900px;table-layout:fixed}.control-dns-table th,.control-dns-table td{padding:14px 12px;white-space:normal;overflow-wrap:anywhere}.control-dns-table th:nth-child(1){width:25%}.control-dns-table th:nth-child(2){width:11%}.control-dns-table th:nth-child(3){width:17%}.control-dns-table th:nth-child(4){width:16%}.control-dns-table th:nth-child(5){width:13%}.control-dns-table th:nth-child(6){width:12%}.control-dns-table th:nth-child(7){width:20%}.control-dns-table td{vertical-align:top}.control-dns-table .head-actions{min-width:0;gap:6px}.control-dns-table small{display:block;margin-top:4px}.control-dns-table .dns-status-pending{background:#23354d;color:#b9cde7}.control-dns-table .control-row-busy{opacity:.68}.control-dns-records .table{min-width:620px}.control-dns-records td{white-space:normal;overflow-wrap:anywhere}
@@ -1340,8 +1404,9 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
     function selectedControlDomains(){
       return state.controlDomains.filter(d=>state.controlSelection.has(d.domain)&&controlDnsStatusMatches(d)&&!controlDomainBusy(d.domain));
     }
-    function renderControlUnifiedResults(){
+    function renderControlUnifiedResults(resetScroll=false){
       const body=$('#control-dns-body');if(!body)return;
+      if(resetScroll)$('#control-dns-results>.table-wrap').scrollTop=0;
       const filter=state.controlDns,{items,total,pages,counts}=controlUnifiedListData();
       const tabs=$$('[data-control-dns-status]');
       const activeLabel=CONTROL_DNS_STATUSES.find(([value])=>value===filter.status)[1];
@@ -1349,7 +1414,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
       tabs.forEach((button,index)=>{
         const active=button.dataset.controlDnsStatus===filter.status;
         button.ariaSelected=String(active);button.tabIndex=active?0:-1;button.classList.toggle('is-active',active);
-        button.onclick=()=>{if(filter.status===button.dataset.controlDnsStatus)return;filter.status=button.dataset.controlDnsStatus;filter.page=1;state.controlSelection.clear();renderControlUnifiedResults()};
+        button.onclick=()=>{if(filter.status===button.dataset.controlDnsStatus)return;filter.status=button.dataset.controlDnsStatus;filter.page=1;state.controlSelection.clear();renderControlUnifiedResults(true)};
         button.onkeydown=event=>{const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:event.key==='ArrowRight'?(index+1)%tabs.length:event.key==='ArrowLeft'?(index+tabs.length-1)%tabs.length:-1;if(next<0)return;event.preventDefault();tabs[next].onclick();tabs[next].focus()};
       });
       const panel=$('#control-dns-results');if(panel)panel.ariaLabel=activeLabel+'域名列表';
@@ -1376,7 +1441,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
       if(clearButton)clearButton.disabled=!state.controlSelection.size;
       const numbers=[...new Set([1,...Array.from({length:5},(_,i)=>filter.page+i-2).filter(n=>n>=1&&n<=pages),pages])].sort((a,b)=>a-b);
       $('#control-dns-pages').innerHTML=numbers.map((n,i)=>`${i&&n>numbers[i-1]+1?'<span class="muted">…</span>':''}<button class="btn btn-small ${n===filter.page?'btn-primary':'btn-secondary'}" data-control-dns-page="${n}" aria-label="DNS 第 ${n} 页" ${n===filter.page?'aria-current="page"':''}>${n}</button>`).join('');
-      $$('[data-control-dns-page]').forEach(b=>b.onclick=()=>{filter.page=Number(b.dataset.controlDnsPage);renderControlUnifiedResults()});
+      $$('[data-control-dns-page]').forEach(b=>b.onclick=()=>{filter.page=Number(b.dataset.controlDnsPage);renderControlUnifiedResults(true)});
       $$('[data-control-select]').forEach(box=>box.onchange=()=>{if(box.checked)state.controlSelection.add(box.dataset.controlSelect);else state.controlSelection.delete(box.dataset.controlSelect);renderControlUnifiedResults()});
       for(const [attribute,mode] of [['bind','binding'],['records','records'],['config','configure']])$$(`[data-control-dns-${attribute}]`).forEach(b=>b.onclick=()=>showControlDnsDialog(b.dataset['controlDns'+attribute[0].toUpperCase()+attribute.slice(1)],mode));
       $$('[data-control-dns-repair]').forEach(b=>b.onclick=()=>repairControlDns(state.controlDomains.find(d=>d.domain===b.dataset.controlDnsRepair)));
@@ -1506,7 +1571,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
     }
     function controlUnifiedPanel(){
       const filter=state.controlDns;
-      return `<div class="panel control-section control-dns-panel"><div class="panel-head"><div><div class="panel-title">领取结果与 DNS 绑定、变更</div><small class="muted">领取后自动准备 DNS 托管；应用、验证通过后自动启用新领取域名，就绪后移入已就绪页签。Nameserver 仅展示。</small></div><div class="toolbar"><div class="search"><span>⌕</span><input id="control-dns-search" aria-label="搜索域名、Claim 或 DNS" placeholder="搜索域名、Claim、Provider、凭据、状态…" value="${esc(filter.query)}"></div><select id="control-dns-provider" aria-label="DNS Provider 筛选"><option value="">全部 Provider</option>${['cloudflare','digitalplat','manual'].map(p=>`<option value="${p}" ${filter.provider===p?'selected':''}>${controlProviderLabel(p)}</option>`).join('')}</select><select id="control-dns-size" aria-label="每页 DNS 域名数量">${[10,20,50,100].map(n=>`<option value="${n}" ${filter.pageSize===n?'selected':''}>${n} 条/页</option>`).join('')}</select><button class="btn btn-small btn-secondary" id="clear-control-dns-search">清空</button><button class="btn btn-small btn-secondary" id="reload-control-dns">↻ 刷新</button></div></div>${controlDnsTabs()}<div id="control-dns-results" role="tabpanel" aria-label="域名列表" tabindex="0"><div class="control-bulk-toolbar"><label class="control-dns-selection"><input type="checkbox" id="control-dns-all" aria-label="全选当前页">全选当前页</label><span class="muted" id="control-dns-selection-summary">已选 0 个</span><button class="btn btn-small btn-primary" id="control-bulk-configure" disabled>批量预览/应用 DNS</button><button class="btn btn-small btn-secondary" id="control-bulk-validate" disabled>批量 DNS 验证</button><button class="btn btn-small btn-secondary" id="control-bulk-repair" disabled>批量修复 wildcard MX</button><button class="btn btn-small btn-secondary" id="control-bulk-clear" disabled>清除选择</button></div><div class="table-wrap"><table class="table control-dns-table"><thead><tr><th></th><th>操作</th><th>域名 / Claim</th><th>领取状态</th><th>DNS Provider</th><th>DNS 管理凭据</th><th>Nameserver 信息</th><th>DNS 检查结果</th><th>最近 DNS 验证</th></tr></thead><tbody id="control-dns-body"></tbody></table></div><div class="pagination"><span id="control-dns-summary" role="status" aria-live="polite"></span><div class="pagination-actions"><button class="btn btn-small btn-secondary" id="control-dns-prev">上一页</button><div class="pagination-actions" id="control-dns-pages"></div><button class="btn btn-small btn-secondary" id="control-dns-next">下一页</button><label for="control-dns-jump">跳转</label><input id="control-dns-jump" class="page-jump" aria-label="DNS 跳转页码" type="number" min="1" step="1" value="${filter.page}"><button class="btn btn-small btn-secondary" id="control-dns-jump-btn">确定</button></div></div></div></div>`;
+      return `<div class="panel control-section control-dns-panel"><div class="panel-head"><div class="control-dns-heading"><div class="panel-title">域名与 DNS</div><span class="control-dns-help" title="领取后自动准备 DNS 托管；应用、验证通过后自动启用，就绪后移入已就绪页签。Nameserver 仅展示。" aria-label="DNS 配置与就绪说明">ⓘ</span></div><div class="toolbar"><div class="search"><span>⌕</span><input id="control-dns-search" aria-label="搜索域名、Claim 或 DNS" placeholder="搜索域名、Claim、Provider、凭据、状态…" value="${esc(filter.query)}"></div><select id="control-dns-provider" aria-label="DNS Provider 筛选"><option value="">全部 Provider</option>${['cloudflare','digitalplat','manual'].map(p=>`<option value="${p}" ${filter.provider===p?'selected':''}>${controlProviderLabel(p)}</option>`).join('')}</select><select id="control-dns-size" aria-label="每页 DNS 域名数量">${[10,20,50,100].map(n=>`<option value="${n}" ${filter.pageSize===n?'selected':''}>${n} 条/页</option>`).join('')}</select><button class="btn btn-small btn-secondary" id="clear-control-dns-search">清空</button><button class="btn btn-small btn-secondary" id="reload-control-dns">↻ 刷新</button></div></div>${controlDnsTabs()}<div id="control-dns-results" role="tabpanel" aria-label="域名列表" tabindex="0"><div class="control-bulk-toolbar"><label class="control-dns-selection"><input type="checkbox" id="control-dns-all" aria-label="全选当前页">全选当前页</label><span class="muted" id="control-dns-selection-summary">已选 0 个</span><button class="btn btn-small btn-primary" id="control-bulk-configure" disabled>批量预览/应用 DNS</button><button class="btn btn-small btn-secondary" id="control-bulk-validate" disabled>批量 DNS 验证</button><button class="btn btn-small btn-secondary" id="control-bulk-repair" disabled>批量修复 wildcard MX</button><button class="btn btn-small btn-secondary" id="control-bulk-clear" disabled>清除选择</button></div><div class="table-wrap"><table class="table control-dns-table"><thead><tr><th></th><th>操作</th><th>域名 / Claim</th><th>领取状态</th><th>DNS Provider</th><th>DNS 管理凭据</th><th>Nameserver 信息</th><th>DNS 检查结果</th><th>最近 DNS 验证</th></tr></thead><tbody id="control-dns-body"></tbody></table></div><div class="pagination"><span id="control-dns-summary" role="status" aria-live="polite"></span><div class="pagination-actions"><button class="btn btn-small btn-secondary" id="control-dns-prev">上一页</button><div class="pagination-actions" id="control-dns-pages"></div><button class="btn btn-small btn-secondary" id="control-dns-next">下一页</button><label for="control-dns-jump">跳转</label><input id="control-dns-jump" class="page-jump" aria-label="DNS 跳转页码" type="number" min="1" step="1" value="${filter.page}"><button class="btn btn-small btn-secondary" id="control-dns-jump-btn">确定</button></div></div></div></div>`;
     }
     function controlDnsBindingLabel(domain){
       if(domain.dns_provider==='manual')return '外部控制台维护';
@@ -1637,10 +1702,11 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
         const jobSummary=controlJobSummary(jobs),pendingJobs=jobSummary.active;
         const blockedSources=new Set(jobs.blocked_claim_sources||jobs.items.filter(j=>j.kind==='claim'&&['queued','running','unknown'].includes(j.status)).map(j=>j.scope));
         if($('#control-sources-body'))$('#control-sources-body').innerHTML=controlSourcesMarkup(state.controlSources,blockedSources);
+        const sourceSummary=$('#control-source-summary');if(sourceSummary){sourceSummary.textContent=state.controlSources.map(s=>s.name).join('、')||'尚未配置来源';sourceSummary.title=sourceSummary.textContent}
         if($('#control-stat-sources'))$('#control-stat-sources').textContent=state.controlSources.length;
         if($('#control-stat-credentials'))$('#control-stat-credentials').textContent=state.controlCredentials.length;
         if($('#control-stat-pending'))$('#control-stat-pending').textContent=pendingJobs;
-        if($('#control-stat-pending-note'))$('#control-stat-pending-note').textContent=`queued / running${jobSummary.unknown?` · ${jobSummary.unknown} 个待核对`:''}`;
+        if($('#control-stat-pending-note'))$('#control-stat-pending-note').textContent=jobSummary.unknown?`${jobSummary.unknown} 个待核对`:'';
         watchActiveDomainJobs(jobs);
         renderControlUnifiedResults();
         bindControlSourceActions(state.controlSources,blockedSources);
@@ -1666,10 +1732,20 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
         const sourceLabel=s=>s==='sfreg_mx'?'SFREG MX':s==='legacy_digitalplat_pool'?'DigitalPlat 域名池':'Cloudflare 导入';
         const jobSummary=controlJobSummary(jobs),pendingJobs=jobSummary.active;
         const blockedSources=new Set(jobs.blocked_claim_sources||jobs.items.filter(j=>j.kind==='claim'&&['queued','running','unknown'].includes(j.status)).map(j=>j.scope));
-        $('#page').innerHTML=`<div class="control-page"><div class="page-head"><div><h2>来源与 DNS</h2><p>先配置域名来源，再绑定 DNS 凭据；写入始终遵循“本地计划 → 冲突预览 → 应用 → 验证”。</p></div><div class="head-actions"><button class="btn btn-secondary" id="control-reload">↻ 刷新状态</button><button class="btn btn-secondary" id="open-control-tasks">持久任务 / 操作记录</button><button class="btn btn-secondary" id="add-dns-credential">添加 DNS 凭据</button><button class="btn btn-primary" id="add-domain-source">＋ 添加域名来源</button></div></div>
-        <div id="control-job-progress" class="notice" style="margin-bottom:14px" role="status" aria-live="polite" hidden></div>
-        <div class="control-grid"><div class="control-stat"><span class="muted">域名来源</span><strong id="control-stat-sources">${sources.items.length}</strong><small>SFREG / DigitalPlat / Cloudflare</small></div><div class="control-stat"><span class="muted">DNS 凭据</span><strong id="control-stat-credentials">${credentials.items.length}</strong><small>密钥只保存服务端加密存储</small></div><div class="control-stat"><span class="muted">待处理任务</span><strong id="control-stat-pending">${pendingJobs}</strong><small id="control-stat-pending-note">queued / running${jobSummary.unknown?` · ${jobSummary.unknown} 个待核对`:''}</small></div></div>
-        <div class="panel control-section"><div class="panel-head"><div><div class="panel-title">① 已配置的域名来源</div><small class="muted">${sources.items.length} 个来源 · 操作不会自动领取域名</small></div></div><div class="panel-body" id="control-sources-body">${controlSourcesMarkup(sources.items,blockedSources)}</div></div>
+        const sourceSummary=sources.items.map(s=>s.name).join('、')||'尚未配置来源';
+        $('#page').innerHTML=`<div class="control-page"><div class="page-head"><div><h2>来源与 DNS</h2><p>配置域名来源与凭据，预览、应用并验证 DNS。</p></div><div class="head-actions"><button class="btn btn-secondary" id="control-reload">↻ 刷新</button><button class="btn btn-secondary" id="open-control-tasks" title="持久任务 / 操作记录">任务记录</button><button class="btn btn-secondary" id="add-dns-credential">添加 DNS 凭据</button><button class="btn btn-primary" id="add-domain-source">＋ 添加域名来源</button></div></div>
+        <div class="control-overview">
+          <div class="control-grid" role="group" aria-label="配置概览">
+            <div class="control-stat"><span class="muted">域名来源</span><strong id="control-stat-sources">${sources.items.length}</strong></div>
+            <div class="control-stat" title="密钥只保存在服务端，并加密存储"><span class="muted">DNS 凭据</span><strong id="control-stat-credentials">${credentials.items.length}</strong></div>
+            <div class="control-stat"><span class="muted">待处理任务</span><strong id="control-stat-pending">${pendingJobs}</strong><small id="control-stat-pending-note">${jobSummary.unknown?`${jobSummary.unknown} 个待核对`:''}</small></div>
+          </div>
+          <div id="control-job-progress" class="notice" role="status" aria-live="polite" hidden></div>
+        </div>
+        <details class="panel control-source-panel" id="control-source-panel"${sources.items.length?'':' open'}>
+          <summary><span class="control-source-heading"><span class="panel-title">来源配置</span><span class="muted" id="control-source-summary" title="${esc(sourceSummary)}">${esc(sourceSummary)}</span></span><span class="control-source-toggle"><span class="control-source-expand">展开</span><span class="control-source-collapse">收起</span></span></summary>
+          <div class="panel-body" id="control-sources-body">${controlSourcesMarkup(sources.items,blockedSources)}</div>
+        </details>
         ${controlUnifiedPanel()}
         </div>`;
         $('#control-reload').onclick=()=>controlPage();$('#open-control-tasks').onclick=showControlTasks;
@@ -1684,13 +1760,13 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
         $('#control-bulk-validate').onclick=()=>runControlBatch('validate');
         $('#control-bulk-clear').onclick=()=>{state.controlSelection.clear();renderControlUnifiedResults()};
         const filter=state.controlDns;
-        $('#control-dns-search').oninput=e=>{filter.query=e.target.value;filter.page=1;renderControlUnifiedResults()};
-        $('#control-dns-search').onkeydown=e=>{if(e.key==='Enter'){filter.page=1;renderControlUnifiedResults()}};
-        $('#control-dns-provider').onchange=e=>{filter.provider=e.target.value;filter.page=1;renderControlUnifiedResults()};
-        $('#control-dns-size').onchange=e=>{const n=Number(e.target.value);if([10,20,50,100].includes(n)){filter.pageSize=n;filter.page=1;renderControlUnifiedResults()}};
-        $('#clear-control-dns-search').onclick=()=>{filter.query='';filter.provider='';filter.page=1;$('#control-dns-search').value='';$('#control-dns-provider').value='';renderControlUnifiedResults()};
-        $('#control-dns-prev').onclick=()=>{filter.page--;renderControlUnifiedResults()};$('#control-dns-next').onclick=()=>{filter.page++;renderControlUnifiedResults()};
-        $('#control-dns-jump-btn').onclick=()=>{filter.page=Number($('#control-dns-jump').value);renderControlUnifiedResults()};$('#control-dns-jump').onkeydown=e=>{if(e.key==='Enter')return $('#control-dns-jump-btn').onclick()};
+        $('#control-dns-search').oninput=e=>{filter.query=e.target.value;filter.page=1;renderControlUnifiedResults(true)};
+        $('#control-dns-search').onkeydown=e=>{if(e.key==='Enter'){filter.page=1;renderControlUnifiedResults(true)}};
+        $('#control-dns-provider').onchange=e=>{filter.provider=e.target.value;filter.page=1;renderControlUnifiedResults(true)};
+        $('#control-dns-size').onchange=e=>{const n=Number(e.target.value);if([10,20,50,100].includes(n)){filter.pageSize=n;filter.page=1;renderControlUnifiedResults(true)}};
+        $('#clear-control-dns-search').onclick=()=>{filter.query='';filter.provider='';filter.page=1;$('#control-dns-search').value='';$('#control-dns-provider').value='';renderControlUnifiedResults(true)};
+        $('#control-dns-prev').onclick=()=>{filter.page--;renderControlUnifiedResults(true)};$('#control-dns-next').onclick=()=>{filter.page++;renderControlUnifiedResults(true)};
+        $('#control-dns-jump-btn').onclick=()=>{filter.page=Number($('#control-dns-jump').value);renderControlUnifiedResults(true)};$('#control-dns-jump').onkeydown=e=>{if(e.key==='Enter')return $('#control-dns-jump-btn').onclick()};
         renderControlUnifiedResults();
 
       }catch(e){if(revision===controlRevision&&state.tab==='control'&&state.token===token)$('#page').innerHTML=`<div class="notice warning">${esc(e.message)}</div>`}
