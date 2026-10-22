@@ -357,6 +357,43 @@
     .monitor-hint{font-size:11px;line-height:1.8;color:var(--muted);margin:12px 0 0}.monitor-error{font-size:12px;color:var(--danger);overflow-wrap:anywhere}.monitor-saved{font-size:12px;color:var(--ok)}.monitor-foot{border-top:1px solid var(--line);padding-top:14px;padding-bottom:14px}
     @media(max-width:600px){.monitor-dialog{width:calc(100vw - 20px);max-height:calc(100dvh - 20px);border-radius:10px}.monitor-head,.monitor-foot{padding:14px}.monitor-body{padding:12px 14px}.monitor-metrics{gap:6px}.monitor-card{padding:10px}.monitor-card-head{flex-direction:column;align-items:flex-start}.monitor-value{font-size:23px}.monitor-threshold-row{grid-template-columns:30px 1fr 1fr;gap:8px;padding:10px}.monitor-threshold-row label{flex-direction:column;align-items:flex-start;gap:5px}.monitor-threshold-row input{width:64px}}
     @media(prefers-reduced-motion:reduce){.monitor-meter>span{transition:none}}
+    .shell:has(.send-page) .content{padding-top:20px;padding-bottom:20px}
+    .send-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
+    .send-page .page-head{margin-bottom:18px}.send-page .card{min-width:0}
+    .send-compose .field:first-child{margin-top:0}.send-compose .field{margin:12px 0;gap:6px}
+    .send-address-grid,.send-advanced-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px}
+    .send-address-grid .field{margin-top:0}.send-page #send-text{height:clamp(144px,20dvh,260px);min-height:144px}
+    .send-disclosure{border:1px solid var(--line);border-radius:9px;overflow:hidden}
+    .send-disclosure>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;cursor:pointer;list-style:none}
+    .send-disclosure>summary::-webkit-details-marker{display:none}
+    .send-disclosure>summary:focus-visible{outline:2px solid var(--brand);outline-offset:-3px}
+    .send-disclosure>summary::after{content:'⌄';flex:none;color:var(--muted);transition:transform .15s}
+    .send-disclosure[open]>summary::after{transform:rotate(180deg)}
+    .send-disclosure>summary>span{min-width:0}.send-disclosure summary small{display:block;color:var(--muted);font-size:12px;font-weight:400;margin-top:3px}
+    .send-disclosure-body{padding:0 14px 12px;border-top:1px solid var(--line)}
+    .send-advanced{margin:16px 0}.send-advanced .field-wide{grid-column:1/-1}.send-advanced .field small{font-size:12px;color:var(--muted)}
+    .send-submit-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.send-submit-bar small{color:var(--muted)}
+    .send-page #send-msg:empty{display:none}.send-page #send-msg,.send-page #send-result{overflow-wrap:anywhere}
+    .send-guide h3{margin:0 0 12px}.send-guide p{color:var(--muted);font-size:13px;line-height:1.7}
+    .send-guide .notice{margin:14px 0;font-size:12px}.send-guide .send-disclosure{margin-top:16px}
+    .send-guide pre{font-size:11px;white-space:pre;overflow:auto;margin-bottom:0}
+    .send-history{margin-top:18px}.send-history>summary{padding:14px 18px}.send-history .panel-title{font-size:15px}
+    .send-history .panel-head{padding:10px 16px}.send-history .table-wrap{max-height:420px;max-height:min(420px,55dvh);overscroll-behavior:contain}
+    .send-history-table{min-width:1050px}.send-history-table td{vertical-align:top}.send-history-table th{position:sticky;top:0;z-index:1;background:var(--panel)}
+    .send-history-table td:nth-child(1){max-width:230px;white-space:normal;overflow-wrap:anywhere}
+    .send-history-table td:nth-child(2),.send-history-table td:nth-child(3){max-width:250px;white-space:normal;overflow-wrap:anywhere}
+    .send-history-table small{display:block;color:var(--muted);font-size:12px;margin-top:4px}
+    .send-status{display:inline-flex;border-radius:5px;padding:3px 7px;background:var(--panel2);color:var(--text);font-size:12px}
+    .send-status.is-accepted{color:var(--ok)}.send-status.is-error{color:var(--danger)}
+    .send-detail-meta .meta div{overflow-wrap:anywhere}.send-detail-recipients{white-space:pre-wrap}
+    .send-detail-body{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.7}
+    .send-detail-section{margin-top:18px}.send-detail-section h4{margin:0 0 10px}.send-detail-section .code{white-space:pre-wrap}
+    .send-detail-attachments{margin:0;padding-left:20px;overflow-wrap:anywhere}
+    @media(min-width:601px){.send-advanced>summary>span,.send-history>summary>span{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.send-advanced summary small,.send-history summary small{margin:0}}
+    @media(max-width:1150px){.send-layout{grid-template-columns:minmax(0,1fr) 290px}}
+    @media(max-width:800px){.send-layout{grid-template-columns:minmax(0,1fr)}.send-guide{order:2}.send-guide .send-disclosure{margin-top:10px}}
+    @media(max-width:600px){.send-address-grid,.send-advanced-grid{grid-template-columns:minmax(0,1fr)}.send-advanced .field-wide{grid-column:auto}.send-page #send-text{min-height:160px}.send-compose,.send-guide{padding:15px}.send-page>.page-head .head-actions{margin-top:10px}.send-submit-bar>.btn{width:100%}.send-history>summary{padding:12px 14px}}
+
   </style>
 </head>
 <body>
@@ -829,9 +866,80 @@
     }
 
     function showDnsRecords(data){const records=data.records||[];const provider=data.provider_label||data.provider||'DNS';const message=data.message?`<div class="notice warning" style="margin-bottom:14px">${esc(data.message)}</div>`:'';$('#modal-root').innerHTML=`<div class="modal-backdrop" id="dns-modal-bg"><div class="modal"><div class="modal-head"><h3>DNS 记录 · ${esc(data.domain)}</h3><button class="btn btn-ghost" id="close-dns-modal">✕</button></div><div class="modal-body">${message}<div class="notice" style="margin-bottom:14px">Provider：${esc(provider)} · Zone ID：${esc(data.zone_id||'—')} · 共 ${records.length} 条记录</div><div class="table-wrap"><table class="table"><thead><tr><th>类型</th><th>名称</th><th>内容</th><th>TTL</th><th>优先级</th></tr></thead><tbody>${records.length?records.map(r=>`<tr><td>${esc(r.type||'')}</td><td>${esc(r.name||'')}</td><td style="white-space:normal;min-width:260px;word-break:break-word">${esc(r.content||'')}</td><td>${esc(r.ttl||'auto')}</td><td>${r.priority==null?'—':esc(r.priority)}</td></tr>`).join(''):`<tr><td colspan="5"><div class="empty">${esc(data.provider==='manual'?'由外部 DNS 服务商管理，当前没有可读取的在线记录。':'当前 provider 中没有 DNS 记录')}</div></td></tr>`}</tbody></table></div></div></div></div>`;$('#close-dns-modal').onclick=closeModal;$('#dns-modal-bg').onclick=e=>{if(e.target.id==='dns-modal-bg')closeModal()}}
-    async function loadSendHistory(){const host=$('#send-history-body');if(!host)return;try{const data=await api('/send?limit=20');const rows=data.items||[];host.innerHTML=rows.length?rows.map(r=>`<tr><td><code>${esc(r.request_id)}</code></td><td>${esc(r.status)}</td><td>${esc(r.transport||'smtp')}</td><td>${esc((r.accepted||[]).length)} / ${esc(Object.keys(r.rejected||{}).length)}</td><td>${esc(fmtDate(r.updated_at||r.created_at))}</td><td>${['failed','cancelled','submission_unknown'].includes(r.status)?`<button class="btn btn-small btn-secondary" data-replay-send="${esc(r.request_id)}">重放</button>`:'—'}</td></tr>`).join(''):`<tr><td colspan="6"><div class="empty">暂无发件记录</div></td></tr>`;$$('[data-replay-send]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await api('/send/'+encodeURIComponent(b.dataset.replaySend)+'/replay',{method:'POST'});toast('发件已重新入队');await loadSendHistory()}catch(e){toast(e.message,true)}finally{b.disabled=false}})}catch(e){host.innerHTML=`<tr><td colspan="6"><div class="empty">发件记录读取失败：${esc(e.message)}</div></td></tr>`}}
+    const SEND_STATUS_LABELS={queued:'排队中',running:'提交中',submitted_to_mta:'邮件服务器已接受',partial:'部分收件人失败',failed:'发送失败',cancelled:'已取消',submission_unknown:'提交结果待确认'};
+    const sendStatusLabel=value=>SEND_STATUS_LABELS[value]||value||'未知状态';
+    const sendTransportLabel=value=>({smtp:'SMTP',brevo_api:'Brevo API'}[value]||value||'SMTP');
+    function sendStatusMarkup(value){return `<span class="send-status ${value==='submitted_to_mta'?'is-accepted':['failed','partial','submission_unknown'].includes(value)?'is-error':''}">${esc(sendStatusLabel(value))}</span>`}
+    let sendPageRevision=0,sendHistoryRevision=0;
+    async function loadSendHistory(){
+      const host=$('#send-history-body');if(!host)return;
+      const revision=++sendHistoryRevision,token=state.token;
+      try{
+        const data=await api('/send?limit=20');
+        if(state.token!==token||state.tab!=='send'||revision!==sendHistoryRevision)return;
+        const rows=data.items||[];
+        $('#send-history-summary').textContent=`最近 ${rows.length} 条 / 共 ${Number(data.total??rows.length)} 条 · 可查看正文与附件`;
+        host.innerHTML=rows.length?rows.map(r=>`<tr><td><code>${esc(r.request_id)}</code></td><td>${esc(r.sender||'—')}</td><td>${(r.recipients||[]).map(value=>esc(value)).join('<br>')||'—'}</td><td>${sendStatusMarkup(r.status)}<small>${esc(sendTransportLabel(r.transport))} · 接受 ${(r.accepted||[]).length} / 拒绝 ${Object.keys(r.rejected||{}).length}</small></td><td>${esc(fmtDate(r.updated_at||r.created_at))}</td><td><div class="head-actions"><button type="button" class="btn btn-small btn-secondary" data-send-detail="${esc(r.request_id)}">查看详情</button>${['failed','cancelled','submission_unknown'].includes(r.status)?`<button type="button" class="btn btn-small btn-secondary" data-replay-send="${esc(r.request_id)}">重新入队</button>`:''}</div></td></tr>`).join(''):'<tr><td colspan="6"><div class="empty">暂无发件记录</div></td></tr>';
+        $$('[data-send-detail]').forEach(button=>button.onclick=()=>showSendDetail(button.dataset.sendDetail));
+        $$('[data-replay-send]').forEach(button=>button.onclick=async()=>{
+          if(button.disabled)return;button.disabled=true;
+          try{await api('/send/'+encodeURIComponent(button.dataset.replaySend)+'/replay',{method:'POST'});if(state.token!==token)return;toast('发件已重新入队');await loadSendHistory()}
+          catch(error){if(state.token===token)toast(error.message,true)}finally{button.disabled=false}
+        });
+      }catch(error){if(state.token===token&&state.tab==='send'&&revision===sendHistoryRevision)host.innerHTML=`<tr><td colspan="6"><div class="empty">发件记录读取失败：${esc(error.message)}</div></td></tr>`}
+    }
+    async function showSendDetail(requestId){
+      const token=state.token,path='/send/'+encodeURIComponent(requestId);
+      const dialog=showDomainDialog('发件详情','<div id="send-detail-content"><div class="empty">正在加载邮件内容…</div></div>','#close-domain-dialog');
+      try{
+        const [status,detail]=await Promise.all([api(path),api(path+'/content')]);
+        if(state.token!==token||$('#domain-dialog-bg')!==dialog)return;
+        const content=detail.content||{},reports=status.delivery_reports||[],attachments=detail.attachments||[];
+        const reportLabel=value=>({delivered:'已送达',failed:'投递失败',delayed:'延迟投递',relayed:'已转交',expanded:'地址已展开'}[value]||value||'未知');
+        $('#send-detail-content').innerHTML=`<div class="meta-grid send-detail-meta">
+          <div class="meta"><label>主题</label><div>${esc(detail.subject||'(无主题)')}</div></div>
+          <div class="meta"><label>发送状态</label><div>${sendStatusMarkup(status.status)}</div></div>
+          <div class="meta"><label>发件人</label><div>${esc(detail.sender||'—')}</div></div>
+          <div class="meta"><label>收件地址</label><div class="send-detail-recipients">${esc((detail.recipients||[]).join('\n')||'—')}</div></div>
+          <div class="meta"><label>提交时间</label><div>${esc(fmtDate(status.created_at))}</div></div>
+          <div class="meta"><label>发送通道 / 尝试次数</label><div>${esc(sendTransportLabel(status.transport))} / ${Number(status.attempts||0)}</div></div>
+          ${detail.reply_to?`<div class="meta"><label>回复地址（Reply-To）</label><div>${esc(detail.reply_to)}</div></div>`:''}
+          <div class="meta"><label>请求编号</label><div><code>${esc(requestId)}</code></div></div>
+        </div>
+        ${status.last_error?`<div class="notice warning">最近错误：${esc(status.last_error)}</div>`:''}
+        <section class="send-detail-section"><h4>邮件正文</h4>${detail.content_available?`<pre class="send-detail-body">${esc(content.text||(content.html?'这封邮件仅包含 HTML 正文，请展开下方预览。':'这封邮件没有可显示的正文。'))}</pre>${content.html?`<details class="send-disclosure send-detail-section" ${content.text?'':'open'}><summary>HTML 正文预览</summary><div id="send-detail-html"></div></details>`:''}`:'<div class="notice warning">此记录没有保存原始邮件内容，仅保留发送状态与地址信息。</div>'}</section>
+        <section class="send-detail-section"><h4>附件 · ${attachments.length} 个</h4>${attachments.length?`<ul class="send-detail-attachments">${attachments.map(a=>`<li>${esc(a.filename)} <span class="muted">· ${esc(a.content_type)} · ${(Number(a.size||0)/1024).toFixed(1)} KB</span></li>`).join('')}</ul><p class="muted">下载完整 EML 邮件可保留正文与全部附件。</p>`:'<p class="muted">无附件</p>'}</section>
+        <section class="send-detail-section"><h4>接受 / 拒绝的收件地址</h4><div class="muted">接受表示邮件服务器已接收该地址，不代表最终送达。</div><pre class="send-detail-body">${esc('接受：'+((status.accepted||[]).join('、')||'无')+'\n拒绝：'+(Object.entries(status.rejected||{}).map(([address,error])=>address+' · '+(error?.message||error?.error||JSON.stringify(error))).join('\n')||'无'))}</pre></section>
+        <section class="send-detail-section"><h4>投递回执 · ${reports.length} 条</h4>${reports.length?`<div class="table-wrap"><table class="table"><thead><tr><th>收件地址</th><th>结果</th><th>说明</th><th>时间</th></tr></thead><tbody>${reports.map(r=>`<tr><td>${esc(r.recipient)}</td><td>${esc(reportLabel(r.action))}<small class="muted">${r.trust==='unverified'?'回执未验证':''}</small></td><td>${esc(r.status_code||'')} ${esc(r.diagnostic||'')}</td><td>${esc(fmtDate(r.received_at))}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">暂无投递回执；没有回执不代表投递失败。</p>'}</section>
+        ${detail.in_reply_to||(detail.references||[]).length?`<details class="send-disclosure send-detail-section"><summary>会话关联信息</summary><div class="send-disclosure-body"><p>回复的邮件 ID（In-Reply-To）：${esc(detail.in_reply_to||'—')}</p><p>会话关联 ID（References）：${esc((detail.references||[]).join(' ')||'—')}</p></div></details>`:''}
+        ${detail.content_available?'<div class="send-detail-section"><button type="button" class="btn btn-secondary" id="download-send-eml">下载完整邮件（EML）</button></div>':''}`;
+        if(content.html){const frame=document.createElement('iframe');frame.className='mail-html-frame';frame.setAttribute('sandbox','');frame.title='发件 HTML 正文';frame.srcdoc=content.html;$('#send-detail-html').append(frame)}
+        const download=$('#download-send-eml');if(download)download.onclick=()=>downloadFile(path+'/raw','sent-'+requestId+'.eml').catch(error=>toast(error.message,true));
+      }catch(error){if(state.token===token&&$('#domain-dialog-bg')===dialog)$('#send-detail-content').innerHTML=`<div class="notice warning">邮件详情加载失败：${esc(error.message)}</div>`}
+    }
     async function fileToAttachment(file){return await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>{const value=String(reader.result||'');resolve({filename:file.name,content_type:file.type||'application/octet-stream',data_base64:value.includes(',')?value.split(',',2)[1]:value})};reader.onerror=()=>reject(reader.error||Error('附件读取失败'));reader.readAsDataURL(file)})}
-    async function sendPage(){const domain=primaryDomain();const sender=`test@${domain}`;if(!state.projects.length){state.projects=await api('/projects').catch(()=>[])}$('#page').innerHTML=`<div class="page-head"><div><h2>发送邮件</h2><p>填写邮件内容后加入发件队列，可在下方查看发送状态。</p></div><div class="head-actions"><span class="pill">${state.domains.length?`已配置 ${state.domains.length} 个域名`:'尚未配置域名'}</span><button type="button" class="btn btn-small btn-secondary" id="send-manage-domains">管理域名</button></div></div><div class="two-col" style="align-items:start"><div class="card"><form id="send-form"><div class="field"><label>发件人</label><input id="send-from" value="${esc(sender)}" placeholder="local@your-domain" list="domain-senders" required><datalist id="domain-senders">${state.domains.map(d=>`<option value="test@${esc(d.domain)}"><option value="postmaster@${esc(d.domain)}"><option value="admin@${esc(d.domain)}">`).join('')}</datalist></div><div class="field"><label>收件人（多个地址用逗号分隔）</label><input id="send-to" placeholder="recipient@example.com" required></div><div class="field"><label>主题</label><input id="send-subject" placeholder="邮件主题"></div><div class="field"><label>纯文本正文</label><textarea id="send-text" placeholder="输入邮件正文"></textarea></div><div class="field"><label>HTML 正文（可选）</label><textarea id="send-html" placeholder="<p>HTML 邮件正文</p>"></textarea></div><div class="field"><label>Reply-To（可选）</label><input id="send-reply-to" placeholder="reply@example.com"></div><div class="field"><label>In-Reply-To（可选）</label><input id="send-in-reply-to" placeholder="&lt;message-id@example.com&gt;"></div><div class="field"><label>References（可选，每行一个）</label><textarea id="send-references" placeholder="&lt;thread@example.com&gt;\n&lt;message@example.com&gt;"></textarea></div><div class="field"><label>项目（可选）</label><select id="send-project"><option value="">管理员默认队列</option>${state.projects.filter(p=>p.enabled!==false).map(p=>`<option value="${esc(p.id)}">${esc(p.name)} · ${esc(p.id)}</option>`).join('')}</select><small class="muted">选择项目后，API Key 必须具备该项目的 mail.send grant。</small></div><div class="field"><label>附件（最多 10 个，单个 ≤10 MB，总计 ≤25 MB）</label><input id="send-attachments" type="file" multiple><small id="send-attachment-note" class="muted">未选择附件</small></div><div id="send-msg"></div><button class="btn btn-primary">加入发件队列</button></form></div><div class="card"><h3 style="margin-top:0">新发件接口</h3><p class="muted">支持 HTML、Reply-To、线程头、附件和项目队列。返回 request_id 后可查询 transport、accepted/rejected 与 delivery reports。</p><pre class="code">POST https://mail.example.com/api/v1/send/queue
+    async function sendPage(){
+      const revision=++sendPageRevision,token=state.token,domain=primaryDomain(),sender=`test@${domain}`;
+      if(!state.projects.length)state.projects=await api('/projects').catch(()=>[]);
+      if(state.token!==token||state.tab!=='send'||revision!==sendPageRevision)return;
+      $('#page').innerHTML=`<div class="send-page"><div class="page-head"><div><h2>发送邮件</h2><p>填写地址、主题和正文即可发送，其他设置按需展开。</p></div><div class="head-actions"><span class="pill">${state.domains.length?`已配置 ${state.domains.length} 个域名`:'尚未配置域名'}</span><button type="button" class="btn btn-small btn-secondary" id="send-manage-domains">管理域名</button></div></div>
+      <div class="send-layout"><div class="card send-compose"><form id="send-form">
+        <div class="send-address-grid"><div class="field"><label for="send-from">发件人</label><input id="send-from" value="${esc(sender)}" placeholder="local@your-domain" list="domain-senders" required><datalist id="domain-senders">${state.domains.map(d=>`<option value="test@${esc(d.domain)}"><option value="postmaster@${esc(d.domain)}"><option value="admin@${esc(d.domain)}">`).join('')}</datalist></div>
+        <div class="field"><label for="send-to">收件人（多个地址用逗号分隔）</label><input id="send-to" placeholder="recipient@example.com" required></div></div>
+        <div class="field"><label for="send-subject">主题</label><input id="send-subject" placeholder="邮件主题"></div>
+        <div class="field"><label for="send-text">邮件正文</label><textarea id="send-text" placeholder="输入邮件正文"></textarea></div>
+        <details class="send-disclosure send-advanced" id="send-advanced"><summary><span><strong>高级选项</strong><small id="send-advanced-summary">HTML 正文、回复地址、会话关联、项目和附件</small></span></summary><div class="send-disclosure-body send-advanced-grid">
+          <div class="field field-wide"><label for="send-html">HTML 正文（可选）</label><textarea id="send-html" placeholder="<p>HTML 邮件正文</p>"></textarea><small>支持富文本邮件，普通发件只填写上方正文即可。</small></div>
+          <div class="field"><label for="send-reply-to">回复地址（Reply-To，可选）</label><input id="send-reply-to" placeholder="reply@example.com"><small>对方点击回复时使用的邮箱地址。</small></div>
+          <div class="field"><label for="send-in-reply-to">回复的邮件 ID（In-Reply-To，可选）</label><input id="send-in-reply-to" placeholder="&lt;message-id@example.com&gt;"><small>回复已有邮件时填写其 Message-ID。</small></div>
+          <div class="field field-wide"><label for="send-references">会话关联 ID（References，可选）</label><textarea id="send-references" rows="2" placeholder="&lt;thread@example.com&gt;&#10;&lt;message@example.com&gt;"></textarea><small>每行一个邮件 ID，用于将多封邮件归入同一会话。</small></div>
+          <div class="field field-wide"><label for="send-project">所属项目（可选）</label><select id="send-project"><option value="">管理员默认队列</option>${state.projects.filter(p=>p.enabled!==false).map(p=>`<option value="${esc(p.id)}">${esc(p.name)} · ${esc(p.id)}</option>`).join('')}</select><small>选择后，调用密钥需要具备该项目的发件权限（mail.send）。</small></div>
+          <div class="field field-wide"><label for="send-attachments">附件（可选）</label><input id="send-attachments" type="file" multiple><small>最多 10 个，单个 ≤10 MB，总计 ≤25 MB。</small><small id="send-attachment-note">未选择附件</small></div>
+        </div></details>
+        <div id="send-msg" role="status" aria-live="polite"></div><div class="send-submit-bar"><button type="submit" class="btn btn-primary" id="send-submit">加入发件队列</button><small>发送结果可在下方发件记录中查看。</small></div>
+      </form></div>
+      <aside class="card send-guide"><h3>发件说明</h3><p>发件地址使用已配置的域名，系统会自动添加对应的 DKIM 签名。</p><div class="notice">邮件服务器接受后会继续投递，最终结果以对方服务器回执为准。</div><p>展开最近发件记录，可查看发件人、收件地址、邮件正文、附件和投递回执。</p><div id="send-result" class="muted" role="status" aria-live="polite">尚未提交邮件</div>
+      <details class="send-disclosure" id="send-api-example"><summary><span><strong>API 调用示例</strong><small>程序接入时展开查看</small></span></summary><div class="send-disclosure-body"><p>支持 HTML 正文、回复地址、会话关联、附件和项目队列。通过请求编号查询状态和投递回执。</p><pre class="code">POST /api/v1/send/queue
 X-API-Key: YOUR_API_KEY
 X-Idempotency-Key: YOUR_STABLE_REQUEST_ID
 Content-Type: application/json
@@ -840,11 +948,47 @@ Content-Type: application/json
   "sender": "custom@your-domain",
   "recipients": ["user@example.com"],
   "subject": "主题",
-  "text": "纯文本正文",
-  "html": "&lt;p&gt;HTML 正文&lt;/p&gt;",
-  "reply_to": "reply@example.com",
-  "attachments": [{"filename":"report.txt","content_type":"text/plain","data_base64":"..."}]
-}</pre><div class="notice" style="margin-top:14px">发件地址需使用已配置的域名，系统会自动加入对应 DKIM 签名。</div><div id="send-result" class="muted" style="margin-top:14px">最近一次提交结果会显示在这里。</div></div></div><div class="panel" style="margin-top:16px"><div class="panel-head"><div class="panel-title">最近发件记录</div><button class="btn btn-small btn-secondary" id="reload-send-history">刷新</button></div><div class="table-wrap"><table class="table"><thead><tr><th>request_id</th><th>状态</th><th>transport</th><th>accepted / rejected</th><th>更新时间</th><th>操作</th></tr></thead><tbody id="send-history-body"><tr><td colspan="6"><div class="empty">正在加载…</div></td></tr></tbody></table></div></div>`;$('#send-manage-domains').onclick=()=>{state.tab='domains';renderPage()};$('#send-attachments').onchange=e=>{const files=Array.from(e.target.files||[]);$('#send-attachment-note').textContent=files.length?`已选择 ${files.length} 个附件：${files.map(f=>f.name).join(', ')}`:'未选择附件'};$('#reload-send-history').onclick=loadSendHistory;loadSendHistory();$('#send-form').onsubmit=async e=>{e.preventDefault();const box=$('#send-msg'),result=$('#send-result');box.className='success';box.textContent='正在读取附件并加入队列…';const requestId='ui-'+crypto.randomUUID().replaceAll('-','');try{const files=Array.from($('#send-attachments').files||[]);if(files.length>10)throw Error('附件最多 10 个');if(files.some(file=>file.size>10*1024*1024)||files.reduce((sum,file)=>sum+file.size,0)>25*1024*1024)throw Error('附件大小超出限制（单个 ≤10 MB，总计 ≤25 MB）');const attachments=await Promise.all(files.map(fileToAttachment));const payload={sender:$('#send-from').value.trim(),recipients:$('#send-to').value.split(',').map(v=>v.trim()).filter(Boolean),subject:$('#send-subject').value,text:$('#send-text').value,html:$('#send-html').value||null,reply_to:$('#send-reply-to').value.trim()||null,in_reply_to:$('#send-in-reply-to').value.trim()||null,references:$('#send-references').value.split(/\s+/).map(v=>v.trim()).filter(Boolean),attachments,project_id:$('#send-project').value||null};const d=await api('/send/queue',{method:'POST',headers:{'X-Idempotency-Key':requestId},body:JSON.stringify(payload)});box.textContent=`已入队：${d.request_id}，正在等待 MTA 接受…`;for(let i=0;i<30;i++){await new Promise(resolve=>setTimeout(resolve,1000));const status=await api('/send/'+encodeURIComponent(d.request_id));if(['submitted_to_mta','partial','failed','submission_unknown'].includes(status.status)){const detail=status.status==='submitted_to_mta'?'MTA 已接受':status.status==='partial'?'部分收件人被拒绝':status.status==='submission_unknown'?'提交结果不确定，请在外部确认后再重放':'提交失败';box.className=status.status==='submitted_to_mta'?'success':status.status==='partial'?'warning':'error';box.textContent=`${detail} · request_id=${status.request_id}`;result.textContent=`transport=${status.transport||'smtp'} · accepted=${(status.accepted||[]).length} · rejected=${Object.keys(status.rejected||{}).length} · delivery reports=${(status.delivery_reports||[]).length}`;if(status.status==='submitted_to_mta')$('#send-form').reset();loadSendHistory();return}}box.className='warning';box.textContent=`已入队，仍在处理中 · request_id=${d.request_id}`;loadSendHistory()}catch(err){box.className='error';box.textContent=err.message;result.textContent='提交失败'}}}
+  "text": "邮件正文"
+}</pre></div></details></aside></div>
+      <details class="panel send-disclosure send-history" id="send-history"><summary><span><span class="panel-title">最近发件记录</span><small id="send-history-summary">展开查看发送地址、正文与状态</small></span></summary><div class="panel-head"><small class="muted">最新 20 条记录 · 收件自动清理规则不影响发件记录</small><button type="button" class="btn btn-small btn-secondary" id="reload-send-history">刷新记录</button></div><div class="table-wrap"><table class="table send-history-table"><thead><tr><th>请求编号</th><th>发件人</th><th>收件地址</th><th>发送状态 / 通道</th><th>更新时间</th><th>操作</th></tr></thead><tbody id="send-history-body"><tr><td colspan="6"><div class="empty">展开后加载发件记录</div></td></tr></tbody></table></div></details></div>`;
+      $('#send-manage-domains').onclick=()=>{state.tab='domains';renderPage()};
+      const updateAdvancedSummary=()=>{
+        const files=Array.from($('#send-attachments').files||[]);
+        $('#send-attachment-note').textContent=files.length?`已选择 ${files.length} 个附件：${files.map(file=>file.name).join('、')}`:'未选择附件';
+        const count=['send-html','send-reply-to','send-in-reply-to','send-references','send-project'].filter(id=>$('#'+id).value.trim()).length+(files.length?1:0);
+        $('#send-advanced-summary').textContent=count?`已填写 ${count} 项，收起后仍会随邮件提交`:'HTML 正文、回复地址、会话关联、项目和附件';
+      };
+      $('#send-advanced').oninput=updateAdvancedSummary;$('#send-attachments').onchange=updateAdvancedSummary;$('#send-project').onchange=updateAdvancedSummary;
+      $('#send-history').ontoggle=()=>{if($('#send-history').open)loadSendHistory()};$('#reload-send-history').onclick=loadSendHistory;
+      $('#send-form').onsubmit=async event=>{
+        event.preventDefault();const box=$('#send-msg'),result=$('#send-result'),submit=$('#send-submit');if(submit.disabled)return;
+        submit.disabled=true;box.className='success';box.textContent='正在读取附件并加入队列…';
+        const current=()=>state.token===token&&state.tab==='send'&&revision===sendPageRevision;
+        const refreshHistory=()=>{if(current()&&$('#send-history').open)loadSendHistory()};
+        try{
+          const requestId='ui-'+crypto.randomUUID().replaceAll('-',''),files=Array.from($('#send-attachments').files||[]);
+          if(files.length>10)throw Error('附件最多 10 个');
+          if(files.some(file=>file.size>10*1024*1024)||files.reduce((sum,file)=>sum+file.size,0)>25*1024*1024)throw Error('附件大小超出限制（单个 ≤10 MB，总计 ≤25 MB）');
+          const attachments=await Promise.all(files.map(fileToAttachment));if(!current())return;
+          const payload={sender:$('#send-from').value.trim(),recipients:$('#send-to').value.split(/[,，]+/).map(value=>value.trim()).filter(Boolean),subject:$('#send-subject').value,text:$('#send-text').value,html:$('#send-html').value||null,reply_to:$('#send-reply-to').value.trim()||null,in_reply_to:$('#send-in-reply-to').value.trim()||null,references:$('#send-references').value.split(/\s+/).map(value=>value.trim()).filter(Boolean),attachments,project_id:$('#send-project').value||null};
+          const queued=await api('/send/queue',{method:'POST',headers:{'X-Idempotency-Key':requestId},body:JSON.stringify(payload)});if(!current())return;
+          box.textContent=`已入队：${queued.request_id}，正在等待邮件服务器接受…`;
+          for(let i=0;i<30;i++){
+            await new Promise(resolve=>setTimeout(resolve,1000));if(!current())return;
+            const status=await api('/send/'+encodeURIComponent(queued.request_id));if(!current())return;
+            if(['submitted_to_mta','partial','failed','submission_unknown'].includes(status.status)){
+              box.className=status.status==='submitted_to_mta'?'success':status.status==='partial'?'warning':'error';
+              box.textContent=`${sendStatusLabel(status.status)} · 请求编号：${status.request_id}`;
+              result.textContent=`发送通道：${sendTransportLabel(status.transport)} · 接受 ${(status.accepted||[]).length} 个地址 / 拒绝 ${Object.keys(status.rejected||{}).length} 个地址 · 投递回执 ${(status.delivery_reports||[]).length} 条`;
+              if(status.status==='submitted_to_mta'){$('#send-form').reset();updateAdvancedSummary()}
+              refreshHistory();return;
+            }
+          }
+          box.className='warning';box.textContent=`已入队，仍在处理中 · 请求编号：${queued.request_id}`;refreshHistory();
+        }catch(error){if(current()){box.className='error';box.textContent=error.message;result.textContent='提交失败'}}finally{submit.disabled=false}
+      };
+    }
+
     let projectsPageRevision=0;
     async function projectsPage(){
       const revision=++projectsPageRevision,token=state.token;

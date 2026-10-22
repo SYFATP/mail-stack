@@ -2361,6 +2361,56 @@ def get_queued_send(request_id: str, x_api_key: str | None = Header(default=None
     finally:
         c.close()
 
+def _read_outbound_content(request_id: str, x_api_key: str | None):
+    c = db()
+    try:
+        row = c.execute("select * from outbound_outbox where request_id=?", (request_id,)).fetchone()
+    finally:
+        c.close()
+    if not row:
+        raise HTTPException(404, "outbound message not found")
+    if not key_has_project_scope(x_api_key, "mail.send", row["project_id"]):
+        raise HTTPException(403, "missing mail.send scope or project grant")
+    return row
+
+
+@app.get("/api/v1/send/{request_id}/content")
+def queued_send_content(request_id: str, x_api_key: str | None = Header(default=None)):
+    """Read retained MIME on demand; status polling and listing stay lightweight."""
+    row = _read_outbound_content(request_id, x_api_key)
+    raw = bytes(row["raw_message"] or b"")
+    result = {**_outbound_result(row), "content_available": bool(raw)}
+    if not raw:
+        return {**result, "subject": "", "content": None, "attachments": []}
+    message = BytesParser(policy=policy.default).parsebytes(raw)
+    return {
+        **result,
+        "subject": _decoded_header(message, "Subject") or "",
+        "reply_to": _decoded_header(message, "Reply-To") or "",
+        "in_reply_to": _decoded_header(message, "In-Reply-To") or "",
+        "references": (_decoded_header(message, "References") or "").split(),
+        "message_id": _decoded_header(message, "Message-ID") or "",
+        "content": _message_content(message),
+        "attachments": [{"filename": part.get_filename() or f"attachment-{part_id}",
+                         "content_type": part.get_content_type(),
+                         "size": len(part.get_payload(decode=True) or b"")}
+                        for part_id, part in _attachment_parts(message)],
+    }
+
+
+@app.get("/api/v1/send/{request_id}/raw")
+def queued_send_raw(request_id: str, x_api_key: str | None = Header(default=None)):
+    row = _read_outbound_content(request_id, x_api_key)
+    if not row["raw_message"]:
+        raise HTTPException(404, "outbound message content not found")
+    return Response(bytes(row["raw_message"]), media_type="message/rfc822",
+                    headers={"Content-Disposition": "attachment; filename*=UTF-8''" +
+                             urllib.parse.quote("sent-" + request_id + ".eml", safe=""),
+                             "X-Content-Type-Options": "nosniff", "Accept-Ranges": "none",
+                             "Cache-Control": "private, no-store"})
+
+
+
 @app.post("/api/v1/send/{request_id}/replay")
 def replay_queued_send(request_id: str, x_api_key: str | None = Header(default=None)):
     now = time.time()
