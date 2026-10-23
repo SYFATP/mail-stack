@@ -64,6 +64,9 @@ function fixture(){
 }
 (async()=>{
  const f=fixture(),{t,node,document,requests,domains}=f;await t.controlPage();
+ assert.match(node('#page').innerHTML,/id="control-stat-domains">57<\/strong>/);
+ assert.match(node('#page').innerHTML,/id="control-stat-credentials">3<\/strong>/);
+ assert.match(node('#page').innerHTML,/id="control-stat-source-credentials">1<\/strong>/);
  const counted=t.controlJobSummary({status_counts:{queued:1,running:2,unknown:4}});
  assert.equal(counted.active,3);assert.equal(counted.unknown,4);
  const fallback=t.controlJobSummary({items:[{status:'queued'},{status:'unknown'},{status:'succeeded'}]});
@@ -95,8 +98,12 @@ function fixture(){
  let releaseValidation;const delayedValidation=new Promise(resolve=>releaseValidation=resolve);
  f.delay(url=>url.endsWith('/domain-01.test/dns-validate'),delayedValidation);
  const pendingBatch=t.runControlBatch('validate');
+ assert.equal(t.controlUnifiedListData().counts.processing,1);
+ assert.doesNotMatch(node('#control-dns-body').innerHTML,/data-control-select="domain-01.test"/);
+ node('[data-control-dns-status]:processing').onclick();
  assert.match(node('#control-dns-body').innerHTML,/data-control-dns-config="domain-01\.test"[^>]*disabled/);
  releaseValidation();await pendingBatch;f.clearDelay();t.stopControlJobWatchers();
+ node('[data-control-dns-status]:pending').onclick();
  assert.equal(t.controlDnsStatus(domains[0]),'检查异常');assert.equal(t.controlDnsStatus(domains[1]),'最近检查通过');
  assert.equal(t.controlDnsStatus(domains[2]),'手工配置');assert.equal(t.controlDnsStatus(domains[3]),'未验证');assert.equal(t.controlDnsStatus(domains[4]),'未验证');
  const subdomainStatus={...domains[1],receive_enabled:true,receive_subdomains:true,max_subdomain_depth:6,dns_checks:{...domains[1].dns_checks,wildcard_mx:{status:'failed'}}};
@@ -140,7 +147,7 @@ function fixture(){
  // Filtering survives a reload; shrinking lists clamp the selected page.
  t.closeModal();t.state.controlDns.query='domain';t.state.controlDns.page=6;await t.controlPage();assert.equal(t.state.controlDns.query,'domain');assert.equal(t.state.controlDns.page,6);
  domains.splice(5);t.renderControlDnsResults();assert.equal(t.state.controlDns.page,1);
- t.state.controlDns.query='';await t.controlJob('/mail-domains/domain-01.test/dns-validate',{}, {notify:false});await t.controlPage();
+ t.state.controlDns.query='';t.state.controlDns.status='all';await t.controlJob('/mail-domains/domain-01.test/dns-validate',{}, {notify:false});await t.controlPage();
  assert.match(node('#control-dns-body').innerHTML,/data-control-dns-config="domain-01\.test" disabled/,'A running row must lock its DNS actions');
  t.stopControlJobWatchers();
  const legacy=fixture();legacy.globalCloudflare(true);
@@ -204,7 +211,10 @@ function fixture(){
  assert.equal(g.controlUnifiedListData().total,18);
  assert.equal(gn('#control-dns-count-ready').textContent,'1');assert.equal(gn('#control-dns-count-all').textContent,'19');
  let prevented=false;tab('pending').onkeydown({key:'ArrowRight',preventDefault(){prevented=true}});
- assert.equal(prevented,true);assert.equal(g.state.controlDns.status,'ready');assert.equal(grouped.document.activeElement,tab('ready'));
+ assert.equal(prevented,true);assert.equal(g.state.controlDns.status,'processing');assert.equal(grouped.document.activeElement,tab('processing'));
+ assert.match(gn('#control-dns-body').innerHTML,/当前没有处理中的域名/);
+ tab('processing').onkeydown({key:'ArrowRight',preventDefault(){}});
+ assert.equal(g.state.controlDns.status,'ready');assert.equal(grouped.document.activeElement,tab('ready'));
  tab('ready').onkeydown({key:'End',preventDefault(){}});assert.equal(g.state.controlDns.status,'all');
  tab('all').onkeydown({key:'Home',preventDefault(){}});assert.equal(g.state.controlDns.status,'pending');
  assert.equal(gn('#page').innerHTML,groupedMarkup,'Tabs must only update list data');
@@ -225,7 +235,9 @@ function fixture(){
  const paused=fixture(),pt=paused.t,pn=paused.node,name=paused.domains[0].domain;
  await pt.controlPage();
  const hold={id:'incident-held',kind:'dns_apply',scope:name,status:'queued',step:'persisted',wait_reason:'incident_hold',wait_until:null};
- pt.watchActiveDomainJobs({active_domain_jobs:[hold]});pt.renderControlUnifiedResults();
+ pt.watchActiveDomainJobs({active_domain_jobs:[hold]});
+ pn('[data-control-dns-status]:processing').onclick();pt.renderControlUnifiedResults();
+ assert.equal(pt.controlUnifiedListData().counts.processing,1);
  const heldRow=pn('#control-dns-body').innerHTML.split('</tr>')[0];
  assert.match(heldRow,/写入已暂停，等待恢复/);assert.doesNotMatch(heldRow,/操作中|class="control-row-busy"/);
  assert.match(heldRow,/data-control-dns-bind="domain-01.test" disabled/);
@@ -264,6 +276,51 @@ function fixture(){
  assert.match(dyn.node('#control-dns-body').innerHTML,/dynv6 目标 NS/);
  assert.match(dyn.node('#control-dns-body').innerHTML,/按需切换父区委派并等待传播/);
  assert.doesNotMatch(dyn.node('#control-dns-body').innerHTML,/无需同步/);
+ // An unverified Cloudflare migration must prepare its Zone before changing the binding.
+ const migrating=fixture();migrating.domains[0].enabled=false;
+ await migrating.t.controlPage();migrating.t.showControlDnsDialog('domain-01.test','binding');
+ migrating.node('#control-credential').value='cf-account';migrating.node('#control-credential').onchange();
+ assert.equal(migrating.node('#control-bind').textContent,'接入 Cloudflare');
+ await migrating.node('#control-bind').onclick();
+ assert.ok(migrating.requests.find(r=>r.opt.method==='POST'&&r.url.endsWith('/domain-01.test/cloudflare-hosting')));
+ assert.equal(migrating.requests.some(r=>r.url.endsWith('/dns-binding')&&r.opt.method==='POST'),false);
+ assert.equal(migrating.domains[0].dns_provider,'digitalplat');
+ migrating.t.stopControlJobWatchers();
+ // Saved credentials and managed domains have independent totals, including
+ // shared accounts, preserved registrar credentials and unused credentials.
+ const inventory=fixture(),it=inventory.t,inode=inventory.node;
+ inventory.credentials.splice(0,inventory.credentials.length,
+  ...Array.from({length:221},(_,i)=>({id:`registrar-${i}`,provider:'digitalplat',domain:`inventory-${i}.test`})),
+  {id:'cloudflare-used',provider:'cloudflare'},{id:'cloudflare-unused',provider:'cloudflare'},
+  {id:'dynv6-shared',provider:'dynv6'},{id:'sfreg-source',provider:'sfreg_mx'});
+ inventory.domains.splice(0,inventory.domains.length,
+  ...Array.from({length:221},(_,i)=>({domain:`inventory-${i}.test`,enabled:false,
+   dns_provider:i<125?'digitalplat':'dynv6',dns_credential_ref:i<125?`registrar-${i}`:'dynv6-shared'})),
+  {domain:'cloudflare.test',dns_provider:'cloudflare',dns_credential_ref:'cloudflare-used',enabled:false});
+ await it.controlPage();
+ assert.equal(inventory.credentials.length,225);
+ assert.match(inode('#page').innerHTML,/id="control-stat-domains">222<\/strong>/);
+ assert.match(inode('#page').innerHTML,/id="control-stat-credentials">224<\/strong>/);
+ assert.match(inode('#page').innerHTML,/id="control-stat-source-credentials">1<\/strong>/);
+ const overviewMarkup=inode('#page').innerHTML;
+ inode('#control-dns-provider').onchange({target:{value:'dynv6'}});
+ assert.equal(it.controlUnifiedListData().total,96);
+ inode('#control-dns-search').oninput({target:{value:'inventory-220.test'}});
+ assert.equal(it.controlUnifiedListData().total,1);
+ await it.refreshControlLists();
+ assert.equal(inode('#control-stat-domains').textContent,'222','Search/provider filters must not reduce the domain overview');
+ assert.equal(inode('#control-stat-credentials').textContent,'224');
+ assert.equal(inode('#control-stat-source-credentials').textContent,'1');
+ assert.equal(inode('#page').innerHTML,overviewMarkup,'Refreshing totals must preserve the page and active filters');
+ assert.equal(it.controlUnifiedListData().total,1);
+ inventory.domains.push({domain:'newly-claimed.test',dns_provider:'dynv6',dns_credential_ref:'dynv6-new',enabled:false});
+ inventory.credentials.push({id:'dynv6-new',provider:'dynv6'},
+  {id:'legacy-source',provider:'legacy_digitalplat_pool'},{id:'import-source',provider:'cloudflare_import'});
+ await it.refreshControlLists();
+ assert.equal(inode('#control-stat-domains').textContent,'223');
+ assert.equal(inode('#control-stat-credentials').textContent,'225');
+ assert.equal(inode('#control-stat-source-credentials').textContent,'3');
+ assert.equal(it.controlUnifiedListData().total,1,'A newly claimed domain must not reset the current search');
  const auth=requests.find(r=>r.url.endsWith('/dns-apply'));assert.equal(auth.opt.headers['X-API-Key'],'fixture-session');
- console.log('PASS: readiness tabs/counts/capability grouping/selection isolation/keyboard/data refresh; DNS table search/provider/paging/jump/empty/reload/escaping; scoped binding, manual DNS, preview confirmation, immutable domains, stable apply retries and stale response fencing');
+ console.log('PASS: independent domain/DNS/source credential overview and filtered refresh; readiness tabs/counts/capability grouping/selection isolation/keyboard/data refresh; DNS table search/provider/paging/jump/empty/reload/escaping; scoped binding, manual DNS, preview confirmation, immutable domains, stable apply retries and stale response fencing');
 })().catch(e=>{console.error(e);process.exitCode=1});

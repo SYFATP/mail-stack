@@ -38,6 +38,8 @@ def clean_secret(provider, secret):
     allowed = [SECRET_FIELDS[provider]]
     if provider == "cloudflare":
         allowed.append({"api_email", "api_key"})
+    if provider == "cloudflare":
+        allowed += [fields | {"account_id"} for fields in list(allowed)]
     if set(secret) not in allowed:
         raise ValueError("credential fields do not match provider contract")
     result = {}
@@ -45,6 +47,8 @@ def clean_secret(provider, secret):
         if not isinstance(value, str) or not value or len(value) > 8192 or "\r" in value or "\n" in value:
             raise ValueError("invalid credential field")
         result[name] = value
+    if provider == "cloudflare" and result.get("account_id") and not re.fullmatch(r"[0-9a-fA-F]{32}", result["account_id"]):
+        raise ValueError("Cloudflare Account ID must contain 32 hexadecimal characters")
     if provider == "digitalplat":
         result["api_base"] = validate_base_url(result["api_base"])
     return result
@@ -94,6 +98,8 @@ class DomainManager:
         self.dns_completion = DNSCompletion(self)
         from api.services.dynv6_registration import Dynv6Registration
         self.dynv6_registration = Dynv6Registration(self)
+        from api.services.cloudflare_registration import CloudflareRegistration
+        self.cloudflare_registration = CloudflareRegistration(self)
         from api.services.dynv6_accounts import Dynv6Accounts
         self.dynv6_accounts = Dynv6Accounts(self)
 
@@ -174,7 +180,8 @@ class DomainManager:
             raise ProviderError("invalid_provider_inventory_response") from None
 
     def create_claim_job(self, source_id, key, local_part="support", external_ids=None, count=1,
-                         status=None, sync_provider=None, configure_on_success=False):
+                         status=None, sync_provider=None, configure_on_success=False,
+                         hosting_provider="original", hosting_credential_ref=None):
         if type(count) is not int or not 1 <= count <= 200:
             raise ValueError("claim count must be an integer from 1 to 200")
         source = self.source(source_id)
@@ -195,11 +202,34 @@ class DomainManager:
                 raise ValueError("registered pool requires distinct numeric external_ids matching count")
         elif external_ids:
             raise ValueError("SFREG claim does not accept candidate external_ids")
+        if hosting_provider not in {"original", "digitalplat", "dynv6", "cloudflare"}:
+            raise ValueError("invalid claim hosting provider")
+        if hosting_provider != "original" and (not configure_on_success or source["source_type"] != "sfreg_mx"):
+            raise ValueError("claim hosting selection requires automatic SFREG configuration")
+        if hosting_provider in {"dynv6", "cloudflare"}:
+            if not hosting_credential_ref:
+                raise ValueError("claim hosting account credential is required")
+            c = self.db()
+            try:
+                account = c.execute("SELECT domain FROM dns_credentials WHERE id=?", (hosting_credential_ref,)).fetchone()
+                if not account or account["domain"] is not None:
+                    raise ValueError("claim hosting requires an account credential without a domain restriction")
+                secret = self.credentials().get(c, hosting_credential_ref, provider=hosting_provider)
+                if hosting_provider == "dynv6" and not (secret.get("login_password") or secret.get("session_cookie")):
+                    raise ValueError("dynv6 claim hosting requires saved login information or a session")
+            finally:
+                c.close()
+        elif hosting_credential_ref is not None:
+            raise ValueError("this claim hosting provider uses upstream domain credentials")
         self.credentials().require_writer()  # Fail BEFORE any external side effect.
         request = {"local_part": local_part, "external_ids": external_ids, "client_id": source["client_id"]}
         request.update(pool)
         if configure_on_success:
             request["configure_on_success"] = True
+        if hosting_provider != "original":
+            request["hosting_provider"] = hosting_provider
+            if hosting_credential_ref:
+                request["hosting_credential_ref"] = hosting_credential_ref
         # Preserve the canonical payload of existing single-domain retry keys.
         if count != 1:
             request["count"] = count
@@ -274,7 +304,7 @@ class DomainManager:
                 # The activation itself changes config_hash. A retry still
                 # refers to that original durable operation, never a new one.
                 return self.jobs.enqueue("dns_validate", domain, key, prior["request"])
-            if self.domain(domain)["dns_provider"] == "dynv6":
+            if self.dns_completion.required(self.domain(domain)):
                 return self.dns_completion.enqueue(domain, key)
         plan = self.plan(domain)
         request = {"config_hash": plan["config_hash"], "plan_hash": plan["plan_hash"]}
@@ -384,6 +414,9 @@ class DomainManager:
                 "record_count": len(inventory["records"]), "write_policy": "explicit_preview_apply_only"}
 
     def create_dns_hosting_job(self, domain, key, *, completion=None):
+        row = self.domain(domain)
+        if row["dns_provider"] == "cloudflare":
+            return self.cloudflare_registration.enqueue(domain, key, row["dns_credential_ref"], completion=completion)
         if not re.fullmatch(r"[A-Za-z0-9._:-]{8,128}", key):
             raise ValueError("Idempotency-Key must be 8-128 ASCII identifier characters")
         with self.lock:
@@ -415,6 +448,8 @@ class DomainManager:
 
     def _execute_dns_hosting(self, job):
         """Initialize a missing Hosted DNS service once, with durable fencing."""
+        if job["request"].get("provider") == "cloudflare":
+            return self.cloudflare_registration.execute(job)
         dispatched = accepted = False
         try:
             with self.lock:
@@ -603,7 +638,7 @@ class DomainManager:
             return {"domain": existing, "created": False}
         return {"domain": created, "created": True}
 
-    def brevo_dns_targets(self, row):
+    def brevo_dns_targets(self, row, *, register=True):
         """Return Brevo verification records for DNS preview/apply.
 
         Brevo's DMARC recommendation is intentionally excluded: mail-stack
@@ -612,7 +647,10 @@ class DomainManager:
         """
         if not self.brevo_sync_enabled():
             return []
-        detail = self.ensure_brevo_domain(row["domain"])["domain"]
+        detail = (self.ensure_brevo_domain(row["domain"])["domain"] if register
+                  else self.brevo().get_domain(row["domain"]))
+        if not detail:
+            raise ProviderError("brevo_domain_not_registered")
         dns_records = detail.get("dns_records") if isinstance(detail, dict) else {}
         if not isinstance(dns_records, dict):
             raise ProviderError("invalid_brevo_domain_response")
@@ -843,10 +881,14 @@ class DomainManager:
             c.close()
         result = {"claim_id": claim_id, "domain": row["domain"],
                   "status": "imported" if ref else "awaiting_dns", "enabled": bool(data["enabled"])}
-        auto = bool(json.loads(allocation["request_json"]).get("configure_on_success"))
-        prepare_hosting = bool(registered_pool and provider == "digitalplat" and ref)
+        allocation_options = json.loads(allocation["request_json"])
+        auto = bool(allocation_options.get("configure_on_success"))
+        target = allocation_options.get("hosting_provider", "original")
+        prepare_hosting = bool(registered_pool and provider == "digitalplat" and ref and target in {"original", "digitalplat"})
         completion = {"claim_id": claim_id, "allocation_job_id": row["job_id"],
                       "credential_ref": ref}
+        if target != "original":
+            completion.update(hosting_provider=target, hosting_credential_ref=allocation_options.get("hosting_credential_ref"))
         if (defer_setup or auto) and (self.brevo_sync_enabled() or prepare_hosting or auto):
             try:
                 request = {**completion, "prepare_hosting": prepare_hosting}
@@ -866,6 +908,26 @@ class DomainManager:
         """Slow provider work runs independently of bulk allocation/import."""
         result = dict(result)
         result["brevo_registration"] = {"status": "disabled"}
+        target = (expected or {}).get("hosting_provider", "original")
+        if configure_on_success and target == "dynv6":
+            result["brevo_registration"] = {"status": "deferred_to_dns_preview" if self.brevo_sync_enabled() else "disabled"}
+            completion = {**expected, "credential_ref": expected["hosting_credential_ref"]}
+            result["dynv6_registration_job"] = self.dynv6_registration.enqueue(
+                result["domain"], "claim-dynv6:" + expected["allocation_job_id"] + ":" + expected["claim_id"],
+                expected["hosting_credential_ref"], completion=completion)
+            result.update(configuration_status="queued", next_action="dynv6_registration")
+            return result
+        if configure_on_success and target == "cloudflare":
+            completion = {**expected, "credential_ref": expected["hosting_credential_ref"]}
+            result["brevo_registration"] = {"status": "deferred_to_dns_preview" if self.brevo_sync_enabled() else "disabled"}
+            result["dns_hosting_job"] = self.cloudflare_registration.enqueue(
+                result["domain"], "claim-cloudflare:" + expected["allocation_job_id"] + ":" + expected["claim_id"],
+                expected["hosting_credential_ref"], completion=completion)
+            result.update(configuration_status="queued", next_action="cloudflare_hosting")
+            return result
+        if configure_on_success and target == "digitalplat" and self.domain(result["domain"])["dns_provider"] != "digitalplat":
+            result.update(configuration_status="pending", configuration_error="digitalplat_claim_credential_required")
+            return result
         if self.brevo_sync_enabled() and configure_on_success:
             # DNS preview performs registration and reads the exact records.
             result["brevo_registration"] = {"status": "deferred_to_dns_preview"}
@@ -897,7 +959,7 @@ class DomainManager:
             result.update(self._queue_claim_completion(expected))
         return result
 
-    def _queue_claim_completion(self, expected):
+    def _queue_claim_completion(self, expected, *, wait_for_key=True):
         """Persist a previewed apply/validate child; no dependence on an open UI."""
         result = {"next_action": "dns_preview"}
         try:
@@ -918,8 +980,16 @@ class DomainManager:
                 c.close()
             preview = self.dns.preview(row["domain"])
             if not preview["executable"]:
+                conflicts = preview["conflicts"]
+                if wait_for_key and conflicts and all(c.get("code") == "dkim_public_key_pending" for c in conflicts):
+                    # Key generation can lag behind a bulk import. Continue in a
+                    # separate durable task; never replay allocation or hosting.
+                    child = self.jobs.enqueue("claim_setup", row["domain"],
+                        "claim-key-wait:" + expected["allocation_job_id"] + ":" + claim["id"],
+                        {**expected, "configuration_only": True, "configuration_config_hash": config_hash(row)})
+                    return {"claim_setup_job": child, "configuration_status": "queued", "next_action": "wait_for_dkim"}
                 return {**result, "configuration_status": "blocked",
-                        "configuration_conflicts": preview["conflicts"]}
+                        "configuration_conflicts": conflicts}
             # Existing records need fresh validation, not a second apply task.
             if all(action["action"] == "exists" for action in preview["actions"]):
                 child = self.create_validate_job(row["domain"], key, activate_on_success=True)
@@ -930,6 +1000,33 @@ class DomainManager:
             return {**result, "configuration_status": "pending",
                     "configuration_error": exc.code if isinstance(exc, ProviderError) else "dns_configuration_not_queued"}
 
+    def _execute_claim_key_wait(self, job, row):
+        """Wait for local prerequisites without holding a worker or replaying hosting."""
+        if config_hash(row) != job["request"]["configuration_config_hash"]:
+            self.jobs.finish(job["id"], "failed", step="claim_configuration_changed",
+                             error="claim_configuration_changed")
+            return
+        result = {**job["result"], "domain": row["domain"], "next_action": "wait_for_dkim"}
+        result.setdefault("deadline", job["created_at"] + 1800)
+        now = time.time()
+        if "dkim_public_key_pending" in self.plan(row["domain"])["warnings"]:
+            if now >= result["deadline"]:
+                result.update(configuration_status="pending", next_action="retry_configuration")
+                result.pop("retry_at", None)
+                self.jobs.finish(job["id"], "partial", step="claim_configuration_timed_out", result=result,
+                                 error="dkim_public_key_pending")
+                return
+            result["attempts"] = result.get("attempts", 0) + 1
+            result.update(configuration_status="waiting_prerequisites",
+                          retry_at=min(result["deadline"], now + min(60, 5 * 2 ** min(result["attempts"] - 1, 4))))
+            self.jobs.defer(job["id"], step="claim_waiting_dkim", result=result)
+            return
+        # A key becoming available is not permission to bypass real DNS conflicts.
+        result.pop("retry_at", None)
+        result.update(self._queue_claim_completion(job["request"], wait_for_key=False))
+        self.jobs.finish(job["id"], "partial" if result.get("configuration_status") in {"pending", "blocked"} else "succeeded",
+                         step="claim_configuration_prepared", result=result)
+
     def _execute_claim_setup(self, job):
         claim = self.claim_row(job["request"]["claim_id"])
         row = self.domain(job["scope"])
@@ -938,6 +1035,8 @@ class DomainManager:
                 or row["dns_credential_ref"] != job["request"].get("credential_ref")
                 or row["source_status"] in {"released", "revoked", "expired", "releasing"}):
             raise ValueError("claim ownership or DNS binding changed before setup")
+        if job["request"].get("configuration_only"):
+            return self._execute_claim_key_wait(job, row)
         result = self._prepare_claim_services({"claim_id": claim["id"], "domain": row["domain"],
                   "status": claim["status"], "enabled": bool(row["enabled"])},
                   job["request"].get("prepare_hosting", False), expected=job["request"],

@@ -187,7 +187,16 @@ class JsonTransport:
                 rate_limit = rate_limit_metadata(exc.read(32768))
                 retry_after = retry_after or rate_limit["retry_after"]
             upstream_code = ""
-            if code in {404, 409}:
+            cloudflare_code = ""
+            if urllib.parse.urlsplit(base).hostname == "api.cloudflare.com" and code != 429:
+                try:
+                    codes = json.loads(exc.read(32768)).get("errors", [])
+                    value = str(codes[0].get("code", "")) if codes else ""
+                    if re.fullmatch(r"[0-9]{1,8}", value):
+                        cloudflare_code = "cloudflare_error_" + value
+                except Exception:
+                    pass
+            if code in {404, 409} and not cloudflare_code:
                 try:
                     error = json.loads(exc.read(32768)).get("error", {})
                     allowed = {404: "hosted_dns_zone_not_found", 409: "external_nameserver_precheck_failed"}
@@ -196,7 +205,7 @@ class JsonTransport:
                 except Exception:
                     pass
             exc.close()
-            raise ProviderError(f"provider_http_{code}", uncertain=code not in {400, 401, 403, 404, 405, 422} and upstream_code != "external_nameserver_precheck_failed",
+            raise ProviderError(cloudflare_code or f"provider_http_{code}", uncertain=code not in {400, 401, 403, 404, 405, 422} and upstream_code != "external_nameserver_precheck_failed",
                                 upstream_code=upstream_code, retry_after=retry_after,
                                 rate_limit=rate_limit) from None
         except ProviderError:
@@ -204,5 +213,10 @@ class JsonTransport:
         except Exception:
             raise ProviderError("provider_transport_or_json_error", uncertain=True) from None
         if isinstance(payload, dict) and (payload.get("ok") is False or payload.get("success") is False):
+            if urllib.parse.urlsplit(base).hostname == "api.cloudflare.com":
+                errors = payload.get("errors") or []
+                value = str(errors[0].get("code", "")) if errors and isinstance(errors[0], dict) else ""
+                if re.fullmatch(r"[0-9]{1,8}", value):
+                    raise ProviderError("cloudflare_error_" + value, uncertain=False)
             raise ProviderError("provider_rejected", uncertain=True)
         return payload

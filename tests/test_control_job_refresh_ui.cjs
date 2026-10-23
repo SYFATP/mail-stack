@@ -96,6 +96,7 @@ async function tick(){
  const doneCount=context.batchToasts.filter(x=>x.text.includes('完成')).length;
  assert.equal(doneCount,1);
  postStatus='succeeded';
+ t.state.controlSelection.add('sender.example.test');t.state.controlSelection.add('claimed.test');
  await t.runControlBatch('validate');
  assert.match(context.batchToasts.at(-1).text,/批量DNS 验证完成：成功 2/,'An immediate result must not be overwritten by a submitted toast');
  postStatus='queued';

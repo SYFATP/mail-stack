@@ -11,7 +11,7 @@ import time
 import uuid
 
 _executing_job = ContextVar("domain_executing_job", default=None)
-PARALLEL_KINDS = ("dns_apply", "dns_validate", "dns_complete")
+PARALLEL_KINDS = ("dns_apply", "dns_validate", "dns_complete", "dynv6_register")
 WRITE_KINDS = ("dns_apply", "dns_hosting", "dns_repair", "claim_setup", "claim_provision", "dynv6_register", "dns_complete")
 
 
@@ -236,7 +236,27 @@ class DomainJobs:
             summary_fields = ("id", "kind", "scope", "status", "step", "automatic", "read_only", "wait_reason", "wait_until")
             active_dns = [{key: r[key] for key in summary_fields} for r in active if r["kind"] != "claim"]
             active_claims = [r for r in active if r["kind"] == "claim"]
-            return {"items": projected[:len(rows)], "total": total,
+            hosting = {}
+            # Only public delegation metadata for the current credential binding.
+            for entry in c.execute("""SELECT j.scope,j.kind,j.status,j.result_json FROM domain_jobs j
+                JOIN mail_domains d ON d.domain=j.scope AND d.dns_provider='cloudflare'
+                AND d.dns_credential_ref=json_extract(j.request_json,'$.credential_ref')
+                WHERE j.kind IN ('dns_hosting','dns_complete')
+                AND (json_extract(j.request_json,'$.provider')='cloudflare')
+                ORDER BY j.updated_at,j.id"""):
+                data = json.loads(entry["result_json"])
+                ns = data.get("delegation", {}).get("nameservers") or data.get("nameservers")
+                if not ns:
+                    continue
+                saved = hosting.setdefault(entry["scope"], {})
+                saved.update(provider="cloudflare", nameservers=ns, status=entry["status"],
+                             next_action=data.get("next_action", "dns_preview"))
+                if data.get("delegation"):
+                    saved.update(delegation_mode=data["delegation"].get("mode", ""), delegation_phase=data["delegation"].get("phase", ""))
+                for field in ("zone_id", "zone_name", "zone_status"):
+                    if field in data:
+                        saved[field] = data[field]
+            return {"items": projected[:len(rows)], "total": total, "domain_hosting": hosting,
                     "active_domain_jobs": active_dns, "active_claim_jobs": active_claims,
                     "status_counts": counts, "blocked_claim_sources": sorted(blocked)}
         finally:
@@ -275,13 +295,27 @@ class DomainJobs:
                                      "retry_after_seconds": delay,
                                      "rate_limit": metadata}}
 
+    @staticmethod
+    def parallel_eligibility(alias):
+        # dynv6 claim preparation only enqueues a registration; other claim
+        # setup modes can perform global hosting work and remain exclusive.
+        return (f"({alias}.kind IN {PARALLEL_KINDS} OR ({alias}.kind='claim_setup'"
+                f" AND json_extract({alias}.request_json,'$.configure_on_success')=1"
+                f" AND json_extract({alias}.request_json,'$.hosting_provider')='dynv6'"
+                f" AND COALESCE(json_extract({alias}.request_json,'$.configuration_only'),0)=0))")
+
     def take(self, *, capacity=2):
         c = self.db()
         try:
+            # An idle worker needs only the status index, with no writer lock
+            # or provider-history scan. A concurrent enqueue is seen next tick.
+            if not c.execute("SELECT 1 FROM domain_jobs WHERE status='queued' LIMIT 1").fetchone():
+                return None
             c.execute("BEGIN IMMEDIATE")
-            running = c.execute("SELECT kind FROM domain_jobs WHERE status='running'").fetchall()
+            running = c.execute(f"SELECT kind,COALESCE({self.parallel_eligibility('domain_jobs')},0) AS shareable "
+                                "FROM domain_jobs WHERE status='running'").fetchall()
             if len(running) >= max(1, min(2, capacity)) or any(
-                row["kind"] not in PARALLEL_KINDS for row in running
+                not row["shareable"] for row in running
             ):
                 c.commit()
                 return None
@@ -293,14 +327,17 @@ class DomainJobs:
             # Drain only for runnable exclusive work, never for held writers.
             if running and c.execute(f"""SELECT 1 FROM domain_jobs AS pending
                 WHERE pending.status='queued' AND {eligible}
-                AND pending.kind NOT IN ('dns_apply','dns_validate','dns_complete') LIMIT 1""", params).fetchone():
+                AND NOT COALESCE({self.parallel_eligibility("pending")},0) LIMIT 1""", params).fetchone():
                 c.commit()
                 return None
             # Deferred writers must not expire a usable domain's read evidence.
             # Runnable earlier writers and every running namespace keep priority.
             row = c.execute(f"""SELECT pending.* FROM domain_jobs AS pending WHERE pending.status='queued'
                 AND {eligible}
-                AND (:running=0 OR pending.kind IN ('dns_apply','dns_validate','dns_complete'))
+                AND (:running=0 OR COALESCE({self.parallel_eligibility("pending")},0))
+                AND (pending.kind<>'dynv6_register' OR NOT EXISTS (
+                    SELECT 1 FROM domain_jobs AS registration
+                    WHERE registration.status='running' AND registration.kind='dynv6_register'))
                 AND NOT EXISTS (SELECT 1 FROM domain_jobs AS active WHERE active.status='running'
                     AND (active.scope=pending.scope
                          OR substr(active.scope,-length(pending.scope)-1)='.'||pending.scope
@@ -320,6 +357,8 @@ class DomainJobs:
                     WHEN pending.kind='dns_validate' AND pending.created_at<=:aged THEN -1
                     WHEN pending.kind IN ('claim','import','claim_recover') THEN 0
                     WHEN pending.kind='dns_hosting' THEN 3
+                    WHEN pending.kind='dynv6_register' THEN 3
+                    WHEN pending.kind='claim_setup' AND json_extract(pending.request_json,'$.configuration_only')=1 THEN 1
                     WHEN pending.kind='claim_setup' THEN 4
                     WHEN pending.kind='dns_validate' AND pending.idempotency_key LIKE 'auto-readiness:%' THEN 2
                     ELSE 1 END,pending.created_at,pending.id LIMIT 1""", params).fetchone()

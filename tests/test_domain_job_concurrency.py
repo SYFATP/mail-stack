@@ -94,6 +94,60 @@ class DomainConcurrencyTests(unittest.TestCase):
         self.m.jobs.finish(exclusive["id"], "succeeded", step="fixture")
         self.assertEqual(self.m.jobs.take()["id"], later["id"])
 
+    def test_dynv6_setup_backlog_does_not_idle_second_dns_worker(self):
+        first = self.raw("dns_apply", "one.test", "first")
+        self.assertEqual(self.m.jobs.take()["id"], first["id"])
+        setup = self.m.jobs.enqueue("claim_setup", "three.test", "parallel-light-setup", {
+            "configure_on_success": True, "hosting_provider": "dynv6"})
+        second = self.raw("dns_apply", "two.test", "second")
+        self.assertEqual(self.m.jobs.take()["id"], second["id"])
+        self.assertEqual(self.m.jobs.get(setup["id"])["status"], "queued")
+
+    def test_dynv6_registration_overlaps_other_domain_dns_but_not_another_registration(self):
+        register = self.raw("dynv6_register", "one.test", "register-first")
+        self.assertEqual(self.m.jobs.take()["id"], register["id"])
+        another = self.raw("dynv6_register", "two.test", "register-second")
+        peer = self.raw("dns_apply", "three.test", "register-peer")
+        self.assertEqual(self.m.jobs.take()["id"], peer["id"])
+        self.m.jobs.finish(peer["id"], "succeeded", step="fixture")
+        self.assertIsNone(self.m.jobs.take())
+        self.assertEqual(self.m.jobs.get(another["id"])["status"], "queued")
+        self.m.jobs.finish(register["id"], "succeeded", step="fixture")
+        self.assertEqual(self.m.jobs.take()["id"], another["id"])
+
+    def test_finish_dns_before_starting_another_registration(self):
+        registration = self.raw("dynv6_register", "one.test", "older-register")
+        apply = self.raw("dns_apply", "two.test", "newer-apply")
+        self.assertEqual(self.m.jobs.take()["id"], apply["id"])
+        self.assertEqual(self.m.jobs.take()["id"], registration["id"])
+
+    def test_running_light_setup_is_shareable_and_namespace_exclusion_stays(self):
+        setup = self.m.jobs.enqueue("claim_setup", "one.test", "parallel-active-setup", {
+            "configure_on_success": True, "hosting_provider": "dynv6"})
+        self.assertEqual(self.m.jobs.take()["id"], setup["id"])
+        child = self.raw("dns_apply", "child.one.test", "setup-child")
+        peer = self.raw("dns_validate", "two.test", "setup-peer")
+        self.assertEqual(self.m.jobs.take()["id"], peer["id"])
+        self.assertEqual(self.m.jobs.get(child["id"])["status"], "queued")
+
+    def test_other_setup_modes_still_drain_and_run_exclusively(self):
+        for number, request in enumerate(({}, {"configure_on_success": False, "hosting_provider": "dynv6"},
+                {"configure_on_success": True, "hosting_provider": "cloudflare"},
+                {"configure_on_success": True, "hosting_provider": "dynv6", "configuration_only": True})):
+            with self.subTest(request=request):
+                first = self.raw("dns_apply", "one.test", "exclusive-first-" + str(number))
+                self.assertEqual(self.m.jobs.take()["id"], first["id"])
+                setup = self.m.jobs.enqueue("claim_setup", "two.test", "exclusive-setup-" + str(number), request)
+                later = self.raw("dns_apply", "three.test", "exclusive-later-" + str(number))
+                self.assertIsNone(self.m.jobs.take())
+                self.m.jobs.finish(first["id"], "succeeded", step="fixture")
+                ordered = (setup, later) if request.get("configuration_only") else (later, setup)
+                self.assertEqual(self.m.jobs.take()["id"], ordered[0]["id"])
+                self.assertIsNone(self.m.jobs.take())
+                self.m.jobs.finish(ordered[0]["id"], "succeeded", step="fixture")
+                self.assertEqual(self.m.jobs.take()["id"], ordered[1]["id"])
+                self.m.jobs.finish(ordered[1]["id"], "succeeded", step="fixture")
+
     def test_serial_setting_retry_at_and_crash_recovery_are_retained(self):
         first = self.raw("dns_apply", "one.test", "first")
         later = self.raw("dns_apply", "two.test", "later")

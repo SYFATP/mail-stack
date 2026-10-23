@@ -48,6 +48,7 @@ def migrate(connection):
         _migrate_v12(connection)
         _migrate_v13(connection)
         _migrate_v14(connection)
+        _migrate_v15(connection)
         return
     columns = {x[1] for x in connection.execute("PRAGMA table_info(mail_domains)")}
     for name, declaration in DOMAIN_COLUMNS.items():
@@ -85,6 +86,7 @@ def migrate(connection):
     _migrate_v12(connection)
     _migrate_v13(connection)
     _migrate_v14(connection)
+    _migrate_v15(connection)
 
 
 def _migrate_v2(connection):
@@ -348,3 +350,18 @@ def _migrate_v14(connection):
         source TEXT PRIMARY KEY, attempts INTEGER NOT NULL, expires_at REAL NOT NULL)""")
     connection.execute("CREATE INDEX idx_auth_attempts_expiry ON auth_attempts(expires_at)")
     connection.execute("INSERT INTO schema_migrations(version,applied_at) VALUES(14,?)", (time.time(),))
+
+
+def _migrate_v15(connection):
+    """Keep worker polling independent of retained result JSON volume."""
+    if connection.execute("SELECT 1 FROM schema_migrations WHERE version=15").fetchone():
+        return
+    # A > comparison implies IS NOT NULL, so both live backoff queries can
+    # search this sparse expression index without reading historical blobs.
+    connection.execute("""CREATE INDEX idx_domain_jobs_backoff_until ON domain_jobs(
+        json_extract(result_json,'$.provider_backoff.until'))
+        WHERE json_extract(result_json,'$.provider_backoff.until') IS NOT NULL""")
+    # Cover the readiness retry scan without loading full task results.
+    connection.execute("""CREATE INDEX idx_domain_jobs_readiness_attempts
+        ON domain_jobs(kind,scope,updated_at,idempotency_key) WHERE kind='dns_validate'""")
+    connection.execute("INSERT INTO schema_migrations(version,applied_at) VALUES(15,?)", (time.time(),))

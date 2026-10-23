@@ -4,6 +4,7 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));
 const gate=()=>{let resolve;return {promise:new Promise(r=>resolve=r),release:()=>resolve()}};
 function fixture(count=200){
  const nodes=new Map(),requests=[],jobs=new Map(),timers=new Map(),notices=[];
+ let activeJobs={},claims=[];
  let nextJob=0,nextTimer=0,previewGate=null,submitGate=null,conflict='',failSubmit=false,previewActive=0,submitActive=0,previewPeak=0,submitPeak=0,expiresAt=0,previewActions=()=>[];
  const domains=Array.from({length:count},(_,n)=>({domain:`domain-${n}.test`,enabled:false,dns_provider:'digitalplat',
   dns_credential_ref:`credential-${n}`,receive_ready:false,send_ready:false,dns_checks:{}}));
@@ -42,18 +43,19 @@ function fixture(count=200){
     }finally{submitActive--}
    }else if(u.pathname.endsWith('/domain-jobs/status'))data={items:u.searchParams.get('ids').split(',').map(id=>jobs.get(id))};
    else if(u.pathname.includes('/domain-jobs/'))data=jobs.get(u.pathname.split('/').at(-1));
-   else if(u.pathname.endsWith('/domain-jobs'))data={items:[],total:jobs.size,status_counts:{},blocked_claim_sources:[]};
+   else if(u.pathname.endsWith('/domain-jobs'))data={items:[],total:jobs.size,status_counts:{},blocked_claim_sources:[],...activeJobs};
    else if(u.pathname.endsWith('/mail-domains'))data=domains;
-   else if(u.pathname.endsWith('/domain-sources')||u.pathname.endsWith('/domain-claims'))data={items:[]};
+   else if(u.pathname.endsWith('/domain-claims'))data={items:claims};
+   else if(u.pathname.endsWith('/domain-sources'))data={items:[]};
    else if(u.pathname.endsWith('/dns-credentials'))data={items:domains.filter(d=>d.dns_credential_ref).map(d=>({id:d.dns_credential_ref,provider:d.dns_provider,domain:d.domain}))};
    return {ok:true,status:opt.method==='POST'?202:200,json:async()=>data};
   }});
- vm.runInContext(script+'\nglobalThis.t={state,controlPage,runControlBatch,runControlCompletion,continueControlDomain,showSourceClaimDialog,watchClaimHostingJobs,renderControlUnifiedResults,controlConfigEligible,lockControlDomain,unlockControlDomain,controlJobWatchers,stopControlJobWatchers,logout};',context);
+ vm.runInContext(script+'\nglobalThis.t={state,controlPage,runControlBatch,runControlCompletion,continueControlDomain,showSourceClaimDialog,watchClaimHostingJobs,renderControlUnifiedResults,controlConfigEligible,lockControlDomain,unlockControlDomain,controlJobWatchers,stopControlJobWatchers,logout,controlJob,controlUnifiedListData,controlDomainGroup,controlDomainBusy,refreshControlLists};',context);
  context.collect=(text,bad)=>notices.push({text,bad});vm.runInContext('toast=collect;',context);
  const t=context.t;t.state.token='fixture-session';t.state.tab='control';
  const posted=kind=>requests.filter(r=>r.opt.method==='POST'&&r.url.endsWith('/'+kind));
  return {t,node,document,requests,jobs,domains,notices,posted,async start(){await t.controlPage();domains.forEach(d=>t.state.controlSelection.add(d.domain));t.renderControlUnifiedResults()},
-  previewGate:v=>previewGate=v,previewActions:v=>previewActions=v,submitGate:v=>submitGate=v,conflict:v=>conflict=v,expires:v=>expiresAt=v,fail:()=>failSubmit=true,
+  activeJobs:v=>activeJobs=v,claims:v=>claims=v,previewGate:v=>previewGate=v,previewActions:v=>previewActions=v,submitGate:v=>submitGate=v,conflict:v=>conflict=v,expires:v=>expiresAt=v,fail:()=>failSubmit=true,
   peaks:()=>({previewPeak,submitPeak}),async tick(){const entry=[...timers.entries()].find(([,v])=>[1000,2000].includes(v.ms));assert.ok(entry);timers.delete(entry[0]);await entry[1].fn()}};
 }
 async function until(predicate){for(let n=0;n<1000&&!predicate();n++)await flush();assert.ok(predicate(),'Expected asynchronous phase');}

@@ -58,7 +58,7 @@ async function tick(){assert.equal(timers.size,1,'Every batch shares exactly one
  jobs.clear();
  for(let n=0;n<200;n++)jobs.set(`setup-${n}`,{id:`setup-${n}`,kind:'claim_setup',scope:domains[n].domain,status:'queued',step:'persisted'});
  await t.controlPage();assert.equal(t.controlJobWatchers.size,200);assert.equal(t.state.controlBusyCounts.size,200);
- assert.match(node('#control-job-progress').textContent,/域名后台准备/);
+ assert.match(node('#control-job-progress').textContent,/域名自动流程：200 个域名，200 个排队/);
  for(let n=0;n<200;n++){
   const child={id:`hosting-${n}`,kind:'dns_hosting',scope:domains[n].domain,status:'queued'};jobs.set(child.id,child);
   Object.assign(jobs.get(`setup-${n}`),{status:'succeeded',result:{domain:domains[n].domain,dns_hosting_job:child}});

@@ -150,11 +150,32 @@ class DigitalPlatDNS:
                 or data.get('status') not in {'ok', 'active', 'registered'}):
             raise ProviderError('digitalplat_domain_not_ready')
         nameservers = data.get('nameservers')
-        if (not isinstance(nameservers, list) or not 1 <= len(nameservers) <= 8
+        if (not isinstance(nameservers, list) or len(nameservers) > 8
                 or any(not isinstance(n, str) or len(n) > 253 or not re.fullmatch(
                     r'[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?\.?', n) for n in nameservers)):
             raise ProviderError('invalid_digitalplat_domain_response')
+        # A newly registered domain may have no delegation yet. Absence is
+        # distinct from malformed state; the completion flow checks the parent.
         return sorted({n.lower().rstrip('.') for n in nameservers})
+
+    def set_nameservers(self, nameservers, idempotency_key):
+        """Initial delegation has no Hosted DNS zone to archive or switch."""
+        payload = self.http.request('PATCH', self.base,
+            '/domains/' + quote(self.domain, safe='') + '/nameservers',
+            headers={**self.headers, 'Idempotency-Key': idempotency_key},
+            body={'nameservers': list(nameservers)})
+        data = payload.get('data') if isinstance(payload, dict) else None
+        if isinstance(data, dict):
+            operation = data.get('operation_id')
+            if isinstance(operation, str) and re.fullmatch(r'[A-Za-z0-9_-]{1,128}', operation):
+                return operation
+            assigned = data.get('nameservers')
+            if (data.get('domain', data.get('name')) == self.domain
+                    and isinstance(assigned, list) and all(isinstance(n, str) for n in assigned)
+                    and {n.lower().rstrip('.') for n in assigned} == set(nameservers)):
+                return ''
+        # A successful HTTP response still needs readback when its shape changed.
+        raise ProviderError('digitalplat_ns_set_unconfirmed', uncertain=True)
 
     def switch_external(self, nameservers, idempotency_key, *, force=False):
         payload = self.http.request('POST', self.base,

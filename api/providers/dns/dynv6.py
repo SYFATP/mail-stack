@@ -3,6 +3,7 @@
 The custom-domain registration and parent delegation are separate from this
 record API. No zone is created implicitly and no NS is changed here.
 """
+from concurrent.futures import ThreadPoolExecutor
 import ipaddress
 import re
 from api.providers.http import ProviderError
@@ -25,6 +26,7 @@ class Dynv6DNS:
         self.base = "https://dynv6.com"
         self.headers = {"Authorization": "Bearer " + secret["api_token"]}
         self._zone_names = {}
+        self._exact_zone_id = None
 
     def zone(self, domain):
         zones = self.http.request("GET", self.base, "/api/v2/zones", headers=self.headers)
@@ -44,7 +46,20 @@ class Dynv6DNS:
         if sum(item[0] == chosen[0] for item in matches) != 1:
             raise ProviderError("ambiguous_dynv6_zone")
         self._zone_names[chosen[1]] = chosen[0]
+        if chosen[0] == self.domain:
+            self._exact_zone_id = chosen[1]
         return chosen[1], chosen[0], chosen[2]
+
+    def _exact_zone(self):
+        # Keep only the ID for this short-lived adapter, never DNS contents.
+        # Refresh mutable primary addresses alongside every record inventory.
+        zone = self.http.request("GET", self.base, "/api/v2/zones/" + self._exact_zone_id,
+                                 headers=self.headers)
+        if (not isinstance(zone, dict) or numeric_id(zone.get("id")) != self._exact_zone_id
+                or not isinstance(zone.get("name"), str)
+                or zone["name"].lower().rstrip(".") != self.domain):
+            raise ProviderError("dynv6_zone_changed")
+        return zone
 
     @staticmethod
     def _record(raw, zone_id, zone_name):
@@ -71,9 +86,21 @@ class Dynv6DNS:
     def inventory(self, domain):
         if domain != self.domain:
             raise ValueError("dynv6 adapter is scoped to one managed domain")
-        zone_id, zone_name, zone = self.zone(domain)
-        records = self.http.request("GET", self.base, "/api/v2/zones/" + zone_id + "/records",
-                                    headers=self.headers)
+        if self._exact_zone_id:
+            zone_id, zone_name = self._exact_zone_id, self.domain
+            # Both are fresh reads. Independent reads can overlap without
+            # weakening write-before/write-after inventory comparisons.
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                metadata = pool.submit(self._exact_zone)
+                records_read = pool.submit(self.http.request, "GET", self.base,
+                    "/api/v2/zones/" + zone_id + "/records", headers=self.headers)
+                zone, records = metadata.result(), records_read.result()
+        else:
+            # Inherited zones must rediscover the longest matching suffix on
+            # every read, so a newly created child zone cannot be overlooked.
+            zone_id, zone_name, zone = self.zone(domain)
+            records = self.http.request("GET", self.base, "/api/v2/zones/" + zone_id + "/records",
+                                        headers=self.headers)
         if not isinstance(records, list) or len(records) > 10000:
             raise ProviderError("invalid_dynv6_record_inventory")
         normalized = [self._record(raw, zone_id, zone_name) for raw in records]

@@ -76,6 +76,51 @@ const {fixture,gate,flush,until}=require('./test_dns_batch_performance_ui.cjs');
  assert.ok(claim.t.controlJobWatchers.has(child.id));
  assert.equal(claim.t.state.controlBusyCounts.get('flow.test'),1,'The durable chain adopts the child row lock');
  claim.t.stopControlJobWatchers();
+ // Hosting selection is submitted durably, with only eligible shared accounts.
+ const hosting=fixture(0);await hosting.start();
+ hosting.t.state.controlCredentials=[
+  {id:'dyn-account',provider:'dynv6',label:'dyn account',login:{configured:true}},
+  {id:'dyn-scoped',provider:'dynv6',domain:'another.test',session:{configured:true}},
+  {id:'dyn-token-only',provider:'dynv6'},
+  {id:'cf-account',provider:'cloudflare',label:'CF account'}];
+ const accountFixtures=hosting.t.state.controlCredentials;
+ const source={id:'source-hosting',name:'SFREG',source_type:'sfreg_mx'};
+ hosting.t.showSourceClaimDialog(source,{pool:{status:'registered',sync_provider:'none'},items:[{domain:'one.test',external_id:'123'}]});
+ assert.match(hosting.node('#modal-root').innerHTML,/领取后的 DNS 托管/);
+ assert.match(hosting.node('#modal-root').innerHTML,/<details class="source-claim-candidates">/);
+ hosting.node('#source-claim-auto').checked=true;
+ hosting.node('#source-claim-hosting').value='dynv6';hosting.node('#source-claim-hosting').onchange();
+ assert.equal(hosting.node('#source-claim-account').value,'dyn-account');
+ assert.doesNotMatch(hosting.node('#source-claim-account').innerHTML,/dyn-scoped|dyn-token-only/);
+ assert.equal(hosting.node('#submit-source-claim').textContent,'领取并接入 dynv6');
+ assert.match(hosting.node('#source-claim-hosting-note').textContent,/父区 NS 委派/);
+ hosting.node('#source-claim-count').value='1';
+ await hosting.node('#source-claim-form').onsubmit({preventDefault(){}});
+ const hostedBody=JSON.parse(hosting.posted('claim')[0].opt.body);
+ assert.deepEqual(hostedBody,{count:1,configure_on_success:true,hosting_provider:'dynv6',hosting_credential_ref:'dyn-account',status:'registered',sync_provider:'none',external_ids:['123']});
+ const registration={id:'claimed-registration',kind:'dynv6_register',scope:'one.test',status:'queued'};
+ hosting.t.watchClaimHostingJobs({kind:'claim_setup',result:{domain:'one.test',dynv6_registration_job:registration}});
+ assert.ok(hosting.t.controlJobWatchers.has(registration.id));
+ const apply={id:'claimed-apply',kind:'dns_apply',scope:'one.test',status:'queued'};
+ hosting.t.watchClaimHostingJobs({kind:'dynv6_register',result:{domain:'one.test',dns_apply_job:apply}});
+ assert.ok(hosting.t.controlJobWatchers.has(apply.id));hosting.t.stopControlJobWatchers();
+ hosting.t.state.controlCredentials=accountFixtures;hosting.t.showSourceClaimDialog(source);
+ hosting.node('#source-claim-auto').checked=true;hosting.node('#source-claim-hosting').value='cloudflare';hosting.node('#source-claim-hosting').onchange();
+ assert.equal(hosting.node('#source-claim-account').value,'cf-account');
+ assert.match(hosting.node('#source-claim-hosting-note').textContent,/创建.*DigitalPlat.*手动修改/);
+ assert.doesNotMatch(hosting.node('#modal-root').innerHTML,/Cloudflare（已有 Zone）/);
+ hosting.node('#source-claim-auto').checked=false;hosting.node('#source-claim-auto').onchange();
+ assert.equal(hosting.node('#source-claim-hosting').disabled,true);
+ assert.equal(hosting.node('#submit-source-claim').textContent,'仅领取');
+ hosting.node('#source-claim-count').value='1';hosting.node('#source-claim-status').value='registered';hosting.node('#source-claim-provider').value='none';
+ await hosting.node('#source-claim-form').onsubmit({preventDefault(){}});
+ const onlyClaim=JSON.parse(hosting.posted('claim').at(-1).opt.body);
+ assert.equal(onlyClaim.hosting_provider,undefined);assert.equal(onlyClaim.configure_on_success,undefined);
+ hosting.t.showSourceClaimDialog(source);hosting.t.state.controlCredentials=[];
+ hosting.node('#source-claim-auto').checked=true;hosting.node('#source-claim-hosting').value='dynv6';hosting.node('#source-claim-hosting').onchange();
+ assert.equal(hosting.node('#submit-source-claim').disabled,true);
+ const postedBefore=hosting.posted('claim').length;await hosting.node('#source-claim-form').onsubmit({preventDefault(){}});
+ assert.equal(hosting.posted('claim').length,postedBefore);assert.match(hosting.node('#source-claim-msg').textContent,/账号凭据/);
  const blocked=fixture(0);await blocked.start();
  blocked.t.state.controlSources=[{id:'source-fixture',name:'SFREG',source_type:'sfreg_mx',enabled:true}];
  blocked.t.state.controlBlockedSources=new Set(['source-fixture']);

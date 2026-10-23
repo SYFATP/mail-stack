@@ -1,4 +1,4 @@
-"""Durable dynv6 delegation and activation; uncertain writes are read back, never replayed."""
+"""Durable delegated DNS onboarding and activation; uncertain writes are read back, never replayed."""
 from concurrent.futures import ThreadPoolExecutor
 import copy
 import json
@@ -51,7 +51,16 @@ class DelegationProbe:
                     response = dns.query.udp(query, address, timeout=2)
                     if response.flags & dns.flags.TC:
                         response = dns.query.tcp(query, address, timeout=2)
-                if response.rcode() or (authoritative and not response.flags & dns.flags.AA):
+                # A parent can prove an undelegated new name with AA + its SOA
+                # (NOERROR/NODATA or NXDOMAIN). A timeout, referral, or alias
+                # must never be interpreted as permission to create delegation.
+                qname = dns.name.from_text(name)
+                undelegated = (kind == 'NS' and not authoritative and not response.answer
+                    and response.rcode() in (0, 3) and bool(response.flags & dns.flags.AA)
+                    and any(rrset.rdtype == dns.rdatatype.SOA and rrset.name != qname
+                            and qname.is_subdomain(rrset.name) for rrset in response.authority))
+                if ((response.rcode() and not undelegated)
+                        or (authoritative and not response.flags & dns.flags.AA)):
                     continue
                 values = set()
                 sections = list(response.answer) + (list(response.authority) if kind == 'NS' else [])
@@ -66,12 +75,14 @@ class DelegationProbe:
                             values.add(str(record.preference) + ' ' + str(record.exchange).lower().rstrip('.'))
                         else:
                             values.add(record.to_text().lower().rstrip('.'))
+                if kind == 'NS' and not authoritative and not values and not undelegated:
+                    continue
                 return values
             except (OSError, ValueError, dns.exception.DNSException):
                 continue
         return None
 
-    def targets(self, row, targets):
+    def targets(self, row, targets, nameservers=TARGET_NS):
         expected = {}
         for record in targets:
             value = record['content']
@@ -80,11 +91,11 @@ class DelegationProbe:
             elif record['type'] == 'CNAME':
                 value = value.lower().rstrip('.')
             expected.setdefault((record['name'], record['type']), set()).add(value)
-        expected[(row['domain'], 'NS')] = set(TARGET_NS)
+        expected[(row['domain'], 'NS')] = set(nameservers)
         if row['receive_subdomains'] and row['max_subdomain_depth']:
             expected[('ns-check-' + secrets.token_hex(5) + '.' + row['domain'], 'MX')] = {
                 '10 ' + row['mx'].lower().rstrip('.')}
-        tasks = [(host, name, kind, wanted) for host in TARGET_NS
+        tasks = [(host, name, kind, wanted) for host in nameservers
                  for (name, kind), wanted in expected.items()]
         def check(task):
             host, name, kind, wanted = task
@@ -96,7 +107,7 @@ class DelegationProbe:
             checks = list(pool.map(check, tasks))
         return {'passed': bool(checks) and all(c['passed'] for c in checks), 'checks': checks}
 
-    def parents(self, domain):
+    def parents(self, domain, nameservers=TARGET_NS):
         parent = dns.resolver.zone_for_name(dns.name.from_text(domain).parent(), resolver=self.resolver)
         hosts = sorted({str(r.target).lower().rstrip('.') for r in
                         self.resolver.resolve(parent, 'NS', search=False)})
@@ -105,7 +116,7 @@ class DelegationProbe:
         def check(host):
             values = self.query(host, domain, 'NS', authoritative=False)
             return {'host': host, 'nameservers': sorted(values) if values is not None else [],
-                    'passed': values == set(TARGET_NS)}
+                    'passed': values == set(nameservers), 'undelegated': values == set()}
         with ThreadPoolExecutor(max_workers=3) as pool:
             checks = list(pool.map(check, hosts))
         return {'passed': all(c['passed'] for c in checks), 'checks': checks}
@@ -118,6 +129,16 @@ class DNSCompletion:
         self.m = manager
         self.probe = DelegationProbe()
 
+    def required(self, row):
+        if row["dns_provider"] == "dynv6":
+            return True
+        if row["dns_provider"] != "cloudflare":
+            return False
+        zone = self.m.dns_adapter(row).zone_info(row["domain"], pending=True)
+        if not zone:
+            raise ProviderError("cloudflare_zone_not_accessible")
+        return zone["name"] == row["domain"] and zone["status"] != "active"
+
     def enqueue(self, domain, key):
         domain = normalize_domain(domain)
         with self.m.lock:
@@ -128,8 +149,8 @@ class DNSCompletion:
                 if prior:
                     return self.m.jobs.public(prior)
                 row = self.m.domain(domain)
-                if row['dns_provider'] != 'dynv6':
-                    raise ValueError('DNS completion requires a selected dynv6 binding')
+                if row['dns_provider'] not in {'dynv6', 'cloudflare'}:
+                    raise ValueError('DNS completion requires a selected dynv6 or Cloudflare binding')
                 if row['source_status'] in {'released', 'revoked', 'expired', 'releasing'}:
                     raise ValueError('domain ownership is inactive')
                 self.m.credentials().require_writer()
@@ -139,6 +160,8 @@ class DNSCompletion:
                            'config_hash': plan['config_hash'], 'plan_hash': plan['plan_hash'],
                            'credential_ref': row['dns_credential_ref'], 'claim_id': row['claim_id'],
                            'activate_on_success': True}
+                if row['dns_provider'] == 'cloudflare':
+                    request['provider'] = 'cloudflare'
                 # One pending completion per revision, including double clicks with new keys.
                 active = c.execute("SELECT * FROM domain_jobs WHERE kind='dns_complete' AND scope=? AND status IN ('queued','running')",
                                    (domain,)).fetchall()
@@ -156,7 +179,7 @@ class DNSCompletion:
         claim = self.m.claim_row(row['claim_id']) if row['claim_id'] else {}
         if (claim.get('job_id') != expected['claim_job_id']
                 or claim.get('dns_credential_ref') != expected['registrar_credential_ref']
-                or row['dns_provider'] != 'dynv6' or row['dns_credential_ref'] != expected['credential_ref']
+                or row['dns_provider'] != expected.get('provider', 'dynv6') or row['dns_credential_ref'] != expected['credential_ref']
                 or row['claim_id'] != expected['claim_id']
                 or row['source_status'] in {'released', 'revoked', 'expired', 'releasing'}
                 or plan['config_hash'] != expected['config_hash'] or plan['plan_hash'] != expected['plan_hash']):
@@ -195,7 +218,7 @@ class DNSCompletion:
         until = now + delay
         if phase == 'dns_completion_waiting_upstream':
             until = max(until, result.get('provider_backoff', {}).get('until', 0))
-        result.update(retry_at=min(until, result['deadline']), next_action='wait_for_dns')
+        result.update(retry_at=min(until, result['deadline']), next_action='update_nameservers' if phase == 'dns_completion_waiting_manual_nameservers' else 'wait_for_dns')
         self.m.jobs.defer(job['id'], step=phase, result=result)
 
     def unresolved(self, job):
@@ -217,8 +240,9 @@ class DNSCompletion:
         result.setdefault('domain', job['scope'])
         result.setdefault('deadline', time.time() + self.WAIT_SECONDS)
         result.pop('retry_at', None)
-        delegation = result.setdefault('delegation', {'phase': 'checking', 'nameservers': list(TARGET_NS), 'writes': []})
-        provider = 'dynv6'
+        delegation = result.setdefault('delegation', {'phase': 'checking', 'writes': []})
+        provider = job['request'].get('provider', 'dynv6')
+        target_ns = TARGET_NS
         try:
             row = self.context(job)
             if delegation['phase'] != 'confirmed':
@@ -229,14 +253,21 @@ class DNSCompletion:
                 targets = self.m.dns.plan_for(row)['records']
                 if not all(any(matches(record, target) for record in records) for target in targets):
                     raise ProviderError('dns_completion_records_missing')
+                if row['dns_provider'] == 'cloudflare':
+                    from api.providers.dns.cloudflare import CloudflareDNS
+                    target_ns = tuple(CloudflareDNS.nameservers({'name_servers': inventory.get('name_servers')}))
+                if delegation.get('nameservers') and set(delegation['nameservers']) != set(target_ns):
+                    raise JobConflict('target nameservers changed during completion')
+                delegation['nameservers'] = list(target_ns)
                 self.context(job)
                 provider = 'digitalplat'
                 registrar = self.registrar(row)
                 current_ns = registrar.delegation_status() if registrar else None
-                result['parent_authorities'] = self.probe.parents(row['domain'])
-                if result['parent_authorities']['passed'] and (current_ns is None or set(current_ns) == set(TARGET_NS)):
+                result['parent_authorities'] = (self.probe.parents(row['domain'], target_ns) if row['dns_provider'] == 'cloudflare'
+                                                else self.probe.parents(row['domain']))
+                if result['parent_authorities']['passed']:
                     delegation['phase'] = 'confirmed'
-                elif current_ns is not None and set(current_ns) == set(TARGET_NS):
+                elif current_ns is not None and set(current_ns) == set(target_ns):
                     delegation['phase'] = 'accepted'
                     self.wait(job, result, 'dns_completion_waiting_delegation')
                     return
@@ -248,38 +279,51 @@ class DNSCompletion:
                         self.wait(job, result, 'dns_completion_readback_pending', error='dns_delegation_unconfirmed')
                         return
                     if registrar is None:
+                        if row['dns_provider'] == 'cloudflare':
+                            delegation['mode'] = 'manual'
+                            self.wait(job, result, 'dns_completion_waiting_manual_nameservers')
+                            return
                         raise ProviderError('digitalplat_delegation_credential_required')
-                    if set(current_ns) != HOSTED_NS:
+                    delegation['mode'] = 'digitalplat_api'
+                    if current_ns and set(current_ns) != HOSTED_NS:
                         raise ProviderError('dns_delegation_external_provider_conflict')
                     if row['enabled']:
                         raise ProviderError('dns_delegation_requires_disabled_domain')
                     # A partially changed parent must not be overwritten based on a stale API view.
                     observed = result['parent_authorities']['checks']
-                    if not all(c['nameservers'] for c in observed):
+                    if not all(c['nameservers'] or c.get('undelegated') for c in observed):
                         self.wait(job, result, 'dns_completion_waiting_authorities')
                         return
-                    if any(set(c['nameservers']) == set(TARGET_NS) for c in observed):
+                    if any(set(c['nameservers']) == set(target_ns) for c in observed):
                         self.wait(job, result, 'dns_completion_readback_pending')
                         return
-                    if any(c['nameservers'] and set(c['nameservers']) not in (HOSTED_NS, set(TARGET_NS)) for c in observed):
+                    if any(c['nameservers'] and set(c['nameservers']) not in (HOSTED_NS, set(target_ns)) for c in observed):
                         raise ProviderError('dns_delegation_parent_conflict')
                     delegation.setdefault('before_nameservers', current_ns)
-                    for force in (False, True):
+                    # New registrations can have neither delegation nor a Hosted
+                    # DNS zone. PATCH assigns NS directly; switch-external only
+                    # applies when there is an existing hosted zone to archive.
+                    operation = 'switch_external'
+                    if not current_ns and registrar.hosted_status()['status'] == 'missing':
+                        operation = 'set_nameservers'
+                    delegation['operation'] = operation
+                    for force in ((False, True) if operation == 'switch_external' else (False,)):
                         previous = writes[-1] if writes else None
                         if force and (not previous or previous.get('error_code') != 'external_nameserver_precheck_failed'):
                             break
                         if not force and previous:
                             # Only the explicit precheck rejection permits a separate confirmation POST.
-                            if previous.get('error_code') == 'external_nameserver_precheck_failed':
+                            if operation == 'switch_external' and previous.get('error_code') == 'external_nameserver_precheck_failed':
                                 continue
                             raise ProviderError('dns_delegation_request_rejected')
-                        result['target_authorities'] = self.probe.targets(row, targets)
+                        result['target_authorities'] = (self.probe.targets(row, targets, target_ns) if row['dns_provider'] == 'cloudflare'
+                                                        else self.probe.targets(row, targets))
                         if not result['target_authorities']['passed']:
                             self.wait(job, result, 'dns_completion_waiting_authorities')
                             return
                         with self.m.lock:
                             self.context(job)
-                            if set(registrar.delegation_status()) != HOSTED_NS:
+                            if set(registrar.delegation_status()) != set(current_ns):
                                 self.wait(job, result, 'dns_completion_readback_pending')
                                 return
                             self.m.jobs.check_provider_backoff('digitalplat')
@@ -288,9 +332,11 @@ class DNSCompletion:
                             writes.append(attempt)
                             self.progress(job, result, 'dns_completion_switch_dispatched')
                             try:
-                                operation = registrar.switch_external(TARGET_NS, attempt['idempotency_key'], force=force)
+                                operation_id = (registrar.set_nameservers(target_ns, attempt['idempotency_key'])
+                                    if operation == 'set_nameservers' else
+                                    registrar.switch_external(target_ns, attempt['idempotency_key'], force=force))
                             except ProviderError as exc:
-                                if exc.upstream_code == 'external_nameserver_precheck_failed' and not force:
+                                if operation == 'switch_external' and exc.upstream_code == 'external_nameserver_precheck_failed' and not force:
                                     attempt.update(phase='rejected', error_code=exc.upstream_code)
                                     self.progress(job, result, 'dns_completion_precheck_rejected')
                                     continue
@@ -300,7 +346,7 @@ class DNSCompletion:
                                 if not exc.uncertain:
                                     raise
                             else:
-                                attempt.update(phase='accepted', operation_id=operation)
+                                attempt.update(phase='accepted', operation_id=operation_id)
                                 self.progress(job, result, 'dns_completion_switch_accepted')
                         # Always read back on the next pass; accepted does not mean delegated.
                         self.wait(job, result, 'dns_completion_waiting_delegation', error='dns_delegation_unconfirmed')

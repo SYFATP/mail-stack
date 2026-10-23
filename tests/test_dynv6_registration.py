@@ -204,6 +204,40 @@ class RegistrationTests(unittest.TestCase):
         self.assertIsNone(self.m.jobs.take())
         self.assertEqual(self.m.jobs.get(queued["id"])["wait_reason"], "provider_cooldown")
 
+    def test_registration_post_shares_the_dns_write_gate(self):
+        from concurrent.futures import ThreadPoolExecutor
+        client = self.wire.session(COOKIE)
+        register = client.register
+        def guarded(name):
+            def other_thread_can_write():
+                acquired = self.m.lock.acquire(blocking=False)
+                if acquired:
+                    self.m.lock.release()
+                return acquired
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                self.assertFalse(pool.submit(other_thread_can_write).result(timeout=3))
+            return register(name)
+        client.register = guarded
+        with patch.object(self.service, "session_factory", return_value=client):
+            self.assertEqual(self.execute()["status"], "succeeded")
+        self.assertEqual(self.wire.posts, 1)
+
+    def test_registration_429_is_persisted_before_releasing_write_gate(self):
+        self.wire.failure = "rate"
+        store = self.service.store_session
+        observed = []
+        def save(ref, secret, cookie, status, **kw):
+            if self.wire.posts:
+                with self.assertRaises(ProviderError) as caught:
+                    self.m.jobs.check_provider_backoff("dynv6")
+                observed.append(caught.exception.code)
+            return store(ref, secret, cookie, status, **kw)
+        with patch.object(self.service, "store_session", side_effect=save):
+            result = self.execute()
+        self.assertEqual(result["status"], "unknown")
+        self.assertEqual(observed, ["provider_http_429"])
+        self.assertEqual(self.wire.posts, 1)
+
     def test_batch_dedup_and_partial_errors_and_administrator_boundary(self):
         url = "/api/v1/dynv6/registrations"
         body = {"credential_ref": self.ref, "domains": ["example.test", "example.test", "missing.test"]}

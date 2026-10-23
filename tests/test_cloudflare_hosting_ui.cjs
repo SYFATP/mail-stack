@@ -1,0 +1,37 @@
+const assert=require('node:assert/strict');
+const {fixture}=require('./test_dns_hosting_ui.cjs');
+const flush=()=>new Promise(resolve=>setImmediate(resolve));
+(async()=>{
+ const f=fixture('cloudflare');await f.t.controlPage();
+ f.t.state.controlSelection=new Set(['new.test','existing.test']);
+ const batch=f.t.runControlBatch('configure');await flush();
+ assert.equal(f.posted('dns-hosting').length,1);
+ assert.equal(f.posted('dns-apply').length,0);
+ assert.equal(f.t.controlUnifiedListData().counts.processing,2);
+ const hosting=[...f.jobs.values()].find(j=>j.kind==='dns_hosting');
+ hosting.status='succeeded';hosting.result={hosting_status:'ready',provider:'cloudflare',zone_status:'pending'};
+ f.required.delete('new.test');
+ f.hostingInfo['new.test']={provider:'cloudflare',nameservers:['alice.ns.cloudflare.com','bob.ns.cloudflare.com'],zone_status:'pending',next_action:'dns_preview'};
+ await f.tick();await batch;
+ assert.equal(f.posted('dns-apply').length,2,'Continue configuring before Zone activation');
+ f.t.state.controlDns.status='processing';f.t.renderControlUnifiedResults();
+ assert.match(f.node('#control-dns-body').innerHTML,/alice.ns.cloudflare.com/);
+ assert.match(f.node('#control-dns-body').innerHTML,/Cloudflare 目标 NS/);
+ const apply=[...f.jobs.values()].find(j=>j.kind==='dns_apply'&&j.scope==='new.test');
+ const completion={id:'manual-ns-wait',kind:'dns_complete',scope:'new.test',status:'queued',wait_reason:'retry_at',step:'dns_completion_waiting_manual_nameservers',result:{delegation:{nameservers:['alice.ns.cloudflare.com','bob.ns.cloudflare.com'],mode:'manual'},next_action:'update_nameservers'}};
+ f.jobs.set(completion.id,completion);apply.status='succeeded';apply.result={domain:'new.test',completion_job:completion};
+ await f.tick();
+ assert.ok(f.t.controlJobWatchers.has(completion.id));
+ assert.match(f.node('#control-dns-body').innerHTML,/等待手动修改 NS，系统将自动验证/);
+ assert.match(f.node('#control-dns-body').innerHTML,/请在注册商或父区修改 NS 委派/);
+ assert.equal(f.t.controlUnifiedListData().counts.processing,2);
+ f.t.stopControlJobWatchers();
+
+ const denied=fixture('cloudflare');await denied.t.controlPage();
+ const preview=denied.t.previewControlDns(denied.domains[0]);await flush();
+ const failed=[...denied.jobs.values()][0];failed.status='failed';failed.error_code='cloudflare_error_1061';
+ await denied.tick();await assert.rejects(preview,/cloudflare_error_1061.*域名接入资格/);
+ assert.equal(denied.posted('dns-apply').length,0);
+ assert.equal(denied.t.state.controlBusyCounts.size,0);
+ console.log('PASS: Cloudflare missing Zone prepares hosting, pending Zone configures before activation, durable assigned NS display, manual delegation stays processing, and upstream rejection retains its code');
+})().catch(error=>{console.error(error);process.exitCode=1});

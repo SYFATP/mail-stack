@@ -38,7 +38,7 @@ const context=vm.createContext({document,console,URL,URLSearchParams,
   else if(u.pathname.endsWith('/dns-credentials'))data={items:[]};
   return {ok:true,status:opt.method==='POST'?202:200,json:async()=>data};
  }});
-vm.runInContext(script+'\nglobalThis.t={state,controlJob,controlPage,controlJobWatchers,runControlBatch,logout,controlDomainReady,controlUnifiedListData,controlJobNotice,controlRepairEligible,repairControlDns,stopControlJobWatchers,controlDomainActivity};',context);
+vm.runInContext(script+'\nglobalThis.t={state,controlJob,controlPage,controlJobWatchers,runControlBatch,logout,controlDomainReady,controlUnifiedListData,controlJobNotice,controlRepairEligible,repairControlDns,stopControlJobWatchers,renderControlUnifiedResults,controlDomainActivity};',context);
 const t=context.t;t.state.token='fixture-session';t.state.tab='control';
 const writes=()=>requests.filter(r=>r.opt.method==='POST').length;
 const refreshes=()=>requests.filter(r=>r.url==='/api/v1/mail-domains').length;
@@ -60,6 +60,7 @@ async function tick(){
  t.state.controlSelection.add(target.domain);t.state.controlSelection.add(manual.domain);t.state.controlSelection.add(cloudflare.domain);
  const pageMarkup=node('#page').innerHTML;
  await t.runControlBatch('repair');
+ t.state.controlDns.status='processing';t.renderControlUnifiedResults();
  const posts=requests.filter(r=>r.url.endsWith('/dns-repair'));
  assert.equal(posts.length,1,'Mixed batches must repair only eligible DigitalPlat rows');
  assert.equal(JSON.parse(posts[0].opt.body).activate_on_success,true);

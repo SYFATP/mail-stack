@@ -42,7 +42,7 @@ const context=vm.createContext({document,console,URL,URLSearchParams,
   else if(u.pathname.endsWith('/dns-credentials'))data={items:[]};
   return {ok:true,status:opt.method==='POST'?202:200,json:async()=>data};
  }});
-vm.runInContext(script+'\nglobalThis.t={state,controlJob,controlPage,controlJobWatchers,runControlBatch,logout,controlDomainReady,controlUnifiedListData,controlJobNotice,showControlDnsDialog,closeModal};',context);
+vm.runInContext(script+'\nglobalThis.t={state,controlJob,controlPage,controlJobWatchers,runControlBatch,logout,controlDomainReady,controlUnifiedListData,controlJobNotice,showControlDnsDialog,closeModal,renderControlUnifiedResults};',context);
 const t=context.t;t.state.token='fixture-session';t.state.tab='control';
 const writes=()=>requests.filter(r=>r.opt.method==='POST').length;
 const refreshes=()=>requests.filter(r=>r.url==='/api/v1/mail-domains').length;
@@ -101,11 +101,15 @@ async function tick(){
  assert.match(node('#control-dns-body').innerHTML,/data-control-dns-activate="manual.test"/);
  const startExplicit=requests.length;
  const activation=()=>document.querySelectorAll('[data-control-dns-activate]').find(button=>button.dataset.controlDnsActivate===manual.domain);
- const single=activation().onclick();await activation().onclick();await single;
+ const activate=activation().onclick;
+ const single=activate();await activate();await single;
  const explicitRequest=requests.filter(r=>r.opt.method==='POST'&&r.url.endsWith('/manual.test/dns-validate')).at(-1);
  assert.equal(JSON.parse(explicitRequest.opt.body).activate_on_success,true,'Explicit activation also covers manually imported domains');
  assert.equal(requests.slice(startExplicit).filter(r=>r.opt.method==='POST').length,1,'Double click while submitting must not enqueue twice');
+ assert.equal(t.controlUnifiedListData().counts.processing,1);
+ t.state.controlDns.status='processing';t.renderControlUnifiedResults();
  assert.match(node('#control-dns-body').innerHTML,/data-control-dns-activate="manual.test" disabled/);
+ t.state.controlDns.status='pending';t.renderControlUnifiedResults();
  const blocked=[...jobs.values()].at(-1);
  blocked.status='succeeded';blocked.result={checks:{mx:{status:'failed'}},activation:{status:'blocked',enabled:false,pending_checks:['mx']}};
  await tick();

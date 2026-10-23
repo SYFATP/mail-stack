@@ -50,6 +50,8 @@ class ClaimInput(Input):
     status: Literal["registered", "synced", "sync_failed", "all"] | None = None
     sync_provider: Literal["none", "cloudflare", "all", "digitalplat_dns"] | None = None
     configure_on_success: bool = Field(default=False, strict=True)
+    hosting_provider: Literal["original", "digitalplat", "dynv6", "cloudflare"] = "original"
+    hosting_credential_ref: str | None = Field(default=None, min_length=1, max_length=80)
 
 
 class ImportInput(Input):
@@ -142,6 +144,8 @@ def build_router(manager, admin_ok):
                 }.get(exc.code, "dynv6 会话检查未完成，请稍后重试。")}) from None
             if exc.code == "dynv6_zone_not_accessible":
                 raise HTTPException(409, {"code": exc.code, "message": "请先执行“登记并绑定 dynv6”，或在 dynv6 的 My Domains 创建 Single zone。"}) from None
+            if exc.code == "cloudflare_zone_not_accessible":
+                raise HTTPException(409, {"code": exc.code, "message": "Cloudflare 中尚无可用 Zone；配置时将尝试创建，接入资格由 Cloudflare 判断。", "next_action": "dns_hosting"}) from None
             if exc.code == DIGITALPLAT_DNS_NOT_ENABLED:
                 raise HTTPException(409, {"code": exc.code, "message": digitalplat_dns_hosting_message(domain),
                                           "next_action": "dns_hosting"}) from None
@@ -310,6 +314,10 @@ def build_router(manager, admin_ok):
     @router.post("/mail-domains/{domain}/dns-hosting", status_code=202)
     def prepare_dns_hosting(domain: str, idempotency_key: str = Header(alias="Idempotency-Key")):
         return call(manager.create_dns_hosting_job, domain, idempotency_key)
+
+    @router.post("/mail-domains/{domain}/cloudflare-hosting", status_code=202)
+    def cloudflare_hosting(domain: str, item: BindingInput, idempotency_key: str = Header(alias="Idempotency-Key")):
+        return call(manager.cloudflare_registration.enqueue, domain, idempotency_key, item.credential_ref)
 
     @router.post("/mail-domains/{domain}/dns-validate", status_code=202)
     def validate(domain: str, item: DNSValidateInput | None = None,

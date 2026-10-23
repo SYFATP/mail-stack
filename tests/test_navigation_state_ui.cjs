@@ -24,6 +24,8 @@ function navigation(saved,blocked=false,fetch){
   assert.equal(restored.state.tab,'control');assert.equal(restored.state.controlDns.status,'ready');
   assert.equal(restored.state.controlDns.query,'example.test');assert.equal(restored.state.controlDns.page,3);
   assert.equal(restored.state.controlDns.provider,'dynv6');assert.equal(restored.state.controlDns.pageSize,50);
+  restored.state.controlDns.status='processing';restored.saveNavigation();
+  assert.equal(navigation(restored.storage.get('mail_navigation')).state.controlDns.status,'processing');
   restored.state.tab='send';restored.saveNavigation();
   assert.equal(navigation(restored.storage.get('mail_navigation')).state.tab,'send');
   assert.doesNotThrow(()=>navigation('{}',true).saveNavigation());

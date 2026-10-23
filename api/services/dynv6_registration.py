@@ -123,7 +123,7 @@ class Dynv6Registration:
         self.store_session(ref, secret, client.cookie(), "valid")
         return {"credential_ref": ref, "status": "valid"}
 
-    def enqueue(self, domain, key, credential_ref, *, bind=True, max_subdomain_depth=1):
+    def enqueue(self, domain, key, credential_ref, *, bind=True, max_subdomain_depth=1, completion=None):
         if not re.fullmatch(r"[A-Za-z0-9._:-]{8,128}", key):
             raise ValueError("Idempotency-Key must be 8-128 ASCII identifier characters")
         domain = normalize_domain(domain)
@@ -137,6 +137,11 @@ class Dynv6Registration:
             self.m.credentials().require_writer()
             request = {"credential_ref": credential_ref, "bind": bind,
                        "max_subdomain_depth": max_subdomain_depth}
+            if completion:
+                request["completion"] = dict(completion)
+                request["initial_credential_ref"] = row["dns_credential_ref"]
+                request["initial_provider"] = row["dns_provider"]
+                self.check_claim_context(request, row)
             c = self.m.db()
             try:
                 active = c.execute("""SELECT * FROM domain_jobs WHERE kind='dynv6_register'
@@ -163,6 +168,18 @@ class Dynv6Registration:
                 row["max_subdomain_depth"] = 1
                 self.m.save_domain(row, name)
 
+    def check_claim_context(self, request, row):
+        expected = request.get("completion")
+        if not expected:
+            return
+        claim = self.m.claim_row(expected["claim_id"])
+        if (row["claim_id"] != claim["id"] or row["domain"] != claim["domain"]
+                or claim["job_id"] != expected["allocation_job_id"]
+                or row["dns_credential_ref"] != request["initial_credential_ref"]
+                or row["dns_provider"] != request["initial_provider"]
+                or row["source_status"] in {"released", "revoked", "expired", "releasing"}):
+            raise ValueError("claim ownership or DNS binding changed before dynv6 setup")
+
     def execute(self, job):
         name, ref = job["scope"], job["request"]["credential_ref"]
         result = {"domain": name, "credential_ref": ref, "registration_dispatched": False}
@@ -172,6 +189,7 @@ class Dynv6Registration:
             row = self.m.domain(name)
             if row["enabled"] or row["source_status"] in {"released", "revoked", "expired", "releasing"}:
                 raise ValueError("domain changed before dynv6 registration")
+            self.check_claim_context(job["request"], row)
             secret, zones = self.m.dynv6_accounts.zones(ref, name)
             zone = self.exact_zone(zones, name)
             if not zone:
@@ -188,18 +206,27 @@ class Dynv6Registration:
                     raise ProviderError("dynv6_registration_unconfirmed", uncertain=True)
                 self.m.jobs.check_provider_backoff("dynv6")
                 secret, client = self.m.dynv6_accounts.prepared(ref, name)
-                # Recheck mutable state after all network preparation.
-                current = self.m.domain(name)
-                if current["enabled"] or current["dns_provider"] != row["dns_provider"]:
-                    raise ValueError("domain changed before registration dispatch")
-                result["registration_dispatched"] = True
-                self.m.jobs.progress(job["id"], step="dynv6_register_dispatched", result=result)
-                dispatched = True
-                try:
-                    result.update(client.register(name))
-                finally:
-                    # Keep rotated session cookies encrypted, including after an uncertain POST.
-                    secret = self.store_session(ref, secret, client.cookie(), "valid")
+                # Registration overlaps other domains' reads, while all DNS
+                # and registration dispatches retain one shared write gate.
+                with self.m.lock:
+                    current = self.m.domain(name)
+                    self.check_claim_context(job["request"], current)
+                    if current["enabled"] or current["dns_provider"] != row["dns_provider"]:
+                        raise ValueError("domain changed before registration dispatch")
+                    self.m.jobs.check_provider_backoff("dynv6")
+                    result["registration_dispatched"] = True
+                    self.m.jobs.progress(job["id"], step="dynv6_register_dispatched", result=result)
+                    dispatched = True
+                    try:
+                        result.update(client.register(name))
+                    except ProviderError as exc:
+                        # Publish a 429 before a running peer can dispatch.
+                        result.update(self.m.jobs.provider_backoff(name, exc, provider="dynv6"))
+                        self.m.jobs.progress(job["id"], step="dynv6_registration_readback", result=result)
+                        raise
+                    finally:
+                        # Persist rotated cookies even after an uncertain POST.
+                        secret = self.store_session(ref, secret, client.cookie(), "valid")
                 zone = self.exact_zone(self.zones(secret), name)
                 if not zone:
                     raise ProviderError("dynv6_registration_unconfirmed", uncertain=True)
@@ -223,10 +250,14 @@ class Dynv6Registration:
             finally:
                 c.close()
             if job["request"]["bind"]:
+                self.check_claim_context(job["request"], self.m.domain(name))
                 self._bind(name, ref)
                 result.update(bound=True, max_subdomain_depth=1)
             result["next_action"] = "dns_preview" if result["bound"] else "dns_binding"
-            self.m.jobs.finish(job["id"], "succeeded", step="dynv6_registration_ready", result=result)
+            if result["bound"] and job["request"].get("completion"):
+                result.update(self.m._queue_claim_completion(job["request"]["completion"]))
+            self.m.jobs.finish(job["id"], "partial" if result.get("configuration_status") in {"pending", "blocked"} else "succeeded",
+                               step="dynv6_registration_ready", result=result)
         except Exception as exc:
             code = exc.code if isinstance(exc, ProviderError) else "dynv6_registration_local_error"
             # Read back after any dispatched write before declaring it unresolved.

@@ -22,6 +22,8 @@ class Dynv6Wire:
         assert kw["headers"]["Authorization"] == "Bearer " + base.TOKEN
         if method == "GET" and path == "/api/v2/zones":
             return copy.deepcopy(self.zones)
+        if method == "GET" and path == "/api/v2/zones/100":
+            return copy.deepcopy(next(z for z in self.zones if z["id"] == 100))
         if method == "GET" and path == "/api/v2/zones/100/records":
             return copy.deepcopy(self.records)
         if self.failure == "rate" and method == "POST":
@@ -103,6 +105,75 @@ class Dynv6Tests(unittest.TestCase):
         before = len(self.writes())
         self.assertEqual(self.apply("dynv6-existing-fixture")["status"], "succeeded")
         self.assertEqual(len(self.writes()), before)
+
+    def test_exact_inventory_reuses_only_identity_and_refreshes_primary_addresses(self):
+        adapter = self.m.dns_adapter(self.m.domain("example.test"))
+        self.wire.calls.clear()
+        adapter.inventory("example.test")
+        self.wire.zones[0]["ipv4address"] = "203.0.113.25"
+        inventory = adapter.inventory("example.test")
+        self.assertEqual(sum(c[2] == "/api/v2/zones" for c in self.wire.calls), 1)
+        self.assertEqual(sum(c[2] == "/api/v2/zones/100" for c in self.wire.calls), 1)
+        self.assertEqual(next(r["content"] for r in inventory["records"] if r["type"] == "A"), "203.0.113.25")
+
+    def test_exact_inventory_reads_metadata_and_records_concurrently(self):
+        import threading
+        adapter = self.m.dns_adapter(self.m.domain("example.test"))
+        adapter.inventory("example.test")
+        request = self.wire.request
+        entered = threading.Barrier(2)
+        def observe(method, base_url, path, **kw):
+            if path in {"/api/v2/zones/100", "/api/v2/zones/100/records"}:
+                entered.wait(timeout=3)
+            return request(method, base_url, path, **kw)
+        with patch.object(self.wire, "request", side_effect=observe):
+            adapter.inventory("example.test")
+
+    def test_inherited_inventory_rediscovers_new_child_zone(self):
+        adapter = Dynv6DNS(self.wire, {"api_token": base.TOKEN}, "child.example.test")
+        self.assertEqual(adapter.inventory("child.example.test")["zone_id"], "100")
+        self.wire.zones.append({"id": 101, "name": "child.example.test"})
+        request = self.wire.request
+        def observe(method, base_url, path, **kw):
+            if path == "/api/v2/zones/101/records":
+                return []
+            return request(method, base_url, path, **kw)
+        with patch.object(self.wire, "request", side_effect=observe):
+            self.assertEqual(adapter.inventory("child.example.test")["zone_id"], "101")
+
+    def test_primary_address_changes_still_block_before_first_write(self):
+        request = self.wire.request
+        def observe(method, base_url, path, **kw):
+            if path == "/api/v2/zones/100":
+                self.wire.zones[0]["ipv4address"] = "203.0.113.25"
+            return request(method, base_url, path, **kw)
+        with patch.object(self.wire, "request", side_effect=observe):
+            result = self.apply()
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["error_code"], "dns_changed_before_write")
+        self.assertEqual(self.writes(), [])
+
+    def test_changed_exact_zone_identity_is_rejected(self):
+        adapter = self.m.dns_adapter(self.m.domain("example.test"))
+        adapter.inventory("example.test")
+        request = self.wire.request
+        def observe(method, base_url, path, **kw):
+            if path == "/api/v2/zones/100":
+                return {"id": 100, "name": "another.test"}
+            return request(method, base_url, path, **kw)
+        with patch.object(self.wire, "request", side_effect=observe):
+            with self.assertRaisesRegex(ProviderError, "dynv6_zone_changed"):
+                adapter.inventory("example.test")
+        self.assertEqual(self.writes(), [])
+
+    def test_apply_preserves_live_record_reads_without_relisting_all_zones(self):
+        self.wire.calls.clear()
+        self.assertEqual(self.apply()["status"], "succeeded")
+        # Preview and apply each discover once; all 8 per-record checks remain.
+        self.assertEqual(sum(c[2] == "/api/v2/zones" for c in self.wire.calls), 2)
+        self.assertEqual(sum(c[2] == "/api/v2/zones/100/records" and c[0] == "GET"
+                             for c in self.wire.calls), 10)
+        self.assertEqual(len(self.writes()), 4)
 
     def test_external_foreign_spf_blocks_before_any_write(self):
         self.wire.records.append({"id": 10, "zoneID": 100, "name": "", "type": "TXT", "data": "v=spf1 -all"})

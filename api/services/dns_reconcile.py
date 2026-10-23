@@ -36,9 +36,9 @@ class DNSReconciler:
         self.m = manager
         self.preview_slots = threading.BoundedSemaphore(3)
 
-    def plan_for(self, row, *, plan=None):
+    def plan_for(self, row, *, plan=None, register_brevo=True):
         plan = plan if plan is not None else build_plan(row, self.m.key_root)
-        extras = self.m.brevo_dns_targets(row)
+        extras = self.m.brevo_dns_targets(row, register=register_brevo)
         if extras:
             plan = dict(plan)
             plan["records"] = list(plan["records"]) + extras
@@ -437,18 +437,38 @@ class DNSReconciler:
             build_plan(current, self.m.key_root)["plan_hash"] != plan["plan_hash"]):
             raise JobConflict("DNS configuration changed during apply")
 
-    def _interrupt_apply(self, job, completed, op_id, write_returned, exc):
+    def _interrupt_apply(self, job, completed, op_id, write_returned, exc, recovery=None):
         code = exc.code if isinstance(exc, ProviderError) else 'dns_write_or_persistence_failed'
         uncertain = bool(op_id) and (write_returned or not isinstance(exc, ProviderError) or exc.uncertain)
         if op_id:
             self.set_operation_error(op_id, code, uncertain)
+        if recovery and recovery.interrupt(completed, op_id, uncertain, exc):
+            return
         self.m.jobs.finish(job['id'], 'unknown' if uncertain else ('partial' if completed else 'failed'),
             step='dns_apply_interrupted', result={'completed': completed, 'operation_id': op_id,
             **self.m.jobs.provider_backoff(job['scope'], exc)}, error=code)
 
     def apply(self, job):
-        completed, op_id, write_returned = [], None, False
+        from api.services.dns_apply_recovery import DNSApplyRecovery
         snapshot = self.plan(job['request']['plan_id'])
+        recovery = DNSApplyRecovery(self, job, snapshot) if job['request'].get('activate_on_success') else None
+        try:
+            self._apply(job, snapshot, recovery)
+        except ProviderError as exc:
+            if recovery and exc.code in DNSApplyRecovery.TRANSIENT:
+                recovery.wait(exc)
+            elif recovery and recovery.state.get('pending'):
+                self._interrupt_apply(job, recovery.result['completed'],
+                                      recovery.state['pending']['id'], True, exc)
+            else:
+                raise
+
+    def _apply(self, job, snapshot, recovery):
+        completed, op_id, write_returned = [], None, False
+        if recovery:
+            if recovery.expired():
+                return
+            completed = recovery.result['completed']
         if snapshot['domain'] != job['scope']:
             raise JobConflict('DNS preview belongs to another domain')
         if (not snapshot['executable'] or not
@@ -463,13 +483,17 @@ class DNSReconciler:
             raise ProviderError(exc.code, uncertain=False, retry_after=exc.retry_after,
                                 rate_limit=exc.rate_limit) from None
         validation_plan = build_plan(row, self.m.key_root)
-        current_plan = self.plan_for(row)
+        # A resumed apply must only read Brevo. A missing registration requires
+        # a fresh preview rather than replaying an uncertain registration POST.
+        current_plan = self.plan_for(row, register_brevo=False)
         with self.m.lock:
             self._assert_apply_revision(row, validation_plan)
             if (row['dns_credential_ref'] != snapshot['credential_ref'] or inventory['zone_id'] != snapshot['zone_id'] or
                 inventory['zone_name'] != snapshot['zone_name'] or current_plan['plan_hash'] != snapshot['plan_hash'] or
-                inventory_hash(records, row['dns_provider'], inventory['zone_name']) != snapshot['inventory_hash']):
+                (not recovery and inventory_hash(records, row['dns_provider'], inventory['zone_name']) != snapshot['inventory_hash'])):
                 raise JobConflict('DNS configuration or inventory changed; fresh preview required')
+            if recovery and not recovery.prepare(row, inventory, records):
+                return
             c = self.m.db()
             try:
                 with c:
@@ -478,10 +502,14 @@ class DNSReconciler:
                 c.close()
         expected_records = records
         try:
-            for action in snapshot['actions']:
+            for index, action in enumerate(snapshot['actions']):
+                if recovery and index < recovery.state['index']:
+                    continue
                 target = action['target']
                 if action['action'] == 'exists':
                     completed.append({'name': target['name'], 'role': target['role'], 'action': 'exists'})
+                    if recovery:
+                        recovery.advance(index, inventory, expected_records)
                     continue
                 # Re-read inventory before every write; there is no claim of
                 # server-side CAS against an unrelated DNS writer.
@@ -512,6 +540,8 @@ class DNSReconciler:
                         self._assert_apply_revision(row, validation_plan)
                         self.m.jobs.check_provider_backoff(row['dns_provider'])
                         op_id, marker = self.operation(job, snapshot, action)
+                        if recovery:
+                            recovery.dispatched(row, inventory, fresh, op_id)
                         try:
                             if row['dns_provider'] == 'digitalplat':
                                 raw = adapter.write(snapshot['zone_id'], target, marker, action.get('record_id'),
@@ -519,7 +549,7 @@ class DNSReconciler:
                             else:
                                 raw = adapter.write(snapshot['zone_id'], target, marker, action.get('record_id'))
                         except Exception as exc:
-                            self._interrupt_apply(job, completed, op_id, False, exc)
+                            self._interrupt_apply(job, completed, op_id, False, exc, recovery)
                             return
                     write_returned = True
                     record_id = identifier(raw.get('id') or raw.get('record_id'))
@@ -543,9 +573,11 @@ class DNSReconciler:
                     expected_records = verified
                     op_id = None
                 completed.append({'name': target['name'], 'role': target['role'], 'action': action['action']})
+                if recovery:
+                    recovery.advance(index, inventory, expected_records)
         except Exception as exc:
             with self.m.lock:
-                self._interrupt_apply(job, completed, op_id, write_returned, exc)
+                self._interrupt_apply(job, completed, op_id, write_returned, exc, recovery)
             return
         c = self.m.db()
         try:
@@ -554,14 +586,20 @@ class DNSReconciler:
                           (time.time(), job['id']))
         finally:
             c.close()
-        if row['dns_provider'] == 'dynv6' and job['request'].get('activate_on_success'):
+        child = None
+        if job['request'].get('activate_on_success') and row['dns_provider'] in {'dynv6', 'cloudflare'}:
             try:
-                child = self.m.dns_completion.enqueue(row['domain'], 'dns-complete:' + job['id'])
-            except Exception:
+                if self.m.dns_completion.required(row):
+                    child = self.m.dns_completion.enqueue(row['domain'], 'dns-complete:' + job['id'])
+            except Exception as exc:
+                if recovery and isinstance(exc, ProviderError) and exc.code in recovery.TRANSIENT:
+                    recovery.wait(exc)
+                    return
                 self.m.jobs.finish(job['id'], 'partial', step='dns_applied_completion_error',
                     result={'domain': row['domain'], 'completed': completed, 'next_action': 'retry_completion'},
                     error='dns_completion_not_queued')
                 return
+        if child:
             self.m.jobs.finish(job['id'], 'succeeded', step='dns_applied_completion_queued',
                 result={'domain': row['domain'], 'completed': completed, 'completion_job': child,
                         'next_action': 'wait_for_dns'})

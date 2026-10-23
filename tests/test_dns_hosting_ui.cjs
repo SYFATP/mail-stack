@@ -1,9 +1,9 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const script=fs.readFileSync(path.join(__dirname,'../frontend/index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
-function fixture(){
- const nodes=new Map(),requests=[],jobs=new Map(),timers=new Map(),required=new Set(['new.test']);
+function fixture(provider='digitalplat'){
+ const nodes=new Map(),requests=[],jobs=new Map(),timers=new Map(),required=new Set(['new.test']),hostingInfo={};
  let nextJob=0,nextTimer=0,previewError='';
- const domains=['new.test','existing.test'].map(domain=>({domain,enabled:false,dns_provider:'digitalplat',
+ const domains=['new.test','existing.test'].map(domain=>({domain,enabled:false,dns_provider:provider,
   dns_credential_ref:domain+'-credential',receive_ready:false,send_ready:false,dns_checks:{}}));
  function node(id){if(!nodes.has(id))nodes.set(id,{innerHTML:'',textContent:'',value:'',checked:false,disabled:false,
   dataset:{},style:{},classList:{toggle(){}},append(){},focus(){},isConnected:true});return nodes.get(id)}
@@ -19,31 +19,32 @@ function fixture(){
    let data={};
    if(opt.method==='POST'&&u.pathname.endsWith('/dns-preview')){
     if(previewError||required.has(name))return {ok:false,status:409,json:async()=>({detail:previewError||
-     {code:'digitalplat_dns_not_enabled',message:'DNS hosting is not enabled'}})};
+     {code:provider==='cloudflare'?'cloudflare_zone_not_accessible':'digitalplat_dns_not_enabled',message:'DNS hosting is not enabled'}})};
     data={id:'plan-'+name,domain:name,executable:true,actions:[],conflicts:[]};
    }else if(opt.method==='POST'){
     const kind=u.pathname.endsWith('/dns-hosting')?'dns_hosting':u.pathname.endsWith('/dns-apply')?'dns_apply':'claim';
-    data={id:'job-'+(++nextJob),kind,scope:name||'source-fixture',status:'queued'};
+    data={id:'job-'+(++nextJob),kind,scope:name||'source-fixture',status:'queued',request:kind==='dns_hosting'?{provider}: {}};
     jobs.set(data.id,{...data});
    }else if(u.pathname.includes('/domain-jobs/'))data=jobs.get(u.pathname.split('/').at(-1));
-   else if(u.pathname.endsWith('/domain-jobs'))data={items:[],total:jobs.size,status_counts:{},blocked_claim_sources:[]};
+   else if(u.pathname.endsWith('/domain-jobs'))data={items:[],total:jobs.size,status_counts:{},blocked_claim_sources:[],domain_hosting:hostingInfo};
    else if(u.pathname.endsWith('/mail-domains'))data=domains;
    else if(u.pathname.endsWith('/domain-sources'))data={items:[]};
-   else if(u.pathname.endsWith('/dns-credentials'))data={items:domains.map(d=>({id:d.dns_credential_ref,provider:'digitalplat',domain:d.domain}))};
+   else if(u.pathname.endsWith('/dns-credentials'))data={items:domains.map(d=>({id:d.dns_credential_ref,provider,domain:d.domain}))};
    else if(u.pathname.endsWith('/domain-claims'))data={items:[]};
    return {ok:true,status:opt.method==='POST'?202:200,json:async()=>data};
   }});
- vm.runInContext(script+'\nglobalThis.t={state,controlPage,runControlBatch,previewControlDns,controlJob,controlJobWatchers,stopControlJobWatchers};globalThis.notices=[];toast=(text,bad)=>notices.push({text,bad});',context);
+ vm.runInContext(script+'\nglobalThis.t={state,controlPage,runControlBatch,previewControlDns,controlJob,controlJobWatchers,stopControlJobWatchers,controlUnifiedListData,renderControlUnifiedResults};globalThis.notices=[];toast=(text,bad)=>notices.push({text,bad});',context);
  const t=context.t;t.state.token='fixture-session';t.state.tab='control';
  async function tick(){
   const entry=[...timers.entries()].find(([,value])=>[1000,2000].includes(value.ms));
   assert.ok(entry,'Expected a job status poll');timers.delete(entry[0]);await entry[1].fn();
  }
  const posted=kind=>requests.filter(r=>r.opt.method==='POST'&&r.url.endsWith('/'+kind));
- return {t,node,requests,jobs,domains,required,tick,posted,notices:context.notices,error:v=>previewError=v};
+ return {t,node,requests,jobs,domains,required,hostingInfo,tick,posted,notices:context.notices,error:v=>previewError=v};
 }
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
-(async()=>{
+module.exports={fixture};
+if(require.main===module)(async()=>{
  const f=fixture();await f.t.controlPage();f.t.state.controlSelection=new Set(['new.test','existing.test']);
  const batch=f.t.runControlBatch('configure');await flush();
  assert.equal(f.posted('dns-hosting').length,1);

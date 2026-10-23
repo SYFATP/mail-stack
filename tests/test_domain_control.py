@@ -100,7 +100,7 @@ class P2Tests(unittest.TestCase):
         self.domain()
         c = app.db()
         app.migrate(c); c.commit()
-        self.assertEqual([r[0] for r in c.execute('SELECT version FROM schema_migrations ORDER BY version')], list(range(1, 15)))
+        self.assertEqual([r[0] for r in c.execute('SELECT version FROM schema_migrations ORDER BY version')], list(range(1, 16)))
         self.assertEqual(c.execute('SELECT count(*) FROM mail_domains').fetchone()[0], 1)
         c.close()
 
@@ -680,7 +680,8 @@ class P2Tests(unittest.TestCase):
         before = self.manager.domain('example.test')
         response = self.client.post('/api/v1/mail-domains/example.test/dns-binding/global-cloudflare',
                                     headers=self.headers)
-        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.json()['detail']['code'], 'cloudflare_zone_not_accessible')
         self.assertEqual(self.manager.domain('example.test'), before)
         c = self.manager.db()
         self.assertEqual(c.execute('SELECT count(*) FROM dns_credentials').fetchone()[0], 0)
@@ -1018,7 +1019,7 @@ class HTTPBoundaryTests(unittest.TestCase):
         self.assertIsNone(c.execute("SELECT name FROM sqlite_master WHERE name='dns_credentials'").fetchone())
         c.inject = False
         migrate(c); c.commit()
-        self.assertEqual(c.execute('SELECT count(*) FROM schema_migrations').fetchone()[0], 14)
+        self.assertEqual(c.execute('SELECT count(*) FROM schema_migrations').fetchone()[0], 15)
         c.close()
 
 

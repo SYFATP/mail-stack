@@ -9,7 +9,7 @@ function node(id){
  return nodes.get(id);
 }
 const root=node('#modal-root');let markup='';
-Object.defineProperty(root,'innerHTML',{get(){return markup},set(value){markup=value;nodes.delete('#domain-dialog-bg');for(const id of ['source-label','source-kind','source-base','source-client','source-secret','credential-label','credential-provider','credential-domain','credential-base','credential-secret','control-create-msg','save-control-create','cancel-control-create'])nodes.delete('#'+id)}});
+Object.defineProperty(root,'innerHTML',{get(){return markup},set(value){markup=value;nodes.delete('#domain-dialog-bg');for(const id of ['source-label','source-kind','source-base','source-client','source-secret','credential-label','credential-provider','credential-domain','credential-base','credential-account','credential-secret','control-create-msg','save-control-create','cancel-control-create'])nodes.delete('#'+id)}});
 document.querySelector=id=>id==='#domain-dialog-bg'&&!markup?null:node(id);
 document.querySelectorAll=()=>[];
 document.createElement=()=>({style:{},remove(){}});
@@ -72,6 +72,11 @@ function credentialValues(provider='cloudflare'){
  const cf=JSON.parse(posts('/dns-credentials').at(-1).opt.body);
  assert.equal(cf.provider,'cloudflare');assert.equal(cf.domain,null);assert.deepEqual(cf.secret,{api_token:'fixture-credential-secret'});
  assert.equal(cfSecret.value,'');assert.equal(markup,'');
+ node('#add-dns-credential').onclick();credentialValues();
+ assert.equal(node('#credential-account-field').classes.get('hidden'),false);
+ node('#credential-account').value=' aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ';
+ await node('#credential-create-form').onsubmit(event);
+ assert.equal(JSON.parse(posts('/dns-credentials').at(-1).opt.body).secret.account_id,'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
  node('#add-dns-credential').onclick();credentialValues('dynv6');
  assert.match(markup,/<option value="dynv6">dynv6 account<\/option>/);
  assert.equal(node('#credential-domain').required,false);assert.equal(node('#credential-base').disabled,true);
