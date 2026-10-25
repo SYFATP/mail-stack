@@ -4,7 +4,7 @@ import sqlite3
 import unittest
 from unittest.mock import patch
 
-from api.migrations.schema import migrate, _migrate_v15
+from api.migrations.schema import migrate, _migrate_v15, _migrate_v16
 from api.providers.http import ProviderError
 from api.repositories.domain_jobs import DomainJobs
 
@@ -112,11 +112,41 @@ class JobPollingCostTests(unittest.TestCase):
         self.assertIn('idx_domain_jobs_readiness_attempts', plan)
         self.assertNotIn('USE TEMP B-TREE', plan)
 
+    def test_latest_page_uses_index_without_sorting_history(self):
+        sql = 'SELECT * FROM domain_jobs ORDER BY created_at DESC,id LIMIT 1 OFFSET 0'
+        rows, steps = self.measured(lambda: self.c.execute(sql).fetchall())
+        self.assertEqual(rows[0]['id'], 'history-2499')
+        self.assertLess(steps, 100)
+        plan = ' '.join(r[3] for r in self.c.execute('EXPLAIN QUERY PLAN ' + sql))
+        self.assertIn('idx_domain_jobs_created', plan)
+        self.assertNotIn('USE TEMP B-TREE', plan)
+        self.c.execute("UPDATE domain_jobs SET created_at=3000 WHERE id IN ('history-1','history-2')")
+        self.assertEqual(self.c.execute(sql).fetchone()['id'], 'history-1')
+
+    def test_latest_index_accepts_online_preinstallation_and_rolls_back(self):
+        self.c.execute('DELETE FROM schema_migrations WHERE version=16')
+        self.c.commit()
+        before = self.c.execute('SELECT count(*) FROM domain_jobs').fetchone()[0]
+        _migrate_v16(self.c)
+        self.c.commit()
+        self.assertEqual(self.c.execute('SELECT count(*) FROM domain_jobs').fetchone()[0], before)
+        self.c.execute('DROP INDEX idx_domain_jobs_created')
+        self.c.execute('DELETE FROM schema_migrations WHERE version=16')
+        self.c.commit()
+        self.c.execute('BEGIN IMMEDIATE')
+        _migrate_v16(self.c)
+        self.c.rollback()
+        self.assertIsNone(self.c.execute("SELECT 1 FROM sqlite_master WHERE name='idx_domain_jobs_created'").fetchone())
+        self.assertIsNone(self.c.execute('SELECT 1 FROM schema_migrations WHERE version=16').fetchone())
+        migrate(self.c)
+        self.c.commit()
+        self.assertIsNotNone(self.c.execute("SELECT 1 FROM sqlite_master WHERE name='idx_domain_jobs_created'").fetchone())
+
     def test_migration_is_additive_and_repeatable(self):
         before = [tuple(r) for r in self.c.execute('SELECT * FROM domain_jobs ORDER BY id')]
         migrate(self.c)
         self.c.commit()
-        self.assertEqual([r[0] for r in self.c.execute('SELECT version FROM schema_migrations ORDER BY version')], list(range(1, 16)))
+        self.assertEqual([r[0] for r in self.c.execute('SELECT version FROM schema_migrations ORDER BY version')], list(range(1, 17)))
         self.assertEqual([tuple(r) for r in self.c.execute('SELECT * FROM domain_jobs ORDER BY id')], before)
 
     def test_index_migration_rolls_back_and_retries(self):

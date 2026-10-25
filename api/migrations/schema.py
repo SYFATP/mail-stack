@@ -49,6 +49,7 @@ def migrate(connection):
         _migrate_v13(connection)
         _migrate_v14(connection)
         _migrate_v15(connection)
+        _migrate_v16(connection)
         return
     columns = {x[1] for x in connection.execute("PRAGMA table_info(mail_domains)")}
     for name, declaration in DOMAIN_COLUMNS.items():
@@ -87,6 +88,7 @@ def migrate(connection):
     _migrate_v13(connection)
     _migrate_v14(connection)
     _migrate_v15(connection)
+    _migrate_v16(connection)
 
 
 def _migrate_v2(connection):
@@ -365,3 +367,13 @@ def _migrate_v15(connection):
     connection.execute("""CREATE INDEX idx_domain_jobs_readiness_attempts
         ON domain_jobs(kind,scope,updated_at,idempotency_key) WHERE kind='dns_validate'""")
     connection.execute("INSERT INTO schema_migrations(version,applied_at) VALUES(15,?)", (time.time(),))
+
+
+def _migrate_v16(connection):
+    """Read the newest tasks without sorting retained result payloads."""
+    if connection.execute("SELECT 1 FROM schema_migrations WHERE version=16").fetchone():
+        return
+    # Supports installing the additive index online before the next release.
+    connection.execute("""CREATE INDEX IF NOT EXISTS idx_domain_jobs_created
+        ON domain_jobs(created_at DESC,id)""")
+    connection.execute("INSERT INTO schema_migrations(version,applied_at) VALUES(16,?)", (time.time(),))

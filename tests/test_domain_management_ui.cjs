@@ -82,6 +82,26 @@ function fixture() {
 }
 
 (async () => {
+  const slowAuth=fixture();let releaseAuth;
+  slowAuth.delay(new Promise(resolve=>releaseAuth=resolve),url=>url.endsWith('/dns/cloudflare'));
+  const firstOpen=slowAuth.t.domainPage();
+  await new Promise(setImmediate);
+  assert.match(slowAuth.node('#page').innerHTML,/id="domain-table-body"/,'Domain rows must not wait for optional auth metadata');
+  assert.match(slowAuth.node('#domain-table-body').innerHTML,/domain-01.example.test/);
+  assert.match(slowAuth.node('#page').innerHTML,/正在读取…/);
+  assert.equal(slowAuth.requests.length,2,'Domain and auth reads start together');
+  releaseAuth();await firstOpen;await new Promise(setImmediate);
+  assert.match(slowAuth.node('#domain-auth-summary').innerHTML,/已配置/);
+  const failedAuth=fixture();failedAuth.failRoute('/dns/cloudflare','fixture auth read failed');
+  await failedAuth.t.domainPage();await new Promise(setImmediate);
+  assert.match(failedAuth.node('#domain-table-body').innerHTML,/domain-01.example.test/);
+  assert.equal(failedAuth.t.state.cloudflare.error,'fixture auth read failed');
+  const staleAuth=fixture();let releaseOldAuth;
+  staleAuth.delay(new Promise(resolve=>releaseOldAuth=resolve),url=>url.endsWith('/dns/cloudflare'));
+  await staleAuth.t.domainPage();await staleAuth.t.logout(false);
+  staleAuth.t.state.token='new-session';
+  releaseOldAuth();await new Promise(setImmediate);
+  assert.equal(staleAuth.t.state.cloudflare,null,'Late auth data cannot populate a new session');
   const f = fixture(), {t, node, requests, domains, classes} = f;
   await t.domainPage();
   assert.equal(requests[0].url, '/api/v1/mail-domains?ready_only=true');

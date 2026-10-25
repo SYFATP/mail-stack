@@ -100,7 +100,7 @@ class P2Tests(unittest.TestCase):
         self.domain()
         c = app.db()
         app.migrate(c); c.commit()
-        self.assertEqual([r[0] for r in c.execute('SELECT version FROM schema_migrations ORDER BY version')], list(range(1, 16)))
+        self.assertEqual([r[0] for r in c.execute('SELECT version FROM schema_migrations ORDER BY version')], list(range(1, 17)))
         self.assertEqual(c.execute('SELECT count(*) FROM mail_domains').fetchone()[0], 1)
         c.close()
 
@@ -1019,7 +1019,7 @@ class HTTPBoundaryTests(unittest.TestCase):
         self.assertIsNone(c.execute("SELECT name FROM sqlite_master WHERE name='dns_credentials'").fetchone())
         c.inject = False
         migrate(c); c.commit()
-        self.assertEqual(c.execute('SELECT count(*) FROM schema_migrations').fetchone()[0], 15)
+        self.assertEqual(c.execute('SELECT count(*) FROM schema_migrations').fetchone()[0], 16)
         c.close()
 
 
