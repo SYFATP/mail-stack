@@ -254,6 +254,31 @@ class DomainAPITests(unittest.TestCase):
         self.assertNotIn("claimed.test", {row["domain"] for row in ready_domains})
         self.assertIn("example.test", {row["domain"] for row in ready_domains})
 
+    def test_summary_keeps_readiness_and_policy_without_check_payloads(self):
+        row = app._domain_rows()[0]
+        now = time.time()
+        c = app.db()
+        c.executemany("INSERT INTO domain_checks(domain,check_name,status,config_hash,checked_at,detail) VALUES(?,?,?,?,?,?)",
+                      [(row["domain"], "mx", "passed", config_hash(row), now, "x" * 50000),
+                       (row["domain"], "spf", "passed", "stale-config", now, "old evidence")])
+        c.commit(); c.close()
+        full = self.request("GET", "/mail-domains").json()
+        response = self.request("GET", "/mail-domains?summary=true")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["cache-control"], "no-store")
+        compact = response.json()
+        for original, summary in zip(full, compact):
+            self.assertEqual({k: v for k, v in original.items() if k != "dns_checks"},
+                             {k: v for k, v in summary.items() if k != "dns_checks"})
+            self.assertEqual(summary["dns_checks"], {name: {k: check[k] for k in ("status", "checked_at")}
+                             for name, check in original["dns_checks"].items()})
+        self.assertNotIn("spf", compact[0]["dns_checks"], "Stale config evidence stays excluded")
+        self.assertLess(len(response.content), len(json.dumps(full)) // 4)
+        ready = self.request("GET", "/mail-domains?summary=true&ready_only=true").json()
+        self.assertEqual([r["domain"] for r in ready],
+                         [r["domain"] for r in full if app._domain_management_ready(r)])
+        self.assertEqual(self.client.get("/api/v1/mail-domains?summary=true").status_code, 401)
+
     def test_available_requires_current_generation_and_dns(self):
         self.assertEqual(self.request("GET", "/domains/available").json()["total"], 0)
         generation = (app.RUNTIME_DIR / "routing.current").read_text().strip()

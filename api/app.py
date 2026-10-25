@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, HttpUrl, Field
 from typing import Literal
 from functools import wraps
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
 from api.migrations.schema import migrate, maildir_identity
 from api.services.routing import normalize_domain, normalize_address, normalize_local, publish, config_hash, applied_state, AppliedStateSnapshot, recipient_policy
 from api.services.dns_records import select_record
@@ -1679,19 +1679,25 @@ def _domain_public(row: dict, *, routing_snapshot=None, observed_checks=None) ->
 
 
 
-def _domain_public_rows() -> list[dict]:
+def _domain_public_rows(*, summary=False) -> list[dict]:
     # One database snapshot and routing evidence set for the complete list.
     c = db()
     try:
         c.execute("BEGIN")
         rows = [dict(row) for row in c.execute("SELECT * FROM mail_domains ORDER BY domain")]
         checks = {}
-        for check in c.execute("SELECT * FROM domain_checks"):
+        columns = "domain,check_name,status,config_hash,checked_at" if summary else "*"
+        for check in c.execute("SELECT " + columns + " FROM domain_checks"):
             checks.setdefault(check["domain"], []).append(dict(check))
     finally:
         c.close()
     routing = AppliedStateSnapshot(RUNTIME_DIR)
-    return [_domain_public(row, routing_snapshot=routing, observed_checks=checks.get(row["domain"], [])) for row in rows]
+    items = [_domain_public(row, routing_snapshot=routing, observed_checks=checks.get(row["domain"], [])) for row in rows]
+    if summary:
+        for item in items:
+            item["dns_checks"] = {name: {key: check[key] for key in ("status", "checked_at")}
+                                  for name, check in item["dns_checks"].items()}
+    return items
 
 
 def _domain_management_ready(item: dict) -> bool:
@@ -1791,10 +1797,14 @@ def available_domains(capability: Literal["receive", "send", "subdomain_receive"
     return {"items": items, "total": len(items), "capability": capability}
 
 @app.get("/api/v1/mail-domains")
-def list_mail_domains(ready_only: bool = Query(default=False), x_api_key: str | None = Header(default=None)):
+def list_mail_domains(ready_only: bool = Query(default=False), x_api_key: str | None = Header(default=None),
+                      summary: bool = False):
     if not key_ok(x_api_key): raise HTTPException(401, "invalid api key")
-    items = _visible_domains(_domain_public_rows(), x_api_key)
-    return [item for item in items if not ready_only or _domain_management_ready(item)]
+    items = _visible_domains(_domain_public_rows(summary=summary), x_api_key)
+    items = [item for item in items if not ready_only or _domain_management_ready(item)]
+    # These database projections contain only JSON primitives. The compact UI
+    # response avoids a second recursive encoding pass over hundreds of rows.
+    return JSONResponse(items, headers={"Cache-Control": "no-store"}) if summary else items
 
 @app.post("/api/v1/mail-domains")
 def create_mail_domain(item: MailDomainInput, x_api_key: str | None = Header(default=None)):

@@ -21,7 +21,7 @@ function fixture(){
      else{const input=JSON.parse(opt.body);row=opt.method==='PUT'?credentials.find(c=>url.endsWith('/'+c.id)):null;if(!row){row={id:'new-ref',provider:'dynv6'};credentials.push(row)}Object.assign(row,{label:input.label||input.email,session:{configured:true,status:'valid'},login:{email:input.email,configured:true,status:'valid',token_id:'42',token_scope:'all',zone_count:7}})}
      data=row;
    }else if(url.endsWith('/dns-credentials'))data={items:credentials};
-   else if(url.endsWith('/mail-domains'))data=domains;
+   else if(url.split('?')[0].endsWith('/mail-domains'))data=domains;
    else if(url.includes('/domain-jobs?'))data={items:[],total:0,active_domain_jobs:[],blocked_claim_sources:[]};
    else if(url.endsWith('/domain-sources')||url.endsWith('/domain-claims'))data={items:[]};
    return {ok:true,status:200,json:async()=>data};

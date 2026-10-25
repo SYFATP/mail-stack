@@ -56,7 +56,7 @@ function fixture() {
       if (pathname.endsWith('/mail-domains') && !options.method) data = domains.map(d=>({...d}));
       else if (url.endsWith('/dns/cloudflare/test')) data = {ok: true};
       else if (url.endsWith('/dns/cloudflare')) data = {configured: true, auth_mode: 'api_token', api_email: 'admin@example.test'};
-      else if (options.method === 'POST' && url.endsWith('/mail-domains')) domains.push(JSON.parse(options.body));
+      else if (options.method === 'POST' && url.split('?')[0].endsWith('/mail-domains')) domains.push(JSON.parse(options.body));
       else if (url.includes('/toggle?')) {
         const name=decodeURIComponent(pathname.split('/mail-domains/')[1].split('/')[0]);
         const domain=domains.find(d=>d.domain===name);domain.enabled=url.endsWith('enabled=true');data={...domain};
@@ -65,7 +65,7 @@ function fixture() {
       return {ok: true, status: 200, json: async () => data};
     },
   });
-  vm.runInContext(source + '\nglobalThis.t={state,domainPage,renderDomainResults,domainListData,showDomainEditor,showDnsAuth,closeModal,runDomainOperations,refreshManagedDomains,logout};', context);
+  vm.runInContext(source + '\nglobalThis.t={readDomainList,warmDomainList,api,get domainListRequest(){return domainListRequest},state,domainPage,renderDomainResults,domainListData,showDomainEditor,showDnsAuth,closeModal,runDomainOperations,refreshManagedDomains,logout};', context);
   context.t.state.token = 'fixture-session'; context.t.state.tab = 'domains';
   context.confirmations=confirmations;context.toasts=toasts;context.confirmResult=true;
   vm.runInContext('appConfirm=async(message)=>{confirmations.push(message);return await confirmResult};toast=(text,bad=false)=>toasts.push({text,bad});',context);
@@ -82,6 +82,31 @@ function fixture() {
 }
 
 (async () => {
+  const shared=fixture();let releaseList;
+  shared.delay(new Promise(resolve=>releaseList=resolve),url=>url.includes('/mail-domains?'));
+  const reads=[shared.t.readDomainList(),shared.t.readDomainList()];
+  assert.equal(shared.requests.length,1,'Simultaneous domain reads share one request');
+  releaseList();await Promise.all(reads);
+  shared.t.warmDomainList();await shared.t.readDomainList();
+  assert.equal(shared.requests.length,1,'A recent prefetched list is reused');
+  await shared.t.readDomainList(true);
+  assert.equal(shared.requests.length,2,'Explicit refresh bypasses cached data');
+  await shared.t.api('/mail-domains/test.example.test',{method:'PATCH',body:'{}'});
+  await shared.t.readDomainList();
+  assert.equal(shared.requests.length,4,'A domain mutation invalidates the prefetched list');
+  shared.t.state.token='another-session';await shared.t.readDomainList();
+  assert.equal(shared.requests.length,5,'A different session does not reuse data');
+  shared.t.domainListRequest.loadedAt=Date.now()-6000;await shared.t.readDomainList();
+  assert.equal(shared.requests.length,6,'Expired snapshots are read again');
+  const failedList=fixture();failedList.failRoute('/mail-domains?summary=true');
+  await assert.rejects(failedList.t.readDomainList(),/fixture operation failed/);
+  await failedList.t.readDomainList();assert.equal(failedList.requests.length,2,'Failed reads can be retried');
+  const claimed=fixture();claimed.domains[0].claim_id='claim-pending';
+  claimed.domains[0].receive_ready=false;claimed.domains[0].send_ready=false;
+  claimed.domains[1].claim_id='claim-ready';claimed.domains[1].receive_ready=true;claimed.domains[1].send_ready=true;
+  await claimed.t.domainPage();
+  assert.equal(claimed.t.state.mailDomains.some(d=>d.domain===claimed.domains[0].domain),false);
+  assert.equal(claimed.t.state.mailDomains.some(d=>d.domain===claimed.domains[1].domain),true);
   const slowAuth=fixture();let releaseAuth;
   slowAuth.delay(new Promise(resolve=>releaseAuth=resolve),url=>url.endsWith('/dns/cloudflare'));
   const firstOpen=slowAuth.t.domainPage();
@@ -104,9 +129,9 @@ function fixture() {
   assert.equal(staleAuth.t.state.cloudflare,null,'Late auth data cannot populate a new session');
   const f = fixture(), {t, node, requests, domains, classes} = f;
   await t.domainPage();
-  assert.equal(requests[0].url, '/api/v1/mail-domains?ready_only=true');
+  assert.equal(requests[0].url, '/api/v1/mail-domains?summary=true');
   assert.doesNotMatch(node('#page').innerHTML, /id="(?:domain-form|cf-form)"/);
-  assert.equal((node('#domain-table-body').innerHTML.match(/<tr>/g) || []).length, 20);
+  assert.equal((node('#domain-table-body').innerHTML.match(/<tr(?: [^>]*)?>/g) || []).length, 20);
   assert.match(node('#domain-pagination-summary').textContent, /匹配 57 个.*第 1 \/ 3 页/);
   assert.equal(node('#domain-prev-page').disabled, true);
   const beforeSearch = requests.length, originalPage = node('#page').innerHTML;
@@ -115,7 +140,7 @@ function fixture() {
   assert.match(node('#domain-table-body').innerHTML, /domain-21.example.test/);
   node('#domain-jump-page').value = '999'; node('#domain-jump-btn').onclick();
   assert.equal(t.state.domainPage, 3); assert.equal(node('#domain-next-page').disabled, true);
-  assert.equal((node('#domain-table-body').innerHTML.match(/<tr>/g) || []).length, 17);
+  assert.equal((node('#domain-table-body').innerHTML.match(/<tr(?: [^>]*)?>/g) || []).length, 17);
   node('#domain-jump-page').value = '-4'; node('#domain-jump-page').onkeydown({key: 'Enter'});
   assert.equal(t.state.domainPage, 1);
   node('#domain-jump-page').value = '1.8'; node('#domain-jump-btn').onclick();
@@ -160,7 +185,7 @@ function fixture() {
   let release; f.delay(new Promise(resolve => { release = resolve; }));
   const save = node('#domain-form').onsubmit({preventDefault() {}});
   await node('#domain-form').onsubmit({preventDefault() {}});
-  assert.equal(requests.filter(r => r.options.method === 'POST' && r.url.endsWith('/mail-domains')).length, 1);
+  assert.equal(requests.filter(r => r.options.method === 'POST' && r.url.split('?')[0].endsWith('/mail-domains')).length, 1);
   release(); await save; f.delay(null);
   assert.equal(node('#modal-root').innerHTML, ''); assert.equal(domains.length, 58);
 
@@ -264,7 +289,7 @@ function fixture() {
   // An operation result survives refresh failure, with explicit feedback and no automatic write retry.
   const interrupted=fixture();await interrupted.t.domainPage();
   interrupted.t.state.domainSelection.add(interrupted.domains[0].domain);
-  interrupted.failRoute('/mail-domains?ready_only=true','fixture refresh failed');
+  interrupted.failRoute('/mail-domains?summary=true','fixture refresh failed');
   await interrupted.t.runDomainOperations('disable',[...interrupted.t.state.domainSelection],true);
   assert.match(interrupted.node('#domain-bulk-result').innerHTML,/列表刷新失败/);
   assert.equal(interrupted.t.state.mailDomains[0].enabled,false);assert.equal(interrupted.t.state.domainBusy.size,0);

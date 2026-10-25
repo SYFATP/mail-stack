@@ -43,7 +43,7 @@ const context=vm.createContext({document,localStorage:{getItem:()=>null},console
    if(pendingPost)await pendingPost;
    if(postFailure){postFailure=false;throw Error('fixture lost ACK')}
   }
-  const data=url.endsWith('/mail-domains')?[]:url.includes('/domain-jobs?')?{items:[],total:0,blocked_claim_sources:[]}:
+  const data=url.split('?')[0].endsWith('/mail-domains')?[]:url.includes('/domain-jobs?')?{items:[],total:0,blocked_claim_sources:[]}:
    url.endsWith('/domain-sources')||url.endsWith('/dns-credentials')?{items:[]}:{id:'fixture-job',status:'queued'};
   return {ok:true,status:200,json:async()=>data};
  }

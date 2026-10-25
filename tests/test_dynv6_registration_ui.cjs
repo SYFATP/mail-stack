@@ -23,7 +23,7 @@ function fixture(){
    else if(url.includes('/domain-jobs/')&&!url.includes('/status?'))data=jobs.get(url.split('/').at(-1));
    else if(url.includes('/domain-jobs?'))data={items:[],total:jobs.size,active_domain_jobs:[],blocked_claim_sources:[]};
    else if(url.endsWith('/dns-credentials'))data={items:credentials};
-   else if(url.endsWith('/mail-domains'))data=domains;
+   else if(url.split('?')[0].endsWith('/mail-domains'))data=domains;
    else if(url.endsWith('/domain-sources')||url.endsWith('/domain-claims'))data={items:[]};
    return {ok:true,status:200,json:async()=>data};
   }});

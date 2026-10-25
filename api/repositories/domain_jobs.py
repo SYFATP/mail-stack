@@ -204,7 +204,7 @@ class DomainJobs:
         finally:
             c.close()
 
-    def list(self, limit=100, offset=0, *, q="", status=""):
+    def list(self, limit=100, offset=0, *, q="", status="", overview=False):
         if status not in {"", "queued", "running", "succeeded", "failed", "partial", "unknown"}:
             raise ValueError("invalid job status filter")
         where, params = [], []
@@ -221,9 +221,15 @@ class DomainJobs:
         try:
             # Read rows/counts from one SQLite snapshot while workers update jobs.
             c.execute("BEGIN")
-            rows = c.execute("SELECT * FROM domain_jobs" + clause + " ORDER BY created_at DESC,id LIMIT ? OFFSET ?", [*params, limit, offset]).fetchall()
-            total = c.execute("SELECT count(*) FROM domain_jobs" + clause, params).fetchone()[0]
-            counts = {r[0]: r[1] for r in c.execute("SELECT status,count(*) FROM domain_jobs GROUP BY status")}
+            if overview:
+                # The domain table needs current work, not retained task history.
+                rows, total = [], None
+                counts = {r[0]: r[1] for r in c.execute("SELECT status,count(*) FROM domain_jobs "
+                          "WHERE status IN ('queued','running','unknown') GROUP BY status")}
+            else:
+                rows = c.execute("SELECT * FROM domain_jobs" + clause + " ORDER BY created_at DESC,id LIMIT ? OFFSET ?", [*params, limit, offset]).fetchall()
+                total = c.execute("SELECT count(*) FROM domain_jobs" + clause, params).fetchone()[0]
+                counts = {r[0]: r[1] for r in c.execute("SELECT status,count(*) FROM domain_jobs GROUP BY status")}
             blocked = set()
             for row in c.execute("SELECT scope,status,result_json FROM domain_jobs WHERE kind='claim' AND status IN ('queued','running','unknown','partial')"):
                 if row["status"] != "partial" or any(i.get("status") == "unknown" for i in json.loads(row["result_json"]).get("items", [])):

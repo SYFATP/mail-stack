@@ -356,8 +356,9 @@ def build_router(manager, admin_ok):
     @router.get("/domain-jobs")
     def jobs(limit: int = Query(default=100, ge=1, le=200), offset: int = Query(default=0, ge=0),
              q: str = Query(default="", max_length=200),
-             status: Literal["", "queued", "running", "succeeded", "failed", "partial", "unknown"] = ""):
-        return manager.jobs.list(limit, offset, q=q, status=status)
+             status: Literal["", "queued", "running", "succeeded", "failed", "partial", "unknown"] = "",
+             overview: bool = False):
+        return manager.jobs.list(limit, offset, q=q, status=status, overview=overview)
 
     @router.get("/domain-jobs/status")
     def job_status(ids: str = Query(min_length=1, max_length=6600)):

@@ -37,7 +37,7 @@ function fixture(){
    if(url.endsWith('/domain-sources'))data={items:[]};
    else if(url.endsWith('/dns-credentials'))data={items:credentials,global_cloudflare:{configured:globalCloudflare,auth_mode:globalCloudflare?'global_api_key':''}};
    else if(url.includes('/domain-jobs?'))data={items:[],total:0};
-   else if(url.endsWith('/mail-domains'))data=domains;
+   else if(url.split('?')[0].endsWith('/mail-domains'))data=domains;
    else if(url.endsWith('/dns-preview'))data={id:`plan-${nextPlan++}`,domain:previewDomain,executable:executable&&!reconciliation,actions:[],conflicts:reconciliation?[{name:previewDomain,code:'unresolved_dns_write',operation_id:'old-write'}]:executable?[]:[{name:previewDomain,code:'foreign_record_conflict'}]};
    else if(url.endsWith('/dns-operations/old-write/reconcile')){
     if(reconciliation==='mismatch')return {ok:false,status:409,json:async()=>({detail:'current record is missing, ambiguous or changed'})};

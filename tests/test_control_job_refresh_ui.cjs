@@ -41,7 +41,7 @@ const context=vm.createContext({document,console,URL,URLSearchParams,
 vm.runInContext(script+'\nglobalThis.t={state,controlJob,controlPage,controlJobWatchers,runControlBatch,logout,watchActiveDomainJobs,controlDomainReadBusy,controlDomainActivity,renderControlUnifiedResults};',context);
 const t=context.t;t.state.token='fixture-session';t.state.tab='control';
 const writes=()=>requests.filter(r=>r.opt.method==='POST').length;
-const refreshes=()=>requests.filter(r=>r.url==='/api/v1/mail-domains').length;
+const refreshes=()=>requests.filter(r=>r.url.split('?')[0]==='/api/v1/mail-domains').length;
 async function tick(){
  const timer=[...timers.entries()].find(([,value])=>[1000,2000].includes(value.ms));
  assert.ok(timer,'Expected a scheduled job status poll');timers.delete(timer[0]);await timer[1].fn();

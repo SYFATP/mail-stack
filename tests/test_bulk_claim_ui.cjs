@@ -30,7 +30,7 @@ const context=vm.createContext({console,URL,URLSearchParams,Date:class extends D
  }});
 vm.runInContext(script+'\nglobalThis.t={state,controlPage,refreshControlLists,controlJobWatchers,logout};globalThis.notices=[];toast=(text,bad)=>notices.push({text,bad});',context);
 const t=context.t;t.state.token='fixture-session';t.state.tab='control';
-const refreshes=()=>requests.filter(r=>r.url==='/api/v1/mail-domains').length;
+const refreshes=()=>requests.filter(r=>r.url.split('?')[0]==='/api/v1/mail-domains').length;
 const snapshots=()=>requests.filter(r=>r.url.startsWith('/api/v1/domain-jobs/status?')).length;
 async function tick(){assert.equal(timers.size,1,'Every batch shares exactly one timer');const [id,timer]=[...timers.entries()][0];timers.delete(id);clock+=2000;await timer.fn()}
 (async()=>{

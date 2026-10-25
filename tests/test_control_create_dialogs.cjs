@@ -19,7 +19,7 @@ const context=vm.createContext({document,localStorage:{getItem:()=>null},console
   requests.push({url,opt});
   if(opt.method==='POST'&&pending)await pending;
   if(opt.method==='POST'&&fail){fail=false;return {ok:false,status:400,json:async()=>({detail:'fixture rejected'})}}
-  const data=url.endsWith('/mail-domains')?[]:url.includes('/domain-jobs?')?{items:[],total:0}:url.endsWith('/domain-sources')||url.endsWith('/dns-credentials')?{items:[]}:{};
+  const data=url.split('?')[0].endsWith('/mail-domains')?[]:url.includes('/domain-jobs?')?{items:[],total:0}:url.endsWith('/domain-sources')||url.endsWith('/dns-credentials')?{items:[]}:{};
   return {ok:true,status:200,json:async()=>data};
  }
 });

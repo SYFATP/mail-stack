@@ -112,6 +112,27 @@ class JobPollingCostTests(unittest.TestCase):
         self.assertIn('idx_domain_jobs_readiness_attempts', plan)
         self.assertNotIn('USE TEMP B-TREE', plan)
 
+    def test_overview_work_is_independent_of_completed_history(self):
+        result, steps = self.measured(lambda: self.jobs.list(1, overview=True))
+        self.assertEqual(result["items"], [])
+        self.assertIsNone(result["total"])
+        self.assertEqual(result["status_counts"], {})
+        self.assertLess(steps, 2500, "The domain table must not count/encode completed history")
+        self.c.commit()
+        write = self.jobs.enqueue("dns_apply", "active.test", "overview-write", {})
+        read = self.jobs.enqueue("dns_validate", "read.test", "auto-readiness:overview", {})
+        claim = self.jobs.enqueue("claim", "source-test", "overview-claim", {})
+        full = self.jobs.list(1)
+        self.c.commit()
+        overview = self.jobs.list(1, overview=True)
+        for field in ("active_domain_jobs", "active_claim_jobs", "blocked_claim_sources", "domain_hosting"):
+            self.assertEqual(overview[field], full[field])
+        self.assertEqual(overview["status_counts"], {"queued": 3})
+        self.assertEqual({r["id"] for r in overview["active_domain_jobs"]}, {write["id"], read["id"]})
+        self.assertEqual(overview["active_claim_jobs"][0]["id"], claim["id"])
+        self.assertIn("source-test", overview["blocked_claim_sources"])
+        self.assertEqual(full["total"], 2503)
+
     def test_latest_page_uses_index_without_sorting_history(self):
         sql = 'SELECT * FROM domain_jobs ORDER BY created_at DESC,id LIMIT 1 OFFSET 0'
         rows, steps = self.measured(lambda: self.c.execute(sql).fetchall())

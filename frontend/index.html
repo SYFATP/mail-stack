@@ -586,7 +586,10 @@
   <script>
     const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
     const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    const fmtDate=ts=>ts?new Date(ts*1000).toLocaleString():'—';
+    const dateTimeFormat=new Intl.DateTimeFormat(undefined,{year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'numeric',second:'numeric'});
+    const receivedDayFormat=new Intl.DateTimeFormat('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit'});
+    const receivedTimeFormat=new Intl.DateTimeFormat('zh-CN',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const fmtDate=ts=>{const date=ts?new Date(ts*1000):null;return date&&!Number.isNaN(date.getTime())?dateTimeFormat.format(date):'—'};
     const AUTO_REFRESH_STORAGE_KEY='mail_auto_refresh';
     const NAVIGATION_STORAGE_KEY='mail_navigation';
     const PAGE_TITLES={inbox:'收件箱',send:'发送邮件',domains:'域名管理',control:'来源与 DNS',webhooks:'推送 Webhook',keys:'API Keys',projects:'项目管理',security:'安全与文档'};
@@ -600,10 +603,11 @@
         page:positive(dns.page),pageSize:[10,20,50,100].includes(dns.pageSize)?dns.pageSize:20}};
     }
     const savedNavigation=readNavigation(),pageCache=new Map();
-    let mountedTab='',inboxRequest=null;
+    let mountedTab='',inboxRequest=null,domainListRequest=null,domainsRequest=null,projectsRequest=null;
+    const pendingApiReads=new Map();
     function saveNavigation(){try{localStorage.setItem(NAVIGATION_STORAGE_KEY,JSON.stringify({tab:state.tab,controlDns:state.controlDns}))}catch{}}
-    function invalidateCachedPages(...tabs){for(const tab of tabs){const entry=pageCache.get(tab);if(entry&&tab!==mountedTab)entry.dirty=true}}
-    function resetPageCache(){pageCache.clear();mountedTab='';inboxRequest=null;state.refreshInFlight=false}
+    function invalidateCachedPages(...tabs){pendingApiReads.clear();if(tabs.some(tab=>tab==='domains'||tab==='control'))domainListRequest=null;for(const tab of tabs){const entry=pageCache.get(tab);if(entry&&tab!==mountedTab)entry.dirty=true}}
+    function resetPageCache(){domainListRequest=null;domainsRequest=null;projectsRequest=null;pendingApiReads.clear();claimIndexRows=null;claimsByDomain.clear();claimsById.clear();credentialIndexRows=null;credentialsById.clear();pageCache.clear();mountedTab='';inboxRequest?.controller?.abort();inboxRequest=null;state.refreshInFlight=false}
     function capturePageScroll(page){
       return [page,...page.querySelectorAll('.table-wrap')].map(node=>({node,top:node.scrollTop,left:node.scrollLeft}));
     }
@@ -634,8 +638,8 @@
       if(!value)return '<span class="muted">—</span>';
       const date=new Date(value*1000);
       if(Number.isNaN(date.getTime()))return '<span class="muted">—</span>';
-      const day=date.toLocaleDateString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit'});
-      const time=date.toLocaleTimeString('zh-CN',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      const day=receivedDayFormat.format(date);
+      const time=receivedTimeFormat.format(date);
       return `<time datetime="${date.toISOString()}" title="${esc(fmtDate(value))}"><span class="mail-received-date">${esc(day)}</span><span class="mail-received-time">${esc(time)}</span></time>`;
     }
     function renderActualRecipient(message){
@@ -649,13 +653,60 @@
       return `<span class="mail-actual-sender" title="${esc(address)}">${esc(address)}</span>`;
     }
     function formatRecipient(value){const text=String(value??'').trim();if(!text)return '—';return text.split(/\s*,\s*/).map(item=>{if(item.includes('@'))return item;const m=item.match(/^(.*?)([a-zA-Z0-9._+-]+)(>)?$/);return m?`${m[1]}${m[2]}@${primaryDomain()}${m[3]||''}`:`${item}@${primaryDomain()}`}).join(', ')}
-    async function ensureDomains(){if(state.domains.length)return state.domains;try{state.domains=await api('/domains')}catch{}return state.domains;}
-    async function api(path,opt={}){
-      const headers={'Content-Type':'application/json',...(opt.headers||{})};if(state.token)headers['X-API-Key']=state.token;
-      const r=await fetch('/api/v1'+path,{...opt,headers});let d=null;try{d=await r.json()}catch{}
-      if(r.status===401){logout(false);throw Error('登录已过期，请重新登录')}if(!r.ok){const detail=d?.detail,error=Error(typeof detail==='string'?detail:detail?.message||'请求失败');error.code=detail?.code||'';throw error}if(opt.method&&opt.method.toUpperCase()!=='GET'){if(/^\/(mail-domains|domain-|dns-credentials|dns\/)/.test(path))invalidateCachedPages('domains','control');if(path.startsWith('/projects'))invalidateCachedPages('projects','domains','keys','webhooks');if(path.startsWith('/api-keys'))invalidateCachedPages('keys');if(path.startsWith('/webhooks'))invalidateCachedPages('webhooks')}return d;
+    function invalidateAvailableDomains(){state.domains=[];domainsRequest=null;pendingApiReads.clear()}
+    function ensureDomains(){
+      if(state.domains.length)return Promise.resolve(state.domains);
+      const token=state.token,cached=domainsRequest;
+      if(cached?.token===token&&(!cached.loadedAt||Date.now()-cached.loadedAt<5000))return cached.promise;
+      const request={token,loadedAt:0,promise:null};
+      request.promise=api('/domains').then(items=>{
+        if(!Array.isArray(items))throw Error('域名列表响应无效');
+        if(state.token===token&&domainsRequest===request)state.domains=items;
+        request.loadedAt=Date.now();return items;
+      }).catch(()=>{if(domainsRequest===request)domainsRequest=null;return []});
+      domainsRequest=request;return request.promise;
     }
-    async function downloadFile(path,filename){const headers={};if(state.token)headers['X-API-Key']=state.token;const r=await fetch('/api/v1'+path,{headers});if(r.status===401){logout(false);throw Error('登录已过期，请重新登录')}if(!r.ok)throw Error('下载失败');const url=URL.createObjectURL(await r.blob());try{const link=document.createElement('a');link.href=url;link.download=filename;document.body.append(link);link.click();link.remove()}finally{setTimeout(()=>URL.revokeObjectURL(url),1000)}}
+    function readProjects(force=false){
+      const token=state.token,cached=projectsRequest;
+      if(cached?.token===token&&(!cached.loadedAt||!force&&Date.now()-cached.loadedAt<5000))return cached.promise;
+      const request={token,loadedAt:0,promise:null};
+      request.promise=api('/projects').then(items=>{
+        if(!Array.isArray(items))throw Error('项目列表响应异常');
+        if(state.token===token&&projectsRequest===request)state.projects=items;
+        request.loadedAt=Date.now();return items;
+      }).catch(error=>{if(projectsRequest===request)projectsRequest=null;throw error});
+      projectsRequest=request;return request.promise;
+    }
+    function api(path,opt={}){
+      const token=state.token,method=(opt.method||'GET').toUpperCase(),read=method==='GET';
+      const headers={'Content-Type':'application/json',...(opt.headers||{})};if(token)headers['X-API-Key']=token;
+      const key=read&&!opt.signal?JSON.stringify([token,path,headers,opt.cache||'']):null;
+      if(key&&pendingApiReads.has(key))return pendingApiReads.get(key);
+      if(!read)pendingApiReads.clear();
+      const request=(async()=>{
+        const r=await fetch('/api/v1'+path,{...opt,headers});let d=null;try{d=await r.json()}catch{}
+        if(r.status===401){if(state.token===token)logout(false);throw Error('登录已过期，请重新登录')}
+        if(state.token!==token){const error=Error('会话已切换');error.name='AbortError';throw error}
+        if(!r.ok){const detail=d?.detail,error=Error(typeof detail==='string'?detail:detail?.message||'请求失败');error.code=detail?.code||'';throw error}
+        if(!read){
+          pendingApiReads.clear();
+          if(/^\/(mail-domains|domain-|dns-credentials|dns\/)/.test(path)){
+            invalidateAvailableDomains();invalidateCachedPages('domains','control');
+          }
+          if(path.startsWith('/projects')){projectsRequest=null;invalidateCachedPages('projects','domains','keys','webhooks')}
+          if(path.startsWith('/api-keys'))invalidateCachedPages('keys');
+          if(path.startsWith('/webhooks'))invalidateCachedPages('webhooks');
+        }
+        return d;
+      })();
+      if(key){
+        pendingApiReads.set(key,request);
+        const clear=()=>{if(pendingApiReads.get(key)===request)pendingApiReads.delete(key)};
+        request.then(clear,clear);
+      }
+      return request;
+    }
+    async function downloadFile(path,filename){const token=state.token,headers={};if(token)headers['X-API-Key']=token;const r=await fetch('/api/v1'+path,{headers});if(r.status===401){if(state.token===token)logout(false);throw Error('登录已过期，请重新登录')}if(state.token!==token)return;if(!r.ok)throw Error('下载失败');const url=URL.createObjectURL(await r.blob());try{const link=document.createElement('a');link.href=url;link.download=filename;document.body.append(link);link.click();link.remove()}finally{setTimeout(()=>URL.revokeObjectURL(url),1000)}}
     let activeToast=null,toastTimer=null;
     function toast(text,bad=false){
       if(!activeToast){activeToast=document.createElement('div');activeToast.className='toast';$('#toast-root').append(activeToast)}
@@ -669,7 +720,7 @@
     const LOGIN_TIMEOUT_MS=15000;
     function loginView(){$('#app').innerHTML=`<div class="login-wrap"><div class="login-card"><div class="login-appearance">${globalThis.mailAppearance?.markup()||''}</div><div class="brand"><div class="brand-mark">✉</div><span>Mail Stack</span></div><h1>欢迎回来</h1><p>登录管理控制台，查看收件、管理推送和发件配置。</p><form id="login-form"><div class="field"><label>管理员密码</label><input id="login-password" type="password" autocomplete="current-password" placeholder="输入管理员密码" required></div><div id="login-error" class="error" role="status" aria-live="polite"></div><button id="login-submit" class="btn btn-primary" style="width:100%">登录控制台</button></form></div></div>`;const form=$('#login-form'),password=$('#login-password'),button=$('#login-submit'),box=$('#login-error');let submitting=false;form.onsubmit=async e=>{e.preventDefault();if(submitting)return;submitting=true;password.disabled=true;button.disabled=true;button.textContent='登录中…';box.className='success';box.textContent='正在登录…';const controller=typeof AbortController==='function'?new AbortController():null;const timeout=setTimeout(()=>controller?.abort(),LOGIN_TIMEOUT_MS);try{const options={method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:password.value})};if(controller)options.signal=controller.signal;const r=await fetch('/api/v1/auth/login',options);if(!r.ok)throw Error('密码错误');const d=await r.json();if(!d?.token)throw Error('登录响应无效，请重试');state.token=d.token;localStorage.setItem('mail_session',state.token);render()}catch(err){box.className='error';box.textContent=err?.name==='AbortError'?'登录超时，请检查服务状态后重试':(err?.message==='Failed to fetch'?'无法连接登录服务，请稍后重试':(err?.message||'登录失败，请重试'))}finally{clearTimeout(timeout);submitting=false;password.disabled=false;button.disabled=false;button.textContent='登录控制台'}}}
     function shell(){resetPageCache();$('#app').innerHTML=`<div class="shell"><aside class="sidebar"><div class="brand"><div class="brand-mark">✉</div><span>Mail Stack</span></div><nav class="nav"><button data-tab="inbox"><span class="icon" aria-hidden="true"><span class="classic-icon">▤</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="16" height="14" rx="2"/><path d="M2 11h4l2 3h4l2-3h4M6 7h8"/></svg></span>收件箱</button><button data-tab="send"><span class="icon" aria-hidden="true"><span class="classic-icon">➤</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 15 7-15 7 3-7-3-7ZM6 10h12"/></svg></span>发送邮件</button><button data-tab="domains"><span class="icon" aria-hidden="true"><span class="classic-icon">◎</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="8"/><ellipse cx="10" cy="10" rx="3.5" ry="8"/><path d="M2 10h16"/></svg></span>域名管理</button><button data-tab="control"><span class="icon" aria-hidden="true"><span class="classic-icon">◇</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="m10 2 8 4-8 4-8-4 8-4ZM2 10l8 4 8-4M2 14l8 4 8-4"/></svg></span>来源与 DNS</button><button data-tab="webhooks"><span class="icon" aria-hidden="true"><span class="classic-icon">⚡</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="m11 2-7 9h5l-1 7 8-10h-6l1-6Z"/></svg></span>推送 Webhook</button><button data-tab="projects"><span class="icon" aria-hidden="true"><span class="classic-icon">▣</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="6" height="6" rx="1"/><rect x="12" y="3" width="6" height="6" rx="1"/><rect x="2" y="13" width="6" height="5" rx="1"/><rect x="12" y="13" width="6" height="5" rx="1"/></svg></span>项目管理</button><button data-tab="keys"><span class="icon" aria-hidden="true"><span class="classic-icon">◆</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4"/><path d="m10 10 7 7m-2-2 2-2m-5-1 2-2"/></svg></span>API Keys</button><button data-tab="security"><span class="icon" aria-hidden="true"><span class="classic-icon">⚙</span><svg class="modern-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="m10 2 7 3v5c0 4-7 8-7 8s-7-4-7-8V5l7-3Z"/><path d="m6 10 3 3 5-6"/></svg></span>安全与文档</button></nav><div class="side-footer"><div class="monitor-sidebar" id="server-monitor-sidebar"></div><span style="display:block;margin-top:8px">多域名邮局 · mail.example.com</span></div></aside><main class="main"><header class="topbar"><div class="top-title" id="top-title">收件箱</div><div class="top-actions">${globalThis.mailAppearance?.markup()||''}<button class="btn btn-ghost" id="refresh-btn">↻ 刷新</button><div class="avatar">A</div><button class="btn btn-ghost" id="logout-btn">退出</button></div></header><section class="content" id="page"></section></main></div>`;$$('.nav button').forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;renderPage()});$('#refresh-btn').onclick=()=>state.tab==='inbox'?inboxPage(true):renderPage(true);$('#logout-btn').onclick=()=>logout()}
-    function render(){state.token?shell():loginView();globalThis.mailAppearance?.bind();if(state.token){renderPage();globalThis.mailServerMonitor?.start(state.token,()=>logout(false))}else globalThis.mailServerMonitor?.stop()}
+    function render(){state.token?shell():loginView();globalThis.mailAppearance?.bind();if(state.token){const token=state.token;Promise.resolve(renderPage()).then(()=>{if(state.token===token&&!['domains','control'].includes(state.tab))warmDomainList()}).catch(()=>{});globalThis.mailServerMonitor?.start(state.token,()=>logout(false))}else globalThis.mailServerMonitor?.stop()}
     async function renderPage(force=false){
       closeModal();stopAutoRefresh();closeControlBulkMenus();
       if(!Object.hasOwn(PAGE_TITLES,state.tab))state.tab='inbox';
@@ -683,7 +734,7 @@
         if(outgoing){
           outgoing.scroll=capturePageScroll(previous);outgoing.windowScroll=[globalThis.scrollX||0,globalThis.scrollY||0];
           if(mountedTab==='inbox'&&(state.searchTimer||inboxRequest)){
-            clearTimeout(state.searchTimer);state.searchTimer=null;outgoing.dirty=true;
+            clearTimeout(state.searchTimer);state.searchTimer=null;inboxRequest?.controller?.abort();inboxRequest=null;state.refreshInFlight=false;outgoing.dirty=true;
           }
         }
         if(!entry?.ready){
@@ -695,7 +746,7 @@
       }
       const current=()=>state.token===token&&state.tab===tab&&$('#page')===entry.node;
       if(entry.ready&&!force&&!entry.dirty){
-        if(tab==='inbox')startAutoRefresh();
+        if(tab==='inbox'){renderInboxResults();startAutoRefresh()}
         if(tab==='control'){renderControlUnifiedResults();renderControlJobProgress()}
         if(tab==='domains')renderManagedDomainRows();
         restorePageScroll(entry);return;
@@ -708,7 +759,6 @@
           if(!current())return;
           if(partial){if(tab==='control'){if(!await refreshControlLists())entry.dirty=true}else await refreshManagedDomains();return}
           entry.ready=false;
-          if(tab==='inbox'||tab==='send'){await ensureDomains();if(!current())return}
           if(tab==='inbox')await inboxPage(force);
           if(tab==='send')await sendPage();
           if(tab==='domains')await domainPage(force);
@@ -723,8 +773,41 @@
       });
       return entry.loading;
     }
-    function renderInboxResults(){const totalPages=Math.max(1,Math.ceil(state.total/state.pageSize));$('#inbox-total').textContent=state.total;$('#inbox-count').textContent=state.messages.length;$('#inbox-page-note').textContent=`第 ${state.page} / ${totalPages} 页`;$('#inbox-domain-count').textContent=state.domains.length;$('#mail-table-body').innerHTML=state.messages.length?state.messages.map(m=>`<tr class="data-row" data-id="${esc(m.id)}"><td class="subject"><strong class="mail-subject" title="${esc(m.subject||'(无主题)')}">${esc(m.subject||'(无主题)')}</strong></td><td>${renderSender(m.sender)}</td><td>${renderActualSender(m)}</td><td><span class="mail-recipient" title="${esc(formatRecipient(m.envelope_recipient||m.to_header||''))}">${esc(formatRecipient(m.envelope_recipient||m.to_header||''))}</span></td><td>${renderActualRecipient(m)}</td><td>${renderReceivedAt(m.received_at)}</td></tr>`).join(''):`<tr><td colspan="6"><div class="empty"><strong>没有找到邮件</strong>尝试更换搜索关键词。</div></td></tr>`;$('#inbox-pagination-summary').textContent=`共 ${state.total} 封，当前第 ${state.page} / ${totalPages} 页`;$('#prev-page').disabled=state.page<=1;$('#next-page').disabled=state.page>=totalPages;$('#jump-page').max=totalPages;$('#jump-page').value=state.page;$$('.data-row',$('#mail-table-body')).forEach(r=>r.onclick=()=>showMessage(r.dataset.id))}
-    async function inboxPage(force=false,background=false){if(state.tab!=='inbox')return;const page=$('#page'),token=state.token,current=()=>state.tab==='inbox'&&state.token===token&&$('#page')===page;if(inboxRequest?.page===page&&inboxRequest.token===token)return;const request={page,token};inboxRequest=request;state.refreshInFlight=true;const initial=!$('#inbox-shell');if(initial)$('#page').innerHTML='<div class="empty">正在加载邮件…</div>';try{const d=await api(`/messages?limit=${state.pageSize}&offset=${(state.page-1)*state.pageSize}&q=${encodeURIComponent(state.query)}&meta=1`);if(!current())return;state.messages=d.items||[];state.total=d.total||0}catch(e){if(!current())return;if(initial)$('#page').innerHTML=`<div class="notice warning">${esc(e.message)}</div>`;else if(!background)toast(e.message,true);return}finally{if(inboxRequest===request){state.refreshInFlight=false;inboxRequest=null}}if(!current())return;const totalPages=Math.max(1,Math.ceil(state.total/state.pageSize));if(state.page>totalPages){state.page=totalPages;return inboxPage(true)}if(initial){$('#page').innerHTML=`<div class="inbox-page" id="inbox-shell"><div class="page-head"><div><h2>收件箱</h2><p>集中查看邮件，支持关键词搜索、分页浏览和快速跳转。</p></div></div><div class="grid"><div class="card"><div class="stat-label">邮件总数</div><div class="stat-value" id="inbox-total">0</div><div class="stat-note">当前搜索结果</div></div><div class="card"><div class="stat-label">本页邮件</div><div class="stat-value" id="inbox-count">0</div><div class="stat-note" id="inbox-page-note">第 1 / 1 页</div></div><div class="card"><div class="stat-label">收件域名</div><div class="stat-value" id="inbox-domain-count">0</div></div><div class="card"><div class="stat-label">状态</div><div class="stat-value">在线</div><div class="stat-note">API / SMTP 正常</div></div></div><div class="panel"><div class="panel-head"><div class="panel-title">邮件列表</div><div class="toolbar"><label class="auto-refresh-toggle" title="每 15 秒从服务器同步一次邮件列表"><input id="auto-refresh" type="checkbox" ${state.autoRefresh?"checked":""}>自动刷新</label><div class="search"><span>⌕</span><input id="mail-search" placeholder="搜索主题、实际发件人、实际收件人…" value="${esc(state.query)}"></div><select id="page-size" class="page-size" title="每页显示数量"><option value="20" ${state.pageSize===20?'selected':''}>20 条/页</option><option value="50" ${state.pageSize===50?'selected':''}>50 条/页</option><option value="100" ${state.pageSize===100?'selected':''}>100 条/页</option><option value="500" ${state.pageSize===500?'selected':''}>500 条/页</option><option value="1000" ${state.pageSize===1000?'selected':''}>1000 条/页</option></select></div></div><div class="table-wrap"><table class="table inbox-table"><colgroup><col class="col-subject"><col class="col-sender"><col class="col-actual-sender"><col class="col-recipient"><col class="col-actual-recipient"><col class="col-received"></colgroup><thead><tr><th scope="col">主题</th><th scope="col">发件人</th><th scope="col">实际发件人</th><th scope="col">收件人</th><th scope="col">实际收件人</th><th scope="col">接收时间</th></tr></thead><tbody id="mail-table-body"></tbody></table></div><div class="pagination"><span id="inbox-pagination-summary"></span><div class="pagination-actions"><button class="btn btn-small btn-secondary" id="prev-page">上一页</button><button class="btn btn-small btn-secondary" id="next-page">下一页</button><span>跳转</span><input id="jump-page" class="page-jump" type="number" min="1" value="${state.page}"><button class="btn btn-small btn-secondary" id="jump-btn">确定</button></div></div></div></div>`;$('#auto-refresh').onchange=e=>setAutoRefresh(e.target.checked);$('#mail-search').oninput=e=>{state.query=e.target.value;state.page=1;clearTimeout(state.searchTimer);state.searchTimer=setTimeout(()=>{state.searchTimer=null;inboxPage(true)},400)};$('#mail-search').onkeydown=e=>{if(e.key==='Enter'){clearTimeout(state.searchTimer);state.searchTimer=null;state.page=1;inboxPage(true)}};$('#page-size').onchange=e=>{state.pageSize=Number(e.target.value);state.page=1;inboxPage(true)};$('#prev-page').onclick=()=>{if(state.page>1){state.page--;inboxPage(true)}};$('#next-page').onclick=()=>{if(state.page<Math.max(1,Math.ceil(state.total/state.pageSize))){state.page++;inboxPage(true)}};$('#jump-btn').onclick=()=>{const n=Math.max(1,Number($('#jump-page').value)||1);state.page=n;inboxPage(true)};$('#jump-page').onkeydown=e=>{if(e.key==='Enter')$('#jump-btn').click()}}renderInboxResults();if(state.autoRefresh)startAutoRefresh()}
+    function renderInboxResults(){const totalPages=Math.max(1,Math.ceil(state.total/state.pageSize));controlUpdateText($('#inbox-total'),state.total);controlUpdateText($('#inbox-count'),state.messages.length);controlUpdateText($('#inbox-page-note'),`第 ${state.page} / ${totalPages} 页`);controlUpdateText($('#inbox-domain-count'),state.domains.length);controlUpdateHtml($('#mail-table-body'),state.messages.length?state.messages.map(m=>`<tr class="data-row" data-id="${esc(m.id)}"><td class="subject"><strong class="mail-subject" title="${esc(m.subject||'(无主题)')}">${esc(m.subject||'(无主题)')}</strong></td><td>${renderSender(m.sender)}</td><td>${renderActualSender(m)}</td><td><span class="mail-recipient" title="${esc(formatRecipient(m.envelope_recipient||m.to_header||''))}">${esc(formatRecipient(m.envelope_recipient||m.to_header||''))}</span></td><td>${renderActualRecipient(m)}</td><td>${renderReceivedAt(m.received_at)}</td></tr>`).join(''):`<tr><td colspan="6"><div class="empty"><strong>没有找到邮件</strong>尝试更换搜索关键词。</div></td></tr>`);controlUpdateText($('#inbox-pagination-summary'),`共 ${state.total} 封，当前第 ${state.page} / ${totalPages} 页`);$('#prev-page').disabled=state.page<=1;$('#next-page').disabled=state.page>=totalPages;$('#jump-page').max=totalPages;$('#jump-page').value=state.page;$('#mail-table-body').onclick=event=>{const row=event.target.closest?.('tr[data-id]');if(row)showMessage(row.dataset.id)}}
+    function inboxQueryKey(){return JSON.stringify([state.query,state.page,state.pageSize])}
+    function inboxPage(force=false,background=false){
+      if(state.tab!=='inbox')return Promise.resolve();
+      if(background&&(document.hidden||state.searchTimer||inboxRequest))return Promise.resolve();
+      const page=$('#page'),token=state.token,key=inboxQueryKey();
+      if(inboxRequest?.page===page&&inboxRequest.token===token&&inboxRequest.key===key)return inboxRequest.promise;
+      inboxRequest?.controller?.abort();
+      const controller=typeof AbortController==='function'?new AbortController():null;
+      const request={page,token,key,controller,promise:null};
+      inboxRequest=request;state.refreshInFlight=true;
+      const current=()=>inboxRequest===request&&state.tab==='inbox'&&state.token===token&&$('#page')===page&&inboxQueryKey()===key;
+      const initial=!$('#inbox-shell');
+      if(initial){page.innerHTML=`<div class="inbox-page" id="inbox-shell"><div class="page-head"><div><h2>收件箱</h2><p>集中查看邮件，支持关键词搜索、分页浏览和快速跳转。</p></div></div><div class="grid"><div class="card"><div class="stat-label">邮件总数</div><div class="stat-value" id="inbox-total">0</div><div class="stat-note">当前搜索结果</div></div><div class="card"><div class="stat-label">本页邮件</div><div class="stat-value" id="inbox-count">0</div><div class="stat-note" id="inbox-page-note">第 1 / 1 页</div></div><div class="card"><div class="stat-label">收件域名</div><div class="stat-value" id="inbox-domain-count">0</div></div><div class="card"><div class="stat-label">状态</div><div class="stat-value">在线</div><div class="stat-note">API / SMTP 正常</div></div></div><div class="panel"><div class="panel-head"><div class="panel-title">邮件列表</div><div class="toolbar"><label class="auto-refresh-toggle" title="每 15 秒从服务器同步一次邮件列表"><input id="auto-refresh" type="checkbox" ${state.autoRefresh?"checked":""}>自动刷新</label><div class="search"><span>⌕</span><input id="mail-search" placeholder="搜索主题、实际发件人、实际收件人…" value="${esc(state.query)}"></div><select id="page-size" class="page-size" title="每页显示数量"><option value="20" ${state.pageSize===20?'selected':''}>20 条/页</option><option value="50" ${state.pageSize===50?'selected':''}>50 条/页</option><option value="100" ${state.pageSize===100?'selected':''}>100 条/页</option><option value="500" ${state.pageSize===500?'selected':''}>500 条/页</option><option value="1000" ${state.pageSize===1000?'selected':''}>1000 条/页</option></select></div></div><div class="table-wrap"><table class="table inbox-table"><colgroup><col class="col-subject"><col class="col-sender"><col class="col-actual-sender"><col class="col-recipient"><col class="col-actual-recipient"><col class="col-received"></colgroup><thead><tr><th scope="col">主题</th><th scope="col">发件人</th><th scope="col">实际发件人</th><th scope="col">收件人</th><th scope="col">实际收件人</th><th scope="col">接收时间</th></tr></thead><tbody id="mail-table-body"></tbody></table></div><div class="pagination"><span id="inbox-pagination-summary"></span><div class="pagination-actions"><button class="btn btn-small btn-secondary" id="prev-page">上一页</button><button class="btn btn-small btn-secondary" id="next-page">下一页</button><span>跳转</span><input id="jump-page" class="page-jump" type="number" min="1" value="${state.page}"><button class="btn btn-small btn-secondary" id="jump-btn">确定</button></div></div></div></div>`;$('#auto-refresh').onchange=e=>setAutoRefresh(e.target.checked);$('#mail-search').oninput=e=>{state.query=e.target.value;state.page=1;clearTimeout(state.searchTimer);state.searchTimer=setTimeout(()=>{state.searchTimer=null;inboxPage(true)},180)};$('#mail-search').onkeydown=e=>{if(e.key==='Enter'){clearTimeout(state.searchTimer);state.searchTimer=null;state.page=1;inboxPage(true)}};$('#page-size').onchange=e=>{state.pageSize=Number(e.target.value);state.page=1;inboxPage(true)};$('#prev-page').onclick=()=>{if(state.page>1){state.page--;inboxPage(true)}};$('#next-page').onclick=()=>{if(state.page<Math.max(1,Math.ceil(state.total/state.pageSize))){state.page++;inboxPage(true)}};$('#jump-btn').onclick=()=>{const n=Math.max(1,Number($('#jump-page').value)||1);state.page=n;inboxPage(true)};$('#jump-page').onkeydown=e=>{if(e.key==='Enter')$('#jump-btn').click()};$('#mail-table-body').innerHTML='<tr><td colspan="6"><div class="empty" role="status">正在加载邮件…</div></td></tr>'}
+      const shell=$('#inbox-shell');shell?.setAttribute?.('aria-busy','true');
+      void ensureDomains().then(()=>{if(state.tab==='inbox'&&state.token===token&&$('#page')===page){controlUpdateText($('#inbox-domain-count'),state.domains.length);if(!inboxRequest)renderInboxResults()}});
+      const url=`/messages?limit=${state.pageSize}&offset=${(state.page-1)*state.pageSize}&q=${encodeURIComponent(state.query)}&meta=1`;
+      request.promise=(async()=>{
+        try{
+          const d=await api(url,controller?{signal:controller.signal}:{});
+          if(!current())return;
+          state.messages=d.items||[];state.total=d.total||0;
+          const totalPages=Math.max(1,Math.ceil(state.total/state.pageSize));
+          if(state.page>totalPages){state.page=totalPages;return inboxPage(true)}
+          renderInboxResults();if(state.autoRefresh)startAutoRefresh();
+        }catch(error){
+          if(!current()||error.name==='AbortError')return;
+          if(initial)$('#mail-table-body').innerHTML=`<tr><td colspan="6"><div class="notice warning">${esc(error.message)}</div></td></tr>`;
+          else if(!background)toast(error.message,true);
+        }finally{
+          if(inboxRequest===request){inboxRequest=null;state.refreshInFlight=false;shell?.setAttribute?.('aria-busy','false')}
+        }
+      })();
+      return request.promise;
+    }
     function replyDialog(messageId,message){closeModal();const sender=`test@${primaryDomain()}`;const originalSubject=String(message.subject||'');const subject=originalSubject.toLowerCase().startsWith('re:')?originalSubject:`Re: ${originalSubject}`;$('#modal-root').innerHTML=`<div class="modal-backdrop" id="reply-bg"><div class="modal dialog-modal"><div class="modal-head"><h3>回复邮件</h3><button class="btn btn-ghost" id="reply-close">✕</button></div><form class="modal-body" id="reply-form"><div class="field"><label>发件人</label><input id="reply-from" value="${esc(sender)}" required></div><div class="field"><label>主题</label><input id="reply-subject" value="${esc(subject)}"></div><div class="field"><label>正文</label><textarea id="reply-text" rows="10" required></textarea></div><div id="reply-msg"></div><div class="dialog-actions"><button type="button" class="btn btn-secondary" id="reply-cancel">取消</button><button class="btn btn-primary">加入发件队列</button></div></form></div></div>`;const finish=()=>{$('#modal-root').innerHTML=''};$('#reply-close').onclick=finish;$('#reply-cancel').onclick=finish;$('#reply-bg').onclick=e=>{if(e.target.id==='reply-bg')finish()};$('#reply-form').onsubmit=async e=>{e.preventDefault();const box=$('#reply-msg');box.className='success';box.textContent='正在加入队列…';try{const requestId='reply-'+crypto.randomUUID().replaceAll('-','');const result=await api('/messages/'+encodeURIComponent(messageId)+'/reply',{method:'POST',headers:{'X-Idempotency-Key':requestId},body:JSON.stringify({sender:$('#reply-from').value.trim(),subject:$('#reply-subject').value,text:$('#reply-text').value})});box.textContent=`已入队：${result.request_id||requestId}`;setTimeout(finish,700)}catch(err){box.className='error';box.textContent=err.message}}}
     let activeMessageView=null;
     function messageMetadata(message){return `<div class="meta"><label>发件人</label><div>${renderSender(message.sender)}</div></div><div class="meta"><label>实际发件人</label><div>${renderActualSender(message)}</div></div><div class="meta"><label>收件人</label><div>${esc(formatRecipient(message.envelope_recipient||message.to_header||''))}</div></div><div class="meta"><label>实际收件人</label><div>${renderActualRecipient(message)}</div></div><div class="meta"><label>接收时间</label><div>${esc(fmtDate(message.received_at))}</div></div>`}
@@ -840,7 +923,7 @@
     }
     async function loadDomainProjectOptions(dialog,select,status,selected,token){
       try{
-        const projects=await api('/projects');if(!Array.isArray(projects))throw Error('项目列表响应异常');
+        const projects=await readProjects(true);if(!Array.isArray(projects))throw Error('项目列表响应异常');
         if(state.token!==token||$('#domain-dialog-bg')!==dialog)return;
         state.projects=projects;
         const choices=projects.filter(p=>p.enabled||p.id===selected);
@@ -880,7 +963,7 @@
           await api(editing?`/mail-domains/${encodeURIComponent(editing.domain)}`:'/mail-domains',{method:editing?'PATCH':'POST',body:JSON.stringify(payload)});
           if(state.token!==token)return;
           if($('#domain-dialog-bg')===dialog)closeModal();
-          state.domains=[];
+          invalidateAvailableDomains();
           try{await refreshManagedDomains();if(state.token===token)toast(editing?'域名已更新':'域名已添加')}
           catch(error){if(state.token===token)toast('域名已保存；列表刷新失败：'+error.message,true)}
         }catch(err){if(state.token===token){m.className='error';m.textContent=err.message}}
@@ -906,11 +989,22 @@
       };
     }
     let domainPageRevision=0,domainReadRevision=0;
-    async function fetchManagedDomains(){
+    function readDomainList(force=false){
+      const token=state.token,cached=domainListRequest;
+      if(cached?.token===token&&(!cached.loadedAt||!force&&Date.now()-cached.loadedAt<5000))return cached.promise;
+      const request={token,loadedAt:0,promise:null};
+      request.promise=api('/mail-domains?summary=true').then(items=>{
+        if(!Array.isArray(items))throw Error('域名列表响应无效');
+        request.loadedAt=Date.now();return items;
+      }).catch(error=>{if(domainListRequest===request)domainListRequest=null;throw error});
+      domainListRequest=request;return request.promise;
+    }
+    function warmDomainList(){if(state.token)readDomainList().catch(()=>{})}
+    async function fetchManagedDomains(force=true){
       const revision=++domainReadRevision,token=state.token;
-      const domains=await api('/mail-domains?ready_only=true');
+      const domains=(await readDomainList(force)).filter(d=>!d.claim_id||d.enabled&&d.receive_ready&&d.send_ready);
       if(state.token!==token||revision!==domainReadRevision)return false;
-      state.mailDomains=domains;state.domains=[];
+      state.mailDomains=domains;invalidateAvailableDomains();
       return true;
     }
     async function refreshManagedDomains(){
@@ -946,7 +1040,7 @@
             if(state.token!==token)return;
             if(data?.ok===false)throw Error(data.error||'DNS 同步完成但有失败项');
             result.success++;
-            state.domainSelection.delete(domain.domain);state.domains=[];
+            state.domainSelection.delete(domain.domain);invalidateAvailableDomains();
             if(kind==='delete')state.mailDomains=state.mailDomains.filter(d=>d.domain!==domain.domain);
             else if(kind==='enable'||kind==='disable'){
               const current=state.mailDomains.find(d=>d.domain===domain.domain);
@@ -984,7 +1078,7 @@
       const valid=new Set(state.mailDomains.map(d=>d.domain));
       [...state.domainSelection].forEach(name=>{if(!valid.has(name))state.domainSelection.delete(name)});
       $('#domain-count').textContent=state.mailDomains.length;
-      $('#domain-table-body').innerHTML=items.length?items.map(d=>{const provider=d.dns_provider||'cloudflare';const isCf=provider==='cloudflare',busy=state.domainBusy.has(d.domain),disabled=busy?' disabled title="该域名正在操作中"':'';return `<tr${busy?' class="domain-row-busy"':''}><td><input type="checkbox" data-domain-select="${esc(d.domain)}" aria-label="选择 ${esc(d.domain)}" ${state.domainSelection.has(d.domain)?'checked':''}${disabled}></td><td><div class="head-actions"><button class="btn btn-small btn-secondary" data-edit-domain="${esc(d.domain)}"${disabled}>编辑</button><button class="btn btn-small btn-secondary" data-toggle-domain="${esc(d.domain)}" data-enabled="${d.enabled?'false':'true'}"${disabled}>${d.enabled?'停用':'启用'}</button>${isCf?`<button class="btn btn-small btn-primary" data-provision-domain="${esc(d.domain)}"${disabled}>同步 DNS</button>`:provider==='digitalplat'?`<button class="btn btn-small btn-primary" data-control-domain="${esc(d.domain)}"${disabled}>DNS 计划</button>`:'<span class="muted" style="padding:7px">外部 DNS</span>'}<button class="btn btn-small btn-secondary" data-list-dns-domain="${esc(d.domain)}"${disabled}>查看 DNS</button><button class="btn btn-small btn-danger" data-delete-domain="${esc(d.domain)}"${disabled}>删除</button></div></td><td><strong>${esc(d.domain)}</strong><small class="muted" style="display:block">MX ${esc(d.mx||'—')}</small><small class="muted" style="display:block">项目：${d.project_id?esc(state.projects.find(p=>p.id===d.project_id)?.name||d.project_id):'未分配'}</small></td><td>${d.receive_mode==='catch_all'?'catch-all':esc((d.users||[]).join(', '))}<small class="muted" style="display:block">${d.receive_subdomains?'子域 ≤ '+d.max_subdomain_depth+' 层':'仅管理域'}</small></td><td>${d.registration_enabled?'<span class="pill">已参与</span>':'<span class="muted">已停用</span>'}<small class="muted" style="display:block">${d.registration_ready?'ready':'待验证'}${d.registration_random_subdomain_depth?` · 随机 0–${d.max_subdomain_depth} 层`:''}</small></td><td>${esc(d.dkim_selector||'default')} · ${d.dkim_ready?'<span class="pill">已生成</span>':'<span class="muted">待生成</span>'}</td><td><span class="pill">${domainProviderLabel(provider)}</span>${d.dns_credential_ref?'<small class="muted" style="display:block">已绑定 credential</small>':''}</td><td>${d.enabled?'<span class="pill">启用</span>':'<span class="muted">停用</span>'}<small class="muted" style="display:block">路由 ${esc(d.routing_status||'pending')}<br>收件 ${d.receive_ready?'ready':'待验证'} · 发件 ${d.send_ready?'ready':'待验证'}</small>${d.cf_status&&isCf?`<small class="muted" style="display:block">CF: ${esc(d.cf_status)}</small>`:''}</td></tr>`}).join(''):state.mailDomains.length?'<tr><td colspan="8"><div class="empty"><strong>没有匹配的域名</strong>请更换搜索关键词或清空搜索。</div></td></tr>':'<tr><td colspan="8"><div class="empty"><strong>还没有域名</strong>点击右上方“添加域名”配置第一个域名。</div></td></tr>';
+      controlUpdateHtml($('#domain-table-body'),items.length?items.map(d=>{const provider=d.dns_provider||'cloudflare';const isCf=provider==='cloudflare',busy=state.domainBusy.has(d.domain),disabled=busy?' disabled title="该域名正在操作中"':'';return `<tr data-domain-row="${esc(d.domain)}"${busy?' class="domain-row-busy"':''}><td><input type="checkbox" data-domain-select="${esc(d.domain)}" aria-label="选择 ${esc(d.domain)}" ${state.domainSelection.has(d.domain)?'checked':''}${disabled}></td><td><div class="head-actions"><button class="btn btn-small btn-secondary" data-edit-domain="${esc(d.domain)}"${disabled}>编辑</button><button class="btn btn-small btn-secondary" data-toggle-domain="${esc(d.domain)}" data-enabled="${d.enabled?'false':'true'}"${disabled}>${d.enabled?'停用':'启用'}</button>${isCf?`<button class="btn btn-small btn-primary" data-provision-domain="${esc(d.domain)}"${disabled}>同步 DNS</button>`:provider==='digitalplat'?`<button class="btn btn-small btn-primary" data-control-domain="${esc(d.domain)}"${disabled}>DNS 计划</button>`:'<span class="muted" style="padding:7px">外部 DNS</span>'}<button class="btn btn-small btn-secondary" data-list-dns-domain="${esc(d.domain)}"${disabled}>查看 DNS</button><button class="btn btn-small btn-danger" data-delete-domain="${esc(d.domain)}"${disabled}>删除</button></div></td><td><strong>${esc(d.domain)}</strong><small class="muted" style="display:block">MX ${esc(d.mx||'—')}</small><small class="muted" style="display:block">项目：${d.project_id?esc(state.projects.find(p=>p.id===d.project_id)?.name||d.project_id):'未分配'}</small></td><td>${d.receive_mode==='catch_all'?'catch-all':esc((d.users||[]).join(', '))}<small class="muted" style="display:block">${d.receive_subdomains?'子域 ≤ '+d.max_subdomain_depth+' 层':'仅管理域'}</small></td><td>${d.registration_enabled?'<span class="pill">已参与</span>':'<span class="muted">已停用</span>'}<small class="muted" style="display:block">${d.registration_ready?'ready':'待验证'}${d.registration_random_subdomain_depth?` · 随机 0–${d.max_subdomain_depth} 层`:''}</small></td><td>${esc(d.dkim_selector||'default')} · ${d.dkim_ready?'<span class="pill">已生成</span>':'<span class="muted">待生成</span>'}</td><td><span class="pill">${domainProviderLabel(provider)}</span>${d.dns_credential_ref?'<small class="muted" style="display:block">已绑定 credential</small>':''}</td><td>${d.enabled?'<span class="pill">启用</span>':'<span class="muted">停用</span>'}<small class="muted" style="display:block">路由 ${esc(d.routing_status||'pending')}<br>收件 ${d.receive_ready?'ready':'待验证'} · 发件 ${d.send_ready?'ready':'待验证'}</small>${d.cf_status&&isCf?`<small class="muted" style="display:block">CF: ${esc(d.cf_status)}</small>`:''}</td></tr>`}).join(''):state.mailDomains.length?'<tr><td colspan="8"><div class="empty"><strong>没有匹配的域名</strong>请更换搜索关键词或清空搜索。</div></td></tr>':'<tr><td colspan="8"><div class="empty"><strong>还没有域名</strong>点击右上方“添加域名”配置第一个域名。</div></td></tr>');
       $('#domain-pagination-summary').textContent=`共 ${state.mailDomains.length} 个域名，匹配 ${total} 个；显示 ${total?offset+1:0}–${offset+items.length}，第 ${state.domainPage} / ${totalPages} 页`;
       $('#domain-prev-page').disabled=state.domainPage<=1;$('#domain-next-page').disabled=state.domainPage>=totalPages;
       $('#domain-jump-page').max=totalPages;$('#domain-jump-page').value=state.domainPage;
@@ -1014,8 +1108,9 @@
         const name=b.dataset.listDnsDomain,token=state.token,operation={kind:'read'};
         if(state.domainBusy.has(name))return;
         state.domainBusy.set(name,operation);renderManagedDomainRows();
-        try{const data=await api('/mail-domains/'+encodeURIComponent(name)+'/dns');if(state.token===token&&state.tab==='domains')showDnsRecords(data)}
-        catch(error){if(state.token===token)toast(error.message,true)}
+        const dialog=showDomainDialog('DNS 记录 · '+name,'<div id="dns-loading-content" class="empty">正在读取实际 DNS…</div>');
+        try{const data=await api('/mail-domains/'+encodeURIComponent(name)+'/dns');if(state.token===token&&state.tab==='domains'&&$('#domain-dialog-bg')===dialog){closeModal();showDnsRecords(data)}}
+        catch(error){if(state.token===token&&$('#domain-dialog-bg')===dialog)$('#dns-loading-content').textContent='读取失败：'+error.message}
         finally{if(state.domainBusy.get(name)===operation)state.domainBusy.delete(name);renderManagedDomainRows()}
       });
       $$('[data-delete-domain]').forEach(b=>b.onclick=()=>runDomainOperations('delete',[b.dataset.deleteDomain]));
@@ -1024,7 +1119,7 @@
       const revision=++domainPageRevision,page=$('#page'),token=state.token;
       if(force||!state.mailDomains.length){
         $('#page').innerHTML='<div class="empty">正在加载域名配置…</div>';
-        const loading=fetchManagedDomains();
+        const loading=fetchManagedDomains(force);
         const updateAuth=auth=>{
           if(state.token!==token||revision!==domainPageRevision)return;
           state.cloudflare=auth;
@@ -1064,7 +1159,7 @@
       const revision=++sendHistoryRevision,token=state.token;
       try{
         const data=await api('/send?limit=20');
-        if(state.token!==token||state.tab!=='send'||revision!==sendHistoryRevision)return;
+        if(state.token!==token||state.tab!=='send'||revision!==sendHistoryRevision||$('#send-history-body')!==host)return;
         const rows=data.items||[];
         $('#send-history-summary').textContent=`最近 ${rows.length} 条 / 共 ${Number(data.total??rows.length)} 条 · 可查看正文与附件`;
         host.innerHTML=rows.length?rows.map(r=>`<tr><td><code>${esc(r.request_id)}</code></td><td>${esc(r.sender||'—')}</td><td>${(r.recipients||[]).map(value=>esc(value)).join('<br>')||'—'}</td><td>${sendStatusMarkup(r.status)}<small>${esc(sendTransportLabel(r.transport))} · 接受 ${(r.accepted||[]).length} / 拒绝 ${Object.keys(r.rejected||{}).length}</small></td><td>${esc(fmtDate(r.updated_at||r.created_at))}</td><td><div class="head-actions"><button type="button" class="btn btn-small btn-secondary" data-send-detail="${esc(r.request_id)}">查看详情</button>${['failed','cancelled','submission_unknown'].includes(r.status)?`<button type="button" class="btn btn-small btn-secondary" data-replay-send="${esc(r.request_id)}">重新入队</button>`:''}</div></td></tr>`).join(''):'<tr><td colspan="6"><div class="empty">暂无发件记录</div></td></tr>';
@@ -1074,7 +1169,7 @@
           try{await api('/send/'+encodeURIComponent(button.dataset.replaySend)+'/replay',{method:'POST'});if(state.token!==token)return;toast('发件已重新入队');await loadSendHistory()}
           catch(error){if(state.token===token)toast(error.message,true)}finally{button.disabled=false}
         });
-      }catch(error){if(state.token===token&&state.tab==='send'&&revision===sendHistoryRevision)host.innerHTML=`<tr><td colspan="6"><div class="empty">发件记录读取失败：${esc(error.message)}</div></td></tr>`}
+      }catch(error){if(state.token===token&&state.tab==='send'&&revision===sendHistoryRevision&&$('#send-history-body')===host)host.innerHTML=`<tr><td colspan="6"><div class="empty">发件记录读取失败：${esc(error.message)}</div></td></tr>`}
     }
     async function showSendDetail(requestId){
       const token=state.token,path='/send/'+encodeURIComponent(requestId);
@@ -1107,10 +1202,9 @@
     }
     async function fileToAttachment(file){return await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>{const value=String(reader.result||'');resolve({filename:file.name,content_type:file.type||'application/octet-stream',data_base64:value.includes(',')?value.split(',',2)[1]:value})};reader.onerror=()=>reject(reader.error||Error('附件读取失败'));reader.readAsDataURL(file)})}
     async function sendPage(){
-      const revision=++sendPageRevision,page=$('#page'),token=state.token,domain=primaryDomain(),sender=`test@${domain}`;
-      if(!state.projects.length)state.projects=await api('/projects').catch(()=>[]);
+      const revision=++sendPageRevision,page=$('#page'),token=state.token,sender=state.domains.length?`test@${primaryDomain()}`:'';
       if(state.token!==token||state.tab!=='send'||(revision!==sendPageRevision||$('#page')!==page))return;
-      $('#page').innerHTML=`<div class="send-page"><div class="page-head"><div><h2>发送邮件</h2><p>填写地址、主题和正文即可发送，其他设置按需展开。</p></div><div class="head-actions"><span class="pill">${state.domains.length?`已配置 ${state.domains.length} 个域名`:'尚未配置域名'}</span><button type="button" class="btn btn-small btn-secondary" id="send-manage-domains">管理域名</button></div></div>
+      $('#page').innerHTML=`<div class="send-page"><div class="page-head"><div><h2>发送邮件</h2><p>填写地址、主题和正文即可发送，其他设置按需展开。</p></div><div class="head-actions"><span class="pill" id="send-domain-summary">${state.domains.length?`已配置 ${state.domains.length} 个域名`:'正在加载域名…'}</span><button type="button" class="btn btn-small btn-secondary" id="send-manage-domains">管理域名</button></div></div>
       <div class="send-layout"><div class="card send-compose"><form id="send-form">
         <div class="send-address-grid"><div class="field"><label for="send-from">发件人</label><input id="send-from" value="${esc(sender)}" placeholder="local@your-domain" list="domain-senders" required><datalist id="domain-senders">${state.domains.map(d=>`<option value="test@${esc(d.domain)}"><option value="postmaster@${esc(d.domain)}"><option value="admin@${esc(d.domain)}">`).join('')}</datalist></div>
         <div class="field"><label for="send-to">收件人（多个地址用逗号分隔）</label><input id="send-to" placeholder="recipient@example.com" required></div></div>
@@ -1139,6 +1233,24 @@ Content-Type: application/json
   "text": "邮件正文"
 }</pre></div></details></aside></div>
       <details class="panel send-disclosure send-history" id="send-history"><summary><span><span class="panel-title">最近发件记录</span><small id="send-history-summary">展开查看发送地址、正文与状态</small></span></summary><div class="panel-head"><small class="muted">最新 20 条记录 · 收件自动清理规则不影响发件记录</small><button type="button" class="btn btn-small btn-secondary" id="reload-send-history">刷新记录</button></div><div class="table-wrap"><table class="table send-history-table"><thead><tr><th>请求编号</th><th>发件人</th><th>收件地址</th><th>发送状态 / 通道</th><th>更新时间</th><th>操作</th></tr></thead><tbody id="send-history-body"><tr><td colspan="6"><div class="empty">展开后加载发件记录</div></td></tr></tbody></table></div></details></div>`;
+      // Hydrate this cached form even while another tab is mounted.
+      const currentPage=()=>state.token===token&&revision===sendPageRevision;
+      const senderInput=$('#send-from'),projectSelect=$('#send-project'),senderChoices=$('#domain-senders'),domainSummary=$('#send-domain-summary');
+      let senderEdited=false;senderInput.oninput=()=>{senderEdited=true};
+      void ensureDomains().then(domains=>{
+        if(!currentPage())return;
+        controlUpdateText(domainSummary,domains.length?`已配置 ${domains.length} 个域名`:'尚未配置域名');
+        senderChoices.innerHTML=domains.map(d=>`<option value="test@${esc(d.domain)}"><option value="postmaster@${esc(d.domain)}"><option value="admin@${esc(d.domain)}">`).join('');
+        if(!senderEdited&&senderInput.value===sender&&!sender&&domains.length){senderInput.value=`test@${domains[0].domain}`;senderInput.defaultValue=senderInput.value}
+      });
+      projectSelect.disabled=true;
+      void readProjects().then(projects=>{
+        if(!currentPage())return;
+        const selected=projectSelect.value;
+        projectSelect.innerHTML='<option value="">管理员默认队列</option>'+projects.filter(p=>p.enabled!==false).map(p=>`<option value="${esc(p.id)}">${esc(p.name)} · ${esc(p.id)}</option>`).join('');
+        projectSelect.value=projects.some(p=>p.id===selected&&p.enabled!==false)?selected:'';
+        projectSelect.disabled=false;
+      }).catch(()=>{if(currentPage()){projectSelect.disabled=true;projectSelect.title='项目读取失败，请刷新后重试'}});
       $('#send-manage-domains').onclick=()=>{state.tab='domains';renderPage()};
       const updateAdvancedSummary=()=>{
         const files=Array.from($('#send-attachments').files||[]);
@@ -1182,7 +1294,7 @@ Content-Type: application/json
       const revision=++projectsPageRevision,page=$('#page'),token=state.token;
       $('#page').innerHTML='<div class="empty">正在加载项目…</div>';
       try{
-        const projects=await api('/projects');
+        const projects=await readProjects(true);
         if(state.token!==token||state.tab!=='projects'||(revision!==projectsPageRevision||$('#page')!==page))return;
         state.projects=projects;
         $('#page').innerHTML=`<div class="page-head"><div><h2>项目管理</h2><p>为普通 Key 划分访问范围，管理域名归属和项目状态。</p></div><div class="head-actions"><button class="btn btn-secondary" id="project-domains">管理域名</button><button class="btn btn-secondary" id="project-keys">API Keys</button><button class="btn btn-primary" id="new-project">＋ 创建项目</button></div></div><div class="notice">配置顺序：创建项目 → 在域名管理中选择所属项目 → 给普通 Key 授权项目。调用邮件列表时传入对应项目 ID。</div><div class="panel"><div class="panel-head"><div class="panel-title">已创建项目 · ${projects.length}</div><button class="btn btn-small btn-secondary" id="reload-projects">刷新</button></div><div class="table-wrap"><table class="table"><thead><tr><th>项目 / ID</th><th>状态</th><th>域名</th><th>邮件</th><th>Key</th><th>Webhook</th><th>操作</th></tr></thead><tbody>${projects.length?projects.map(p=>`<tr><td><strong>${esc(p.name)}</strong><small class="muted" style="display:block">${esc(p.id)}</small></td><td>${p.enabled?'<span class="pill">启用</span>':'<span class="muted">已停用</span>'}</td><td>${Number(p.domain_count||0)}</td><td>${Number(p.message_count||0)}</td><td>${Number(p.key_count||0)}</td><td>${Number(p.webhook_count||0)}</td><td><div class="head-actions"><button class="btn btn-small btn-secondary" data-edit-project="${esc(p.id)}">修改</button><button class="btn btn-small btn-secondary" data-copy-project="${esc(p.id)}">复制 ID</button></div></td></tr>`).join(''):'<tr><td colspan="7"><div class="empty"><strong>还没有项目</strong>创建项目后，再配置域名归属和普通 Key 授权。</div></td></tr>'}</tbody></table></div></div><p class="muted">邮件数量按收件时的项目归属统计。修改域名所属项目不会迁移历史邮件；停用项目会暂停项目 Key 访问和项目 Webhook，邮件继续保留。</p>`;
@@ -1213,16 +1325,18 @@ Content-Type: application/json
         }catch(e){if(state.token===token)error.textContent=e.message}finally{button.disabled=false}
       };
     }
-    async function keysPage(force=false){const page=$('#page'),token=state.token,current=()=>state.tab==='keys'&&state.token===token&&$('#page')===page;if(force||!state.keys.length){$('#page').innerHTML='<div class="empty">正在加载 API Keys…</div>';try{const data=await api('/api-keys');if(!current())return;state.keys=data}catch(e){if(!current())return;$('#page').innerHTML=`<div class="notice warning">${esc(e.message)}</div>`;return}}$('#page').innerHTML=`<div class="page-head"><div><h2>API Keys</h2><p>给程序调用发件、收件查询和 Webhook 管理接口使用。密钥只在创建成功时完整显示一次。</p></div><div class="head-actions"><button class="btn btn-primary" id="new-key">＋ 创建 Key</button></div></div><div class="panel"><div class="panel-head"><div class="panel-title">已创建的密钥</div><button class="btn btn-small btn-secondary" id="reload-keys">刷新</button></div><div class="panel-body">${state.keys.length?state.keys.map(k=>`<div class="list-item"><div class="list-main"><strong>${esc(k.name||'未命名')} <span class="pill">${k.key_type==='admin'||k.global_access?'管理员':'普通'}</span></strong><small>创建于 ${fmtDate(k.created_at)} · ID ${k.id}</small></div><div class="head-actions"><button class="btn btn-small btn-secondary" data-edit-key="${k.id}">修改</button><button class="btn btn-small btn-danger" data-del-key="${k.id}">删除</button></div></div>`).join(''):'<div class="empty"><strong>还没有 API Key</strong>创建一个用于业务程序调用。</div>'}</div></div>`;$('#new-key').onclick=createKey;$('#reload-keys').onclick=()=>{state.keys=[];keysPage(true)};$$('[data-edit-key]').forEach(b=>b.onclick=()=>editKey(b.dataset.editKey));$$('[data-del-key]').forEach(b=>b.onclick=()=>deleteKey(b.dataset.delKey))}
+    let keysPageRevision=0,webhooksPageRevision=0;
+    async function keysPage(force=false){const revision=++keysPageRevision,page=$('#page'),token=state.token,current=()=>revision===keysPageRevision&&state.tab==='keys'&&state.token===token&&$('#page')===page;if(force||!state.keys.length){$('#page').innerHTML='<div class="empty">正在加载 API Keys…</div>';try{const data=await api('/api-keys');if(!current())return;state.keys=data}catch(e){if(!current())return;$('#page').innerHTML=`<div class="notice warning">${esc(e.message)}</div>`;return}}$('#page').innerHTML=`<div class="page-head"><div><h2>API Keys</h2><p>给程序调用发件、收件查询和 Webhook 管理接口使用。密钥只在创建成功时完整显示一次。</p></div><div class="head-actions"><button class="btn btn-primary" id="new-key">＋ 创建 Key</button></div></div><div class="panel"><div class="panel-head"><div class="panel-title">已创建的密钥</div><button class="btn btn-small btn-secondary" id="reload-keys">刷新</button></div><div class="panel-body">${state.keys.length?state.keys.map(k=>`<div class="list-item"><div class="list-main"><strong>${esc(k.name||'未命名')} <span class="pill">${k.key_type==='admin'||k.global_access?'管理员':'普通'}</span></strong><small>创建于 ${fmtDate(k.created_at)} · ID ${k.id}</small></div><div class="head-actions"><button class="btn btn-small btn-secondary" data-edit-key="${k.id}">修改</button><button class="btn btn-small btn-danger" data-del-key="${k.id}">删除</button></div></div>`).join(''):'<div class="empty"><strong>还没有 API Key</strong>创建一个用于业务程序调用。</div>'}</div></div>`;$('#new-key').onclick=createKey;$('#reload-keys').onclick=()=>{state.keys=[];keysPage(true)};$$('[data-edit-key]').forEach(b=>b.onclick=()=>editKey(b.dataset.editKey));$$('[data-del-key]').forEach(b=>b.onclick=()=>deleteKey(b.dataset.delKey))}
     const KEY_SCOPE_OPTIONS=[['mail.read','读取邮件'],['mail.send','发送邮件'],['webhook.manage','管理 Webhook'],['domain.manage','域名权限']];
     const keyScopeId=scope=>scope.replaceAll('.','-');
     function keyScopeFields(prefix,scopes){return KEY_SCOPE_OPTIONS.map(([scope,label])=>`<label class="key-scope-option" for="${prefix}-${keyScopeId(scope)}"><input type="checkbox" id="${prefix}-${keyScopeId(scope)}" ${scopes.includes(scope)?'checked':''}><span>${label}<small>${scope}</small></span></label>`).join('')}
     async function createKey(){
-      try{state.projects=await api('/projects');keyForm()}catch(e){toast(e.message,true)}
+      const token=state.token,dialog=showDomainDialog('创建 API Key','<div class="empty">正在加载项目…</div>');
+      try{await readProjects();if(state.token===token&&$('#domain-dialog-bg')===dialog){closeModal();keyForm()}}catch(e){if(state.token===token&&$('#domain-dialog-bg')===dialog)toast(e.message,true)}
     }
     async function editKey(id){
-      const token=state.token;
-      try{const [key,projects]=await Promise.all([api('/api-keys/'+encodeURIComponent(id)),api('/projects')]);if(state.token!==token)return;state.projects=projects;keyForm(key)}catch(e){toast(e.message,true)}
+      const token=state.token,dialog=showDomainDialog('修改 API Key','<div class="empty">正在加载密钥权限…</div>');
+      try{const [key,projects]=await Promise.all([api('/api-keys/'+encodeURIComponent(id)),readProjects()]);if(state.token!==token||$('#domain-dialog-bg')!==dialog)return;state.projects=projects;closeModal();keyForm(key)}catch(e){if(state.token===token&&$('#domain-dialog-bg')===dialog)toast(e.message,true)}
     }
     function keyForm(editing=null){
       const scopes=editing?.scopes||['mail.read','mail.send','webhook.manage'];
@@ -1266,8 +1380,13 @@ Content-Type: application/json
       };
     }
     async function deleteKey(id){if(!await appConfirm('确定删除这个 API Key？删除后使用它的程序会立即失效。'))return;try{await api('/api-keys/'+id,{method:'DELETE'});state.keys=[];keysPage(true);toast('API Key 已删除')}catch(e){toast(e.message,true)}}
-    async function showWebhookDeliveries(id,url){try{const [history,dead]=await Promise.all([api(`/webhooks/${id}/deliveries?limit=100`),api(`/webhooks/${id}/dead-letter?limit=100`)]);const rows=history.items||[];const failed=dead.items||[];$('#modal-root').innerHTML=`<div class="modal-backdrop" id="hook-delivery-bg"><div class="modal" style="max-width:980px"><div class="modal-head"><h3>Webhook 投递 · ${esc(url)}</h3><button class="btn btn-ghost" id="close-hook-delivery">✕</button></div><div class="modal-body"><div class="notice" style="margin-bottom:14px">总投递 ${history.total||0} · dead-letter ${dead.total||0}</div><div class="table-wrap"><table class="table"><thead><tr><th>状态</th><th>event_id</th><th>尝试</th><th>错误</th><th>更新时间</th><th>操作</th></tr></thead><tbody>${rows.length?rows.map(r=>`<tr><td>${esc(r.status)}</td><td style="word-break:break-all">${esc(r.event_id)}</td><td>${esc(r.attempts)}</td><td style="word-break:break-word">${esc(r.last_error||'—')}</td><td>${esc(fmtDate(r.updated_at))}</td><td>${r.status==='failed'||r.status==='cancelled'?`<button class="btn btn-small btn-secondary" data-replay-hook="${r.id}">重放</button>`:'—'}</td></tr>`).join(''):`<tr><td colspan="6"><div class="empty">暂无投递记录</div></td></tr>`}</tbody></table></div><p class="muted" style="margin-top:14px">dead-letter 中的失败事件可显式重放；系统不会自动重复提交不确定事件。</p></div></div></div>`;$('#close-hook-delivery').onclick=closeModal;$('#hook-delivery-bg').onclick=e=>{if(e.target.id==='hook-delivery-bg')closeModal()};$$('[data-replay-hook]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await api(`/webhooks/${id}/deliveries/${b.dataset.replayHook}/replay`,{method:'POST'});toast('Webhook 事件已重新入队');showWebhookDeliveries(id,url)}catch(e){toast(e.message,true)}finally{b.disabled=false}})}catch(e){toast(e.message,true)}}
-    function webhookKindLabel(kind){return kind==='mail_stack'?'mail-stack 专用接口':'共享接口'}async function webhooksPage(force=false){const page=$('#page'),token=state.token,current=()=>state.tab==='webhooks'&&state.token===token&&$('#page')===page;if(force||!state.webhooks.length){$('#page').innerHTML='<div class="empty">正在加载 Webhook…</div>';try{const data=await api('/webhooks');if(!current())return;state.webhooks=data}catch(e){if(!current())return;$('#page').innerHTML=`<div class="notice warning">${esc(e.message)}</div>`;return}}$('#page').innerHTML=`<div class="page-head"><div><h2>推送 Webhook</h2><p>收到新邮件和 outbound 状态报告后，系统会写入持久 outbox，失败事件可在投递记录中显式重放。</p></div><div class="head-actions"><button class="btn btn-primary" id="new-hook">＋ 添加 Webhook</button></div></div><div class="two-col"><div class="panel" style="margin-top:0"><div class="panel-head"><div class="panel-title">已配置的地址</div><button class="btn btn-small btn-secondary" id="reload-hooks">刷新</button></div><div class="panel-body">${state.webhooks.length?state.webhooks.map(h=>`<div class="list-item"><div class="list-main"><strong>${esc(h.url)}</strong><small><span class="pill">${webhookKindLabel(h.kind)}</span> · 创建于 ${fmtDate(h.created_at)} · ${h.enabled?'已启用':'已停用'}</small></div><div class="head-actions"><button class="btn btn-small btn-secondary" data-toggle-hook="${h.id}" data-enabled="${h.enabled?'false':'true'}">${h.enabled?'停用':'启用'}</button><button class="btn btn-small btn-secondary" data-view-hook="${h.id}">投递记录</button><button class="btn btn-small btn-danger" data-del-hook="${h.id}">删除</button></div></div>`).join(''):'<div class="empty"><strong>还没有 Webhook</strong>添加地址后，新邮件会自动推送。</div>'}</div></div><div class="card"><h3 style="margin-top:0">接口类型</h3><p class="muted"><strong>mail-stack 专用接口</strong>：接收 project-scoped 的 message.received 和 outbound.status_reported 事件。<br><strong>共享接口</strong>：兼容 SFREG、HME、OpenAI CPA 等旧邮件 Payload。</p><h3>接收与验签</h3><p class="muted">推送请求包含以下 Header：</p><pre class="code">Content-Type: application/json
+    async function showWebhookDeliveries(id,url){
+      closeModal();const token=state.token;
+      $('#modal-root').innerHTML=`<div class="modal-backdrop" id="hook-delivery-bg"><div class="modal"><div class="modal-head"><h3>Webhook 投递 · ${esc(url)}</h3><button class="btn btn-ghost" id="close-hook-delivery">✕</button></div><div class="modal-body" id="hook-delivery-loading"><div class="empty">正在加载投递记录…</div></div></div></div>`;
+      const dialog=$('#hook-delivery-bg'),current=()=>state.token===token&&$('#hook-delivery-bg')===dialog;
+      $('#close-hook-delivery').onclick=closeModal;dialog.onclick=e=>{if(e.target===dialog)closeModal()};
+      try{const [history,dead]=await Promise.all([api(`/webhooks/${id}/deliveries?limit=100`),api(`/webhooks/${id}/dead-letter?limit=100`)]);if(!current())return;const rows=history.items||[];const failed=dead.items||[];$('#modal-root').innerHTML=`<div class="modal-backdrop" id="hook-delivery-bg"><div class="modal" style="max-width:980px"><div class="modal-head"><h3>Webhook 投递 · ${esc(url)}</h3><button class="btn btn-ghost" id="close-hook-delivery">✕</button></div><div class="modal-body"><div class="notice" style="margin-bottom:14px">总投递 ${history.total||0} · dead-letter ${dead.total||0}</div><div class="table-wrap"><table class="table"><thead><tr><th>状态</th><th>event_id</th><th>尝试</th><th>错误</th><th>更新时间</th><th>操作</th></tr></thead><tbody>${rows.length?rows.map(r=>`<tr><td>${esc(r.status)}</td><td style="word-break:break-all">${esc(r.event_id)}</td><td>${esc(r.attempts)}</td><td style="word-break:break-word">${esc(r.last_error||'—')}</td><td>${esc(fmtDate(r.updated_at))}</td><td>${r.status==='failed'||r.status==='cancelled'?`<button class="btn btn-small btn-secondary" data-replay-hook="${r.id}">重放</button>`:'—'}</td></tr>`).join(''):`<tr><td colspan="6"><div class="empty">暂无投递记录</div></td></tr>`}</tbody></table></div><p class="muted" style="margin-top:14px">dead-letter 中的失败事件可显式重放；系统不会自动重复提交不确定事件。</p></div></div></div>`;$('#close-hook-delivery').onclick=closeModal;$('#hook-delivery-bg').onclick=e=>{if(e.target.id==='hook-delivery-bg')closeModal()};$$('[data-replay-hook]').forEach(b=>b.onclick=async()=>{b.disabled=true;try{await api(`/webhooks/${id}/deliveries/${b.dataset.replayHook}/replay`,{method:'POST'});toast('Webhook 事件已重新入队');showWebhookDeliveries(id,url)}catch(e){toast(e.message,true)}finally{b.disabled=false}})}catch(e){if(current())$('#hook-delivery-loading').textContent='读取失败：'+e.message}}
+    function webhookKindLabel(kind){return kind==='mail_stack'?'mail-stack 专用接口':'共享接口'}async function webhooksPage(force=false){const revision=++webhooksPageRevision,page=$('#page'),token=state.token,current=()=>revision===webhooksPageRevision&&state.tab==='webhooks'&&state.token===token&&$('#page')===page;if(force||!state.webhooks.length){$('#page').innerHTML='<div class="empty">正在加载 Webhook…</div>';try{const data=await api('/webhooks');if(!current())return;state.webhooks=data}catch(e){if(!current())return;$('#page').innerHTML=`<div class="notice warning">${esc(e.message)}</div>`;return}}$('#page').innerHTML=`<div class="page-head"><div><h2>推送 Webhook</h2><p>收到新邮件和 outbound 状态报告后，系统会写入持久 outbox，失败事件可在投递记录中显式重放。</p></div><div class="head-actions"><button class="btn btn-primary" id="new-hook">＋ 添加 Webhook</button></div></div><div class="two-col"><div class="panel" style="margin-top:0"><div class="panel-head"><div class="panel-title">已配置的地址</div><button class="btn btn-small btn-secondary" id="reload-hooks">刷新</button></div><div class="panel-body">${state.webhooks.length?state.webhooks.map(h=>`<div class="list-item"><div class="list-main"><strong>${esc(h.url)}</strong><small><span class="pill">${webhookKindLabel(h.kind)}</span> · 创建于 ${fmtDate(h.created_at)} · ${h.enabled?'已启用':'已停用'}</small></div><div class="head-actions"><button class="btn btn-small btn-secondary" data-toggle-hook="${h.id}" data-enabled="${h.enabled?'false':'true'}">${h.enabled?'停用':'启用'}</button><button class="btn btn-small btn-secondary" data-view-hook="${h.id}">投递记录</button><button class="btn btn-small btn-danger" data-del-hook="${h.id}">删除</button></div></div>`).join(''):'<div class="empty"><strong>还没有 Webhook</strong>添加地址后，新邮件会自动推送。</div>'}</div></div><div class="card"><h3 style="margin-top:0">接口类型</h3><p class="muted"><strong>mail-stack 专用接口</strong>：接收 project-scoped 的 message.received 和 outbound.status_reported 事件。<br><strong>共享接口</strong>：兼容 SFREG、HME、OpenAI CPA 等旧邮件 Payload。</p><h3>接收与验签</h3><p class="muted">推送请求包含以下 Header：</p><pre class="code">Content-Type: application/json
 X-Email-Webhook-Secret: YOUR_SHARED_SECRET
 X-Webhook-Timestamp: 1790990000
 X-Webhook-Signature: sha256=...</pre><p class="muted">签名原文为 <code>timestamp + "." + request_body</code>。使用创建 Webhook 时填写的 secret，通过 HMAC-SHA256 计算并与 Header 比较。</p></div></div>`;$('#new-hook').onclick=createWebhook;$('#reload-hooks').onclick=()=>{state.webhooks=[];webhooksPage(true)};$$('[data-toggle-hook]').forEach(b=>b.onclick=()=>toggleWebhook(b.dataset.toggleHook,b.dataset.enabled==='true'));$$('[data-view-hook]').forEach(b=>b.onclick=()=>{const h=state.webhooks.find(x=>String(x.id)===b.dataset.viewHook);if(h)showWebhookDeliveries(h.id,h.url)});$$('[data-del-hook]').forEach(b=>b.onclick=()=>deleteWebhook(b.dataset.delHook))}
@@ -1287,7 +1406,7 @@ const expected = crypto.createHmac("sha256", SECRET)
 if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
   return res.sendStatus(401);
 }`;$('#page').innerHTML=`<div class="page-head"><div><h2>安全与文档</h2><p>修改管理员密码，并查看外部程序调用所需的接口示例。</p></div></div><div class="two-col"><div class="card"><h3 style="margin-top:0">修改管理员密码</h3><p class="muted">修改成功后当前会话会失效，需要重新登录。</p><form id="password-form"><div class="field"><label>当前密码</label><input id="current-password" type="password" required></div><div class="field"><label>新密码（至少 8 位）</label><input id="new-password" type="password" minlength="8" required></div><div class="field"><label>确认新密码</label><input id="confirm-password" type="password" minlength="8" required></div><div id="password-msg"></div><button class="btn btn-primary">更新密码</button></form></div><div class="card"><h3 style="margin-top:0">快速接口索引</h3><div class="list-item"><div class="list-main"><strong>域名配置</strong><small>GET /api/v1/domains</small></div><button class="btn btn-small btn-secondary" data-copy="GET https://mail.example.com/api/v1/domains">复制</button></div><div class="list-item"><div class="list-main"><strong>收件查询</strong><small>GET /api/v1/messages?q=关键词</small></div><button class="btn btn-small btn-secondary" data-copy="GET https://mail.example.com/api/v1/messages?q=关键词">复制</button></div><div class="list-item"><div class="list-main"><strong>持久发件队列</strong><small>POST /api/v1/send/queue · GET /api/v1/send/{request_id}</small></div><button class="btn btn-small btn-secondary" data-copy="POST https://mail.example.com/api/v1/send/queue">复制</button></div><div class="list-item"><div class="list-main"><strong>DNS 库存</strong><small>GET /api/v1/mail-domains/{domain}/dns · provider-aware</small></div><button class="btn btn-small btn-secondary" data-copy="GET https://mail.example.com/api/v1/mail-domains/{domain}/dns">复制</button></div><div class="list-item"><div class="list-main"><strong>Webhook 管理</strong><small>GET/POST/PATCH/DELETE /api/v1/webhooks</small></div><button class="btn btn-small btn-secondary" data-copy="GET https://mail.example.com/api/v1/webhooks">复制</button></div></div></div><div class="card" id="retention-card" style="margin-top:16px"><h3 style="margin-top:0">邮件自动清理</h3><p class="muted">自动删除超过保留期限的邮件正文、原始文件和 Maildir 副本；存储超过上限时按最早邮件清理到上限的一半。默认保留 3 天、存储上限 2GB。</p><form id="retention-form"><div class="field"><label>保留天数</label><input id="retention-days" type="number" min="1" max="3650" value="3" required><small class="muted">范围 1–3650 天，修改后立即用于下一次自动清理。</small></div><div class="field"><label>邮件存储上限（GB）</label><input id="max-storage-gb" type="number" min="0.1" max="10000" step="0.1" value="2" required><small class="muted">默认 2GB；超过后自动删除最早邮件，直到约 1GB。</small></div><div id="retention-msg"></div><div class="head-actions"><button class="btn btn-primary">保存设置</button><button class="btn btn-secondary" type="button" id="run-retention">立即清理</button></div><small class="muted" id="retention-status"></small></form></div><div class="panel"><div class="panel-head"><div class="panel-title">Webhook 验签示例 · Python</div><button class="btn btn-small btn-secondary" data-copy-code="py">复制</button></div><div class="panel-body"><pre class="code" id="py-code">${esc(py)}</pre></div></div><div class="panel"><div class="panel-head"><div class="panel-title">Webhook 验签示例 · Node.js</div><button class="btn btn-small btn-secondary" data-copy-code="js">复制</button></div><div class="panel-body"><pre class="code" id="js-code">${esc(js)}</pre></div></div>`;loadRetentionSettings();$('#retention-form').onsubmit=saveRetention;$('#run-retention').onclick=runRetention;$('#password-form').onsubmit=changePassword;$$('[data-copy]').forEach(b=>b.onclick=()=>copyText(b.dataset.copy));$$('[data-copy-code]').forEach(b=>b.onclick=()=>copyText(b.dataset.copyCode==='py'?py:js))}
-    async function loadRetentionSettings(){try{const r=await api('/retention');$('#retention-days').value=r.days;$('#max-storage-gb').value=r.max_storage_gb;const usage=`当前占用 ${r.storage_used_gb}GB / 上限 ${r.max_storage_gb}GB`;$('#retention-status').textContent=r.last_cleanup_at?`上次清理：${fmtDate(r.last_cleanup_at)} · 删除 ${r.last_cleanup?.removed_messages||0} 封 · ${usage}`:`尚未执行过清理 · ${usage}`;}catch(e){$('#retention-msg').className='error';$('#retention-msg').textContent=e.message}}
+    async function loadRetentionSettings(){const page=$('#page'),token=state.token,current=()=>state.token===token&&state.tab==='security'&&$('#page')===page&&$('#retention-days');try{const r=await api('/retention');if(!current())return;$('#retention-days').value=r.days;$('#max-storage-gb').value=r.max_storage_gb;const usage=`当前占用 ${r.storage_used_gb}GB / 上限 ${r.max_storage_gb}GB`;$('#retention-status').textContent=r.last_cleanup_at?`上次清理：${fmtDate(r.last_cleanup_at)} · 删除 ${r.last_cleanup?.removed_messages||0} 封 · ${usage}`:`尚未执行过清理 · ${usage}`;}catch(e){if(!current())return;$('#retention-msg').className='error';$('#retention-msg').textContent=e.message}}
     async function saveRetention(e){e.preventDefault();const m=$('#retention-msg');m.className='success';m.textContent='保存中…';try{const r=await api('/retention',{method:'PUT',body:JSON.stringify({days:Number($('#retention-days').value),max_storage_gb:Number($('#max-storage-gb').value)})});$('#retention-days').value=r.days;$('#max-storage-gb').value=r.max_storage_gb;m.textContent=`自动清理设置已保存；超过 ${r.max_storage_gb}GB 时将清理到约 ${r.storage_target_gb}GB`;loadRetentionSettings();}catch(err){m.className='error';m.textContent=err.message}}
     async function runRetention(){const m=$('#retention-msg');m.className='success';m.textContent='清理中…';try{const r=await api('/retention/cleanup',{method:'POST'});const freed=(r.removed_bytes/1024/1024/1024).toFixed(3);m.textContent=`清理完成：删除 ${r.removed_messages} 封过期邮件、${r.size_removed_messages||0} 封超限邮件，释放约 ${freed}GB`;$('#retention-status').textContent=`刚刚清理 · 当前占用 ${(r.storage_after_bytes/1024/1024/1024).toFixed(3)}GB / 上限 ${(r.storage_limit_bytes/1024/1024/1024).toFixed(3)}GB`;inboxPage(true)}catch(err){m.className='error';m.textContent=err.message}}
     async function changePassword(e){e.preventDefault();const m=$('#password-msg');if($('#new-password').value!==$('#confirm-password').value){m.className='error';m.textContent='两次输入的新密码不一致';return}m.className='success';m.textContent='更新中…';try{await api('/auth/password',{method:'POST',body:JSON.stringify({current_password:$('#current-password').value,new_password:$('#new-password').value})});m.textContent='密码已更新，正在返回登录页…';setTimeout(()=>logout(false),700)}catch(err){m.className='error';m.textContent=err.message}}
@@ -1304,7 +1423,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
     }
     function controlNodeKey(node){
       if(node.nodeType!==1)return '';
-      return node.id||(node.tagName==='TR'?node.querySelector('[data-control-select]')?.getAttribute('data-control-select'):'')||'';
+      return node.id||(node.tagName==='TR'?(node.getAttribute('data-id')||node.getAttribute('data-domain-row')||node.querySelector('[data-control-select]')?.getAttribute('data-control-select')):'')||'';
     }
     function controlPatchChildren(target,incoming){
       const wanted=[...incoming.childNodes],keys=new Set(wanted.map(controlNodeKey).filter(Boolean));
@@ -1651,7 +1770,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
           }
         }
         if(state.token!==token)return;
-        if(completed.length){state.mailDomains=[];state.domains=[]}
+        if(completed.length){state.mailDomains=[];invalidateAvailableDomains()}
         const progressRefresh=progressChanged&&Date.now()-controlJobProgressRefreshAt>=10000;
         let refreshed=false;
         if(state.tab==='control'&&(refresh||progressRefresh)){
@@ -1701,7 +1820,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
         }else watchControlJob(job,{domain,notify,onComplete:options.onComplete,onCancel:options.onCancel});
       }
       else {
-        unlockControlDomain(domain);state.mailDomains=[];state.domains=[];
+        unlockControlDomain(domain);state.mailDomains=[];invalidateAvailableDomains();
         watchClaimHostingJobs(job);
         if(state.tab==='control')await refreshControlLists();
         const continuation=controlJobWatchers.get(job.result?.completion_job?.id);
@@ -2027,7 +2146,16 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
     }
 
     const controlProviderLabel=p=>p==='digitalplat'?'DigitalPlat':p==='cloudflare'?'Cloudflare':p==='dynv6'?'dynv6':'手工 DNS';
-    function claimForDomain(domain){const name=typeof domain==='string'?domain:domain?.domain;return state.controlClaims.find(c=>c.domain===name||Boolean(domain?.claim_id&&c.id===domain.claim_id))}
+    let claimIndexRows=null,claimIndexSize=0,claimsByDomain=new Map(),claimsById=new Map();
+    function claimForDomain(domain){
+      const rows=state.controlClaims;
+      if(claimIndexRows!==rows||claimIndexSize!==rows.length){
+        claimIndexRows=rows;claimIndexSize=rows.length;claimsByDomain=new Map();claimsById=new Map();
+        rows.forEach((claim,index)=>{if(!claimsByDomain.has(claim.domain))claimsByDomain.set(claim.domain,{claim,index});if(!claimsById.has(claim.id))claimsById.set(claim.id,{claim,index})});
+      }
+      const byDomain=claimsByDomain.get(typeof domain==='string'?domain:domain?.domain),byId=domain?.claim_id?claimsById.get(domain.claim_id):null;
+      return (!byId||byDomain&&byDomain.index<byId.index?byDomain:byId)?.claim;
+    }
     function claimNameservers(claim){return (Array.isArray(claim?.nameservers)?claim.nameservers:[]).map(v=>String(v||'').trim()).filter(Boolean)}
     const CLAIM_STATUS_LABELS={imported:'已导入',reserved:'已预留',claimed:'已领取',allocated:'已分配',available:'可领取',pending:'待处理',queued:'排队中',running:'处理中',awaiting_dns:'待配置 DNS',validating:'验证中',active:'已激活',enabled:'已启用',disabled:'已停用',partial:'部分完成',failed:'失败',released:'已释放',releasing:'释放中',revoked:'已撤销',expired:'已过期',unknown:'待核对'};
     function claimStatusLabel(claim){const status=String(claim?.status||'—'),upstream=String(claim?.upstream_status||''),label=value=>CLAIM_STATUS_LABELS[value]||value;return upstream&&upstream!==status?`${label(status)} · ${label(upstream)}`:label(status)}
@@ -2085,6 +2213,8 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
       const filter=state.controlDns,q=filter.query.trim().toLowerCase(),processing=controlProcessingDomains();
       if(!CONTROL_DNS_STATUSES.some(([value])=>value===filter.status))filter.status='pending';
       const matched=state.controlDomains.filter(d=>{
+        if(filter.provider&&d.dns_provider!==filter.provider)return false;
+        if(!q)return true;
         const claim=claimForDomain(d);const nameservers=(d.dns_provider==='cloudflare'?(state.controlHosting?.[d.domain]?.nameservers||[]):claimNameservers(claim)).join(' ');
         return (!filter.provider||d.dns_provider===filter.provider)&&(!q||[d.domain,d.dns_provider,controlProviderLabel(d.dns_provider),controlDnsBindingLabel(d),d.dns_credential_ref,nameservers,claim?.status,claim?.upstream_status,claimStatusLabel(claim),claimSourceLabel(claim),controlDnsStatus(d),({pending:'未就绪',processing:'处理中',ready:'已就绪'})[controlDomainGroup(d,processing)],d.enabled?'启用':'停用'].join(' ').toLowerCase().includes(q));
       });
@@ -2101,7 +2231,19 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
     }
     const CONTROL_CONFIG_PROVIDERS=['digitalplat','cloudflare','dynv6'];
     const CONTROL_CONFIG_NOTES={digitalplat:'按需准备托管，预览后应用并自动验证',cloudflare:'按需创建 Zone，配置 DNS 后完成 NS 委派并自动验证',dynv6:'使用已登记的 Zone，预览后应用并自动验证'};
-    function controlConfigEligible(domain){return CONTROL_CONFIG_PROVIDERS.includes(domain.dns_provider)&&Boolean(domain.dns_credential_ref)&&state.controlCredentials.some(c=>c.id===domain.dns_credential_ref&&c.provider===domain.dns_provider&&(!c.domain||c.domain===domain.domain))}
+    let credentialIndexRows=null,credentialIndexSize=0,credentialsById=new Map();
+    function controlCredential(id){
+      const rows=state.controlCredentials;
+      if(credentialIndexRows!==rows||credentialIndexSize!==rows.length){
+        credentialIndexRows=rows;credentialIndexSize=rows.length;credentialsById=new Map();
+        for(const credential of rows)if(!credentialsById.has(credential.id))credentialsById.set(credential.id,credential);
+      }
+      return credentialsById.get(id);
+    }
+    function controlConfigEligible(domain){
+      const credential=controlCredential(domain.dns_credential_ref);
+      return CONTROL_CONFIG_PROVIDERS.includes(domain.dns_provider)&&Boolean(domain.dns_credential_ref)&&Boolean(credential&&credential.provider===domain.dns_provider&&(!credential.domain||credential.domain===domain.domain));
+    }
     function closeControlBulkMenus(){
       for(const menu of [$('#control-bulk-configure-menu'),$('#control-bulk-more-menu'),$$('.control-row-menu')].flat()){
         if(menu?.matches?.(':popover-open'))menu.hidePopover();
@@ -2348,7 +2490,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
     }
     function controlDnsBindingLabel(domain){
       if(domain.dns_provider==='manual')return '外部控制台维护';
-      if(domain.dns_credential_ref)return state.controlCredentials.find(c=>c.id===domain.dns_credential_ref)?.label||'凭据缺失';
+      if(domain.dns_credential_ref)return controlCredential(domain.dns_credential_ref)?.label||'凭据缺失';
       return domain.dns_provider==='cloudflare'&&state.controlGlobalCloudflare?.configured?'全局 Cloudflare 凭据':'未绑定 DNS 凭据';
     }
     function controlDnsCredentialCell(domain){
@@ -2485,7 +2627,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
     async function loadControlLists(){
       const token=state.token;
       try{
-        const [sources,credentials,jobs,domains,claims]=await Promise.all([api('/domain-sources'),api('/dns-credentials'),api('/domain-jobs?limit=1'),api('/mail-domains'),api('/domain-claims')]);
+        const [sources,credentials,jobs,domains,claims]=await Promise.all([api('/domain-sources'),api('/dns-credentials'),api('/domain-jobs?limit=1&overview=true'),readDomainList(true),api('/domain-claims')]);
         if(state.tab!=='control'||state.token!==token)return false;
         state.controlSources=sources.items||[];state.controlDomains=domains;state.controlClaims=claims?.items||[];state.controlHosting=jobs.domain_hosting||{};state.controlCredentials=credentials.items||[];state.controlGlobalCloudflare=credentials.global_cloudflare||{configured:false};
         const jobSummary=controlJobSummary(jobs),pendingJobs=jobSummary.active;
@@ -2518,7 +2660,7 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
       const token=state.token,page=$('#page');
       $('#page').innerHTML='<div class="empty">正在加载来源、DNS 凭据和持久任务…</div>';
       try{
-        const [sources,credentials,jobs,domains,claims]=await Promise.all([api('/domain-sources'),api('/dns-credentials'),api('/domain-jobs?limit=1'),api('/mail-domains'),api('/domain-claims')]);
+        const [sources,credentials,jobs,domains,claims]=await Promise.all([api('/domain-sources'),api('/dns-credentials'),api('/domain-jobs?limit=1&overview=true'),readDomainList(),api('/domain-claims')]);
         if((revision!==controlRevision||$('#page')!==page)||state.tab!=='control'||state.token!==token)return;
         state.controlSources=sources.items||[];state.controlDomains=domains;state.controlClaims=claims?.items||[];state.controlHosting=jobs.domain_hosting||{};state.controlCredentials=credentials.items||[];state.controlGlobalCloudflare=credentials.global_cloudflare||{configured:false};
         controlPreview=null;
@@ -2560,7 +2702,6 @@ if (!crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected))) {
         $('#clear-control-dns-search').onclick=()=>{filter.query='';filter.provider='';filter.page=1;$('#control-dns-search').value='';$('#control-dns-provider').value='';renderControlUnifiedResults(true)};
         $('#control-dns-prev').onclick=()=>{filter.page--;renderControlUnifiedResults(true)};$('#control-dns-next').onclick=()=>{filter.page++;renderControlUnifiedResults(true)};
         $('#control-dns-jump-btn').onclick=()=>{filter.page=Number($('#control-dns-jump').value);renderControlUnifiedResults(true)};$('#control-dns-jump').onkeydown=e=>{if(e.key==='Enter')return $('#control-dns-jump-btn').onclick()};
-        renderControlUnifiedResults();
 
       }catch(e){if((revision===controlRevision&&$('#page')===page)&&state.tab==='control'&&state.token===token)$('#page').innerHTML=`<div class="notice warning">${esc(e.message)}</div>`}
     }
